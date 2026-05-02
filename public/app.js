@@ -202,6 +202,7 @@ const saveLayoutEditorState = () => {
 
 let layoutEditorState = loadLayoutEditorState();
 let layoutEditorCss = "";
+let shouldFocusTableLayoutName = false;
 
 const scopedSelector = (selector) => {
   if (!selector) return ".preview-content, .print-content";
@@ -1852,6 +1853,11 @@ const loadLayoutEditorValues = () => {
   setLayoutValue("table-layout-name", currentTableLayoutName);
   if (elements.tableLayoutName) {
     elements.tableLayoutName.readOnly = currentTableLayoutName === "default";
+    if (shouldFocusTableLayoutName && currentTableLayoutName !== "default") {
+      elements.tableLayoutName.focus();
+      elements.tableLayoutName.select();
+      shouldFocusTableLayoutName = false;
+    }
   }
   if (elements.tableLayoutProfileDelete) {
     elements.tableLayoutProfileDelete.hidden = currentTableLayoutName === "default";
@@ -5134,6 +5140,7 @@ elements.tableLayoutProfileSelect?.addEventListener("change", () => {
       bundle.layouts[createdName] = JSON.parse(JSON.stringify(source));
       bundle.activeLayout = createdName;
       bundle.pendingNewLayout = createdName;
+      shouldFocusTableLayoutName = true;
     }
   } else {
     bundle.activeLayout = bundle.layouts[nextName] ? nextName : "default";
