@@ -1,0 +1,53 @@
+{
+  "baseUrl": "http://localhost:3210",
+  "outDir": "/app/tmp/visual-smoke-1771160396897",
+  "pages": 8,
+  "pdfPath": "/app/tmp/visual-smoke-1771160396897/export.pdf",
+  "previewImages": [
+    "/app/tmp/visual-smoke-1771160396897/preview-01.png",
+    "/app/tmp/visual-smoke-1771160396897/preview-02.png",
+    "/app/tmp/visual-smoke-1771160396897/preview-03.png",
+    "/app/tmp/visual-smoke-1771160396897/preview-04.png",
+    "/app/tmp/visual-smoke-1771160396897/preview-05.png"
+  ],
+  "pdfImages": [
+    "/app/tmp/visual-smoke-1771160396897/pdf-1.png",
+    "/app/tmp/visual-smoke-1771160396897/pdf-2.png",
+    "/app/tmp/visual-smoke-1771160396897/pdf-3.png",
+    "/app/tmp/visual-smoke-1771160396897/pdf-4.png",
+    "/app/tmp/visual-smoke-1771160396897/pdf-5.png"
+  ],
+  "diffs": [
+    {
+      "page": 1,
+      "diffRatio": 0.05217037098930481,
+      "diffPixels": 44955,
+      "diffPath": "/app/tmp/visual-smoke-1771160396897/diff-01.png"
+    },
+    {
+      "page": 2,
+      "diffRatio": 0.10952934677658942,
+      "diffPixels": 94381,
+      "diffPath": "/app/tmp/visual-smoke-1771160396897/diff-02.png"
+    },
+    {
+      "page": 3,
+      "diffRatio": 0.1196814189691028,
+      "diffPixels": 103129,
+      "diffPath": "/app/tmp/visual-smoke-1771160396897/diff-03.png"
+    },
+    {
+      "page": 4,
+      "diffRatio": 0.1196233938651218,
+      "diffPixels": 103079,
+      "diffPath": "/app/tmp/visual-smoke-1771160396897/diff-04.png"
+    },
+    {
+      "page": 5,
+      "diffRatio": 0.11997734699940582,
+      "diffPixels": 103384,
+      "diffPath": "/app/tmp/visual-smoke-1771160396897/diff-05.png"
+    }
+  ],
+  "warnings": []
+}

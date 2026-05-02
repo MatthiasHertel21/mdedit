@@ -1,0 +1,387 @@
+[
+  {
+    "id": 1,
+    "category": "markdown",
+    "title": "Tabellen-Ausrichtung",
+    "text": "Nutze `:---` für linksbündig, `:---:` für zentriert und `---:` für rechtsbündig in Tabellen.",
+    "example": "| Links | Mitte | Rechts |\n|:------|:-----:|-------:|\n| A     |   B   |      C |"
+  },
+  {
+    "id": 2,
+    "category": "shortcuts",
+    "title": "Schnell kopieren",
+    "text": "Kopiere Markdown mit dem Kopier-Button im Editor oder Text aus der Vorschau.",
+    "example": null
+  },
+  {
+    "id": 31,
+    "category": "shortcuts",
+    "title": "Zwischen Dokumenten wechseln",
+    "text": "Nutze Ctrl+→ und Ctrl+← um schnell durch deine Dokumente in der Historie zu navigieren.",
+    "example": null
+  },
+  {
+    "id": 3,
+    "category": "markdown",
+    "title": "Fußnoten einfügen",
+    "text": "Erstelle Fußnoten mit `[^1]` im Text und `[^1]: Fußnotentext` am Ende.",
+    "example": "Das ist ein Text[^1].\n\n[^1]: Dies ist die Fußnote."
+  },
+  {
+    "id": 4,
+    "category": "features",
+    "title": "Vorschau-Presets",
+    "text": "Wechsle zwischen Wissenschaftlich, Kompakt und Literarisch für verschiedene Lese-Layouts.",
+    "example": null
+  },
+  {
+    "id": 5,
+    "category": "markdown",
+    "title": "Aufgabenlisten",
+    "text": "Erstelle interaktive Checklisten mit `- [ ]` für offen und `- [x]` für erledigt.",
+    "example": "- [ ] Todo\n- [x] Erledigt"
+  },
+  {
+    "id": 6,
+    "category": "markdown",
+    "title": "Emoji-Shortcuts",
+    "text": "Nutze `:smile:`, `:heart:`, `:rocket:` für schnelle Emojis.",
+    "example": ":smile: :heart: :rocket: :+1:"
+  },
+  {
+    "id": 7,
+    "category": "markdown",
+    "title": "Spalten-Layout",
+    "text": "Erstelle zweispaltiges Layout mit `:::: columns` und `:::` für jede Spalte.",
+    "example": ":::: columns\n::: column\nLinke Spalte\n:::\n::: column\nRechte Spalte\n:::\n::::"
+  },
+  {
+    "id": 8,
+    "category": "markdown",
+    "title": "Admonitions",
+    "text": "Hebe wichtige Inhalte hervor mit `::: note`, `::: warning`, `::: danger` oder `::: success`.",
+    "example": "::: warning\nAchtung: Wichtiger Hinweis!\n:::"
+  },
+  {
+    "id": 9,
+    "category": "features",
+    "title": "Baumansicht",
+    "text": "Nutze die Outline-Baumansicht, um schnell durch große Dokumente zu navigieren.",
+    "example": null
+  },
+  {
+    "id": 10,
+    "category": "markdown",
+    "title": "Definitionslisten",
+    "text": "Erstelle strukturierte Definitionen mit `Begriff\n: Definition`.",
+    "example": "Markdown\n: Leichtgewichtige Markup-Sprache\n\nHTML\n: Hypertext Markup Language"
+  },
+  {
+    "id": 11,
+    "category": "markdown",
+    "title": "Hochgestellt & Tiefgestellt",
+    "text": "Nutze `^hochgestellt^` und `~tiefgestellt~` für mathematische Formeln.",
+    "example": "H~2~O und E=mc^2^"
+  },
+  {
+    "id": 12,
+    "category": "markdown",
+    "title": "Text markieren",
+    "text": "Markiere wichtigen Text mit `==markierter Text==`.",
+    "example": "Das ist ==sehr wichtig==!"
+  },
+  {
+    "id": 13,
+    "category": "markdown",
+    "title": "Abkürzungen",
+    "text": "Definiere Abkürzungen mit `*[HTML]: Hypertext Markup Language` am Ende des Dokuments.",
+    "example": "HTML ist toll!\n\n*[HTML]: Hypertext Markup Language"
+  },
+  {
+    "id": 14,
+    "category": "features",
+    "title": "Seitenansicht",
+    "text": "Aktiviere die Seitenansicht für eine Druck-/PDF-ähnliche Vorschau mit Seitenumbrüchen.",
+    "example": null
+  },
+  {
+    "id": 15,
+    "category": "markdown",
+    "title": "Seitenumbruch",
+    "text": "Füge `---pb---` ein, um einen Seitenumbruch für PDF-Export zu erzwingen.",
+    "example": "Seite 1\n\n---pb---\n\nSeite 2"
+  },
+  {
+    "id": 16,
+    "category": "features",
+    "title": "Auto-Speichern",
+    "text": "Deine Dokumente werden automatisch gespeichert – keine Angst vor Datenverlust!",
+    "example": null
+  },
+  {
+    "id": 17,
+    "category": "markdown",
+    "title": "KaTeX Mathematik",
+    "text": "Nutze `$inline$` für Formeln im Text und `$$block$$` für mehrzeilige Formeln.",
+    "example": "Einstein: $E=mc^2$\n\n$$\\sum_{i=1}^n x_i$$"
+  },
+  {
+    "id": 18,
+    "category": "markdown",
+    "title": "Mermaid Diagramme",
+    "text": "Erstelle Flowcharts, Sequenzdiagramme und mehr mit Mermaid-Syntax.",
+    "example": "```mermaid\ngraph TD\n  A[Start] --> B[Ende]\n```"
+  },
+  {
+    "id": 19,
+    "category": "features",
+    "title": "Export-Formate",
+    "text": "Exportiere deine Dokumente als PDF oder DOCX – Mermaid-Diagramme werden automatisch konvertiert.",
+    "example": null
+  },
+  {
+    "id": 20,
+    "category": "markdown",
+    "title": "Attribute hinzufügen",
+    "text": "Füge CSS-Klassen und IDs hinzu mit `{.klasse #id}`.",
+    "example": "## Überschrift {.wichtig #section1}\n\nText {style=\"color: red;\"}"
+  },
+  {
+    "id": 21,
+    "category": "features",
+    "title": "Sidebar immer sichtbar",
+    "text": "Nutze die Anheften-Funktion, um die Sidebar dauerhaft geöffnet zu halten.",
+    "example": null
+  },
+  {
+    "id": 22,
+    "category": "markdown",
+    "title": "Inhaltsverzeichnis",
+    "text": "Füge `[[toc]]` ein, um automatisch ein Inhaltsverzeichnis zu generieren.",
+    "example": "[[toc]]\n\n## Kapitel 1\n## Kapitel 2"
+  },
+  {
+    "id": 23,
+    "category": "markdown",
+    "title": "Typografische Zeichen",
+    "text": "Automatische Umwandlung: `...` → …, `--` → –, `-->` → →, `(c)` → ©",
+    "example": "Das ist ein Test... (c) 2026"
+  },
+  {
+    "id": 24,
+    "category": "features",
+    "title": "Mehrsprachigkeit",
+    "text": "Die App unterstützt Deutsch und Englisch – wechsle in den Einstellungen.",
+    "example": null
+  },
+  {
+    "id": 25,
+    "category": "markdown",
+    "title": "Code mit Syntax-Highlighting",
+    "text": "Nutze dreifache Backticks mit Sprache: ```javascript für farbigen Code.",
+    "example": "```javascript\nconst x = 42;\nconsole.log(x);\n```"
+  },
+  {
+    "id": 26,
+    "category": "features",
+    "title": "Dokumenten-Historie",
+    "text": "Alle gespeicherten Dokumente bleiben in der Historie – durchsuche sie mit der Suche.",
+    "example": null
+  },
+  {
+    "id": 27,
+    "category": "markdown",
+    "title": "Links mit Titel",
+    "text": "Füge Tooltips zu Links hinzu: `[Text](url \"Tooltip\")`.",
+    "example": "[Google](https://google.com \"Suchmaschine\")"
+  },
+  {
+    "id": 28,
+    "category": "features",
+    "title": "Dark Mode",
+    "text": "Wechsle zwischen hellem und dunklem Theme in den Einstellungen.",
+    "example": null
+  },
+  {
+    "id": 29,
+    "category": "markdown",
+    "title": "Blockquotes verschachteln",
+    "text": "Nutze mehrere `>` für verschachtelte Zitate.",
+    "example": "> Zitat Ebene 1\n>> Zitat Ebene 2\n>>> Zitat Ebene 3"
+  },
+  {
+    "id": 30,
+    "category": "features",
+    "title": "Größe anpassen",
+    "text": "Ziehe die Trennlinien zwischen Editor und Vorschau, um die Größe anzupassen.",
+    "example": null
+  },
+  {
+    "id": 32,
+    "category": "markdown",
+    "title": "Tabelle erstellen",
+    "text": "Erstelle Tabellen mit Pipes `|` und Bindestrichen `-` für die Kopfzeile.",
+    "example": "| Spalte 1 | Spalte 2 |\n|----------|----------|\n| Wert A   | Wert B   |\n| Wert C   | Wert D   |"
+  },
+  {
+    "id": 33,
+    "category": "shortcuts",
+    "title": "Mermaid Code Completion",
+    "text": "Nutze Ctrl+Space im Editor für Auto-Completion von Mermaid-Befehlen.",
+    "example": null
+  },
+  {
+    "id": 34,
+    "category": "features",
+    "title": "Eigene Preview-Styles",
+    "text": "Definiere eigene CSS-Styles in den Einstellungen unter 'Eigene Styles', um Vorschau und Export anzupassen.",
+    "example": null
+  },
+  {
+    "id": 35,
+    "category": "mermaid",
+    "title": "Mermaid: Flowchart",
+    "text": "Erstelle Flussdiagramme mit `graph TD` (top-down) oder `graph LR` (left-right). Knoten: `A[Text]`, Pfeile: `-->`",
+    "example": "```mermaid\ngraph TD\n  A[Start] --> B{Entscheidung}\n  B -->|Ja| C[Aktion 1]\n  B -->|Nein| D[Aktion 2]\n```"
+  },
+  {
+    "id": 36,
+    "category": "mermaid",
+    "title": "Mermaid: Sequenzdiagramm",
+    "text": "Zeige Interaktionen mit `sequenceDiagram`. Teilnehmer mit `participant`, Nachrichten mit `->>` oder `-->`.",
+    "example": "```mermaid\nsequenceDiagram\n  participant A as Alice\n  participant B as Bob\n  A->>B: Hallo!\n  B-->>A: Hi!\n```"
+  },
+  {
+    "id": 37,
+    "category": "mermaid",
+    "title": "Mermaid: Gantt-Diagramm",
+    "text": "Plane Projekte mit `gantt`. Definiere Aufgaben mit `section`, Zeiträume mit `:Startdatum, Dauer`.",
+    "example": "```mermaid\ngantt\n  title Projektplan\n  section Phase 1\n  Aufgabe 1 :a1, 2026-01-01, 30d\n  Aufgabe 2 :after a1, 20d\n```"
+  },
+  {
+    "id": 38,
+    "category": "mermaid",
+    "title": "Mermaid: Klassendiagramm",
+    "text": "Modelliere Klassen mit `classDiagram`. Klassen: `class Name`, Beziehungen: `<|--` (Vererbung), `-->` (Assoziation).",
+    "example": "```mermaid\nclassDiagram\n  class Animal {\n    +String name\n    +makeSound()\n  }\n  class Dog {\n    +bark()\n  }\n  Animal <|-- Dog\n```"
+  },
+  {
+    "id": 39,
+    "category": "mermaid",
+    "title": "Mermaid: State-Diagramm",
+    "text": "Zeige Zustandsübergänge mit `stateDiagram-v2`. Zustände: `state Name`, Übergänge: `-->`.",
+    "example": "```mermaid\nstateDiagram-v2\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Active --> [*]\n```"
+  },
+  {
+    "id": 40,
+    "category": "mermaid",
+    "title": "Mermaid: ER-Diagramm",
+    "text": "Modelliere Entitäten mit `erDiagram`. Beziehungen: `||--o{` (1:n), `}o--o{` (n:m).",
+    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ LINE-ITEM : contains\n  CUSTOMER {\n    string name\n    string email\n  }\n```"
+  },
+  {
+    "id": 41,
+    "category": "mermaid",
+    "title": "Mermaid: Pie-Chart",
+    "text": "Erstelle Kreisdiagramme mit `pie`. Format: `\"Label\" : Wert`.",
+    "example": "```mermaid\npie title Verteilung\n  \"Kategorie A\" : 42\n  \"Kategorie B\" : 35\n  \"Kategorie C\" : 23\n```"
+  },
+  {
+    "id": 42,
+    "category": "mermaid",
+    "title": "Mermaid: Git-Graph",
+    "text": "Visualisiere Git-Branching mit `gitGraph`. Befehle: `commit`, `branch`, `merge`, `checkout`.",
+    "example": "```mermaid\ngitGraph\n  commit\n  branch develop\n  checkout develop\n  commit\n  checkout main\n  merge develop\n```"
+  },
+  {
+    "id": 43,
+    "category": "mermaid",
+    "title": "Mermaid: User Journey",
+    "text": "Zeige User-Flows mit `journey`. Schritte: `section Name`, Tasks mit Bewertung 1-5.",
+    "example": "```mermaid\njourney\n  title Kunde kauft Produkt\n  section Suchen\n    Website besuchen: 5: Kunde\n    Produkt finden: 3: Kunde\n  section Kaufen\n    In Warenkorb: 4: Kunde\n    Bezahlen: 2: Kunde\n```"
+  },
+  {
+    "id": 44,
+    "category": "mermaid",
+    "title": "Mermaid: Mindmap",
+    "text": "Erstelle Mindmaps mit `mindmap`. Hierarchie durch Einrückung, Knoten mit Text.",
+    "example": "```mermaid\nmindmap\n  root((Projekt))\n    Planning\n      Tasks\n      Timeline\n    Development\n      Frontend\n      Backend\n```"
+  },
+  {
+    "id": 45,
+    "category": "features",
+    "title": "Tipps deaktivieren",
+    "text": "Du kannst die Anzeige von Tipps in den Einstellungen deaktivieren, wenn du sie nicht mehr sehen möchtest.",
+    "example": null
+  },
+  {
+    "id": 46,
+    "category": "features",
+    "title": "Sidebar erweitern",
+    "text": "Klicke auf die Sidebar, um sie zu erweitern und deine Dokumenten-Historie zu sehen. Klicke erneut, um sie zu minimieren.",
+    "example": null
+  },
+  {
+    "id": 47,
+    "category": "features",
+    "title": "Dateien umsortieren",
+    "text": "Nutze Drag & Drop in der Sidebar, um die Reihenfolge deiner Dokumente zu ändern.",
+    "example": null
+  },
+  {
+    "id": 48,
+    "category": "features",
+    "title": "Dateien löschen",
+    "text": "Fahre mit der Maus über ein Dokument in der Historie und klicke auf das Löschkreuz, um es zu entfernen.",
+    "example": null
+  },
+  {
+    "id": 49,
+    "category": "features",
+    "title": "Inhaltsverzeichnis per Doppelklick",
+    "text": "Doppelklicke auf eine Dokumenten-Card in der Sidebar, um das Inhaltsverzeichnis (Outline) anzuzeigen.",
+    "example": null
+  },
+  {
+    "id": 50,
+    "category": "features",
+    "title": "Spaces organisieren",
+    "text": "Klicke auf den Space-Namen über der History, um die Spaces-Übersicht zu öffnen und Dokumente zwischen Spaces zu verschieben.",
+    "example": null
+  },
+  {
+    "id": 51,
+    "category": "shortcuts",
+    "title": "Zwischen Spaces wechseln",
+    "text": "Nutze Ctrl+↑ und Ctrl+↓ um schnell zwischen deinen Spaces zu wechseln.",
+    "example": null
+  },
+  {
+    "id": 52,
+    "category": "features",
+    "title": "Dokumente in Spaces sortieren",
+    "text": "In der Spaces-Übersicht kannst du Dokumente per Drag & Drop innerhalb eines Space neu ordnen oder zwischen Spaces verschieben.",
+    "example": null
+  },
+  {
+    "id": 53,
+    "category": "features",
+    "title": "Space-Namen bearbeiten",
+    "text": "Doppelklicke auf einen Space-Namen in der Übersicht, um ihn direkt zu bearbeiten. Der Standard-Space kann nicht umbenannt werden.",
+    "example": null
+  },
+  {
+    "id": 54,
+    "category": "features",
+    "title": "Neuen Space erstellen",
+    "text": "Klicke in der Spaces-Übersicht auf das '+'-Symbol, um einen neuen Space zur Organisation deiner Dokumente zu erstellen.",
+    "example": null
+  },
+  {
+    "id": 55,
+    "category": "shortcuts",
+    "title": "KI-Assistent schnell öffnen",
+    "text": "Drücke Alt+Leertaste um den KI-Assistenten zu öffnen oder zu schließen.",
+    "example": null
+  }
+]

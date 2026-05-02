@@ -1,0 +1,387 @@
+[
+  {
+    "id": 1,
+    "category": "markdown",
+    "title": "Table alignment",
+    "text": "Use `:---` for left-aligned, `:---:` for centered, and `---:` for right-aligned cells in tables.",
+    "example": "| Left | Center | Right |\n|:-----|:------:|------:|\n| A    |   B    |     C |"
+  },
+  {
+    "id": 2,
+    "category": "shortcuts",
+    "title": "Quick copy",
+    "text": "Copy Markdown with the copy button in the editor or copy text from the preview.",
+    "example": null
+  },
+  {
+    "id": 31,
+    "category": "shortcuts",
+    "title": "Switch between documents",
+    "text": "Use Ctrl+→ and Ctrl+← to quickly navigate through your documents in the history.",
+    "example": null
+  },
+  {
+    "id": 3,
+    "category": "markdown",
+    "title": "Insert footnotes",
+    "text": "Create footnotes with `[^1]` in the text and `[^1]: footnote text` at the end.",
+    "example": "This is some text[^1].\n\n[^1]: This is the footnote."
+  },
+  {
+    "id": 4,
+    "category": "features",
+    "title": "Preview presets",
+    "text": "Switch between Scientific, Compact, and Literary for different reading layouts.",
+    "example": null
+  },
+  {
+    "id": 5,
+    "category": "markdown",
+    "title": "Task lists",
+    "text": "Create interactive checklists with `- [ ]` for open and `- [x]` for done.",
+    "example": "- [ ] Todo\n- [x] Done"
+  },
+  {
+    "id": 6,
+    "category": "markdown",
+    "title": "Emoji shortcuts",
+    "text": "Use `:smile:`, `:heart:`, `:rocket:` for quick emojis.",
+    "example": ":smile: :heart: :rocket: :+1:"
+  },
+  {
+    "id": 7,
+    "category": "markdown",
+    "title": "Columns layout",
+    "text": "Create a two-column layout with `:::: columns` and `:::` for each column.",
+    "example": ":::: columns\n::: column\nLeft column\n:::\n::: column\nRight column\n:::\n::::"
+  },
+  {
+    "id": 8,
+    "category": "markdown",
+    "title": "Admonitions",
+    "text": "Emphasize important content with `::: note`, `::: warning`, `::: danger`, or `::: success`.",
+    "example": "::: warning\nCaution: Important note!\n:::"
+  },
+  {
+    "id": 9,
+    "category": "features",
+    "title": "Outline tree",
+    "text": "Use the outline tree view to quickly navigate large documents.",
+    "example": null
+  },
+  {
+    "id": 10,
+    "category": "markdown",
+    "title": "Definition lists",
+    "text": "Create structured definitions with `Term\n: Definition`.",
+    "example": "Markdown\n: Lightweight markup language\n\nHTML\n: Hypertext Markup Language"
+  },
+  {
+    "id": 11,
+    "category": "markdown",
+    "title": "Superscript & subscript",
+    "text": "Use `^superscript^` and `~subscript~` for formulas.",
+    "example": "H~2~O and E=mc^2^"
+  },
+  {
+    "id": 12,
+    "category": "markdown",
+    "title": "Highlight text",
+    "text": "Highlight important text with `==highlighted text==`.",
+    "example": "This is ==very important==!"
+  },
+  {
+    "id": 13,
+    "category": "markdown",
+    "title": "Abbreviations",
+    "text": "Define abbreviations with `*[HTML]: Hypertext Markup Language` at the end of the document.",
+    "example": "HTML is great!\n\n*[HTML]: Hypertext Markup Language"
+  },
+  {
+    "id": 14,
+    "category": "features",
+    "title": "Page view",
+    "text": "Enable page view for a print/PDF-like preview with page breaks.",
+    "example": null
+  },
+  {
+    "id": 15,
+    "category": "markdown",
+    "title": "Page break",
+    "text": "Insert `---pb---` to force a page break for PDF export.",
+    "example": "Page 1\n\n---pb---\n\nPage 2"
+  },
+  {
+    "id": 16,
+    "category": "features",
+    "title": "Auto-save",
+    "text": "Your documents are saved automatically — no fear of data loss!",
+    "example": null
+  },
+  {
+    "id": 17,
+    "category": "markdown",
+    "title": "KaTeX math",
+    "text": "Use `$inline$` for inline formulas and `$$block$$` for multi-line formulas.",
+    "example": "Einstein: $E=mc^2$\n\n$$\\sum_{i=1}^n x_i$$"
+  },
+  {
+    "id": 18,
+    "category": "markdown",
+    "title": "Mermaid diagrams",
+    "text": "Create flowcharts, sequence diagrams, and more with Mermaid syntax.",
+    "example": "```mermaid\ngraph TD\n  A[Start] --> B[End]\n```"
+  },
+  {
+    "id": 19,
+    "category": "features",
+    "title": "Export formats",
+    "text": "Export your documents as PDF or DOCX — Mermaid diagrams are converted automatically.",
+    "example": null
+  },
+  {
+    "id": 20,
+    "category": "markdown",
+    "title": "Add attributes",
+    "text": "Add CSS classes and IDs with `{.class #id}`.",
+    "example": "## Heading {.important #section1}\n\nText {style=\"color: red;\"}"
+  },
+  {
+    "id": 21,
+    "category": "features",
+    "title": "Pin the sidebar",
+    "text": "Use the pin function to keep the sidebar always open.",
+    "example": null
+  },
+  {
+    "id": 22,
+    "category": "markdown",
+    "title": "Table of contents",
+    "text": "Insert `[[toc]]` to automatically generate a table of contents.",
+    "example": "[[toc]]\n\n## Chapter 1\n## Chapter 2"
+  },
+  {
+    "id": 23,
+    "category": "markdown",
+    "title": "Typographic replacements",
+    "text": "Automatic conversion: `...` → …, `--` → –, `-->` → →, `(c)` → ©",
+    "example": "This is a test... (c) 2026"
+  },
+  {
+    "id": 24,
+    "category": "features",
+    "title": "Multilingual",
+    "text": "The app supports German and English — switch in the settings.",
+    "example": null
+  },
+  {
+    "id": 25,
+    "category": "markdown",
+    "title": "Code with syntax highlighting",
+    "text": "Use triple backticks with language: ```javascript for highlighted code.",
+    "example": "```javascript\nconst x = 42;\nconsole.log(x);\n```"
+  },
+  {
+    "id": 26,
+    "category": "features",
+    "title": "Document history",
+    "text": "All saved documents remain in the history — search them with the search box.",
+    "example": null
+  },
+  {
+    "id": 27,
+    "category": "markdown",
+    "title": "Links with title",
+    "text": "Add tooltips to links: `[Text](url \"Tooltip\")`.",
+    "example": "[Google](https://google.com \"Search engine\")"
+  },
+  {
+    "id": 28,
+    "category": "features",
+    "title": "Dark mode",
+    "text": "Switch between light and dark themes in the settings.",
+    "example": null
+  },
+  {
+    "id": 29,
+    "category": "markdown",
+    "title": "Nested blockquotes",
+    "text": "Use multiple `>` for nested quotes.",
+    "example": "> Quote level 1\n>> Quote level 2\n>>> Quote level 3"
+  },
+  {
+    "id": 30,
+    "category": "features",
+    "title": "Resize panes",
+    "text": "Drag the divider between the editor and preview to adjust the size.",
+    "example": null
+  },
+  {
+    "id": 32,
+    "category": "markdown",
+    "title": "Create a table",
+    "text": "Create tables with pipes `|` and dashes `-` for the header row.",
+    "example": "| Column 1 | Column 2 |\n|----------|----------|\n| Value A  | Value B  |\n| Value C  | Value D  |"
+  },
+  {
+    "id": 33,
+    "category": "shortcuts",
+    "title": "Mermaid code completion",
+    "text": "Use Ctrl+Space in the editor for Mermaid command auto-completion.",
+    "example": null
+  },
+  {
+    "id": 34,
+    "category": "features",
+    "title": "Custom preview styles",
+    "text": "Define your own CSS styles in the settings under 'Custom Styles' to tailor preview and export.",
+    "example": null
+  },
+  {
+    "id": 35,
+    "category": "mermaid",
+    "title": "Mermaid: Flowchart",
+    "text": "Create flowcharts with `graph TD` (top-down) or `graph LR` (left-right). Nodes: `A[Text]`, arrows: `-->`",
+    "example": "```mermaid\ngraph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Action 1]\n  B -->|No| D[Action 2]\n```"
+  },
+  {
+    "id": 36,
+    "category": "mermaid",
+    "title": "Mermaid: Sequence diagram",
+    "text": "Show interactions with `sequenceDiagram`. Participants with `participant`, messages with `->>` or `-->`.",
+    "example": "```mermaid\nsequenceDiagram\n  participant A as Alice\n  participant B as Bob\n  A->>B: Hello!\n  B-->>A: Hi!\n```"
+  },
+  {
+    "id": 37,
+    "category": "mermaid",
+    "title": "Mermaid: Gantt chart",
+    "text": "Plan projects with `gantt`. Define tasks with `section`, time spans with `:start date, duration`.",
+    "example": "```mermaid\ngantt\n  title Project plan\n  section Phase 1\n  Task 1 :a1, 2026-01-01, 30d\n  Task 2 :after a1, 20d\n```"
+  },
+  {
+    "id": 38,
+    "category": "mermaid",
+    "title": "Mermaid: Class diagram",
+    "text": "Model classes with `classDiagram`. Classes: `class Name`, relationships: `<|--` (inheritance), `-->` (association).",
+    "example": "```mermaid\nclassDiagram\n  class Animal {\n    +String name\n    +makeSound()\n  }\n  class Dog {\n    +bark()\n  }\n  Animal <|-- Dog\n```"
+  },
+  {
+    "id": 39,
+    "category": "mermaid",
+    "title": "Mermaid: State diagram",
+    "text": "Show state transitions with `stateDiagram-v2`. States: `state Name`, transitions: `-->`.",
+    "example": "```mermaid\nstateDiagram-v2\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Active --> [*]\n```"
+  },
+  {
+    "id": 40,
+    "category": "mermaid",
+    "title": "Mermaid: ER diagram",
+    "text": "Model entities with `erDiagram`. Relationships: `||--o{` (1:n), `}o--o{` (n:m).",
+    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ LINE-ITEM : contains\n  CUSTOMER {\n    string name\n    string email\n  }\n```"
+  },
+  {
+    "id": 41,
+    "category": "mermaid",
+    "title": "Mermaid: Pie chart",
+    "text": "Create pie charts with `pie`. Format: `\"Label\" : value`.",
+    "example": "```mermaid\npie title Distribution\n  \"Category A\" : 42\n  \"Category B\" : 35\n  \"Category C\" : 23\n```"
+  },
+  {
+    "id": 42,
+    "category": "mermaid",
+    "title": "Mermaid: Git graph",
+    "text": "Visualize Git branching with `gitGraph`. Commands: `commit`, `branch`, `merge`, `checkout`.",
+    "example": "```mermaid\ngitGraph\n  commit\n  branch develop\n  checkout develop\n  commit\n  checkout main\n  merge develop\n```"
+  },
+  {
+    "id": 43,
+    "category": "mermaid",
+    "title": "Mermaid: User journey",
+    "text": "Show user flows with `journey`. Steps: `section Name`, tasks with rating 1-5.",
+    "example": "```mermaid\njourney\n  title Customer buys product\n  section Search\n    Visit website: 5: Customer\n    Find product: 3: Customer\n  section Purchase\n    Add to cart: 4: Customer\n    Pay: 2: Customer\n```"
+  },
+  {
+    "id": 44,
+    "category": "mermaid",
+    "title": "Mermaid: Mindmap",
+    "text": "Create mindmaps with `mindmap`. Hierarchy by indentation, nodes with text.",
+    "example": "```mermaid\nmindmap\n  root((Project))\n    Planning\n      Tasks\n      Timeline\n    Development\n      Frontend\n      Backend\n```"
+  },
+  {
+    "id": 45,
+    "category": "features",
+    "title": "Disable tips",
+    "text": "You can disable tips in the settings if you no longer want to see them.",
+    "example": null
+  },
+  {
+    "id": 46,
+    "category": "features",
+    "title": "Expand sidebar",
+    "text": "Click the sidebar to expand it and see your document history. Click again to minimize it.",
+    "example": null
+  },
+  {
+    "id": 47,
+    "category": "features",
+    "title": "Reorder files",
+    "text": "Use drag & drop in the sidebar to change the order of your documents.",
+    "example": null
+  },
+  {
+    "id": 48,
+    "category": "features",
+    "title": "Delete files",
+    "text": "Hover over a document in the history and click the delete X to remove it.",
+    "example": null
+  },
+  {
+    "id": 49,
+    "category": "features",
+    "title": "Outline via double-click",
+    "text": "Double-click a document card in the sidebar to show the outline (table of contents).",
+    "example": null
+  },
+  {
+    "id": 50,
+    "category": "features",
+    "title": "Organize spaces",
+    "text": "Click the space name above the history to open the spaces overview and move documents between spaces.",
+    "example": null
+  },
+  {
+    "id": 51,
+    "category": "shortcuts",
+    "title": "Switch between spaces",
+    "text": "Use Ctrl+↑ and Ctrl+↓ to quickly switch between your spaces.",
+    "example": null
+  },
+  {
+    "id": 52,
+    "category": "features",
+    "title": "Sort documents in spaces",
+    "text": "In the spaces overview you can drag and drop to reorder documents within a space or move them between spaces.",
+    "example": null
+  },
+  {
+    "id": 53,
+    "category": "features",
+    "title": "Edit space names",
+    "text": "Double-click a space name in the overview to edit it inline. The default space cannot be renamed.",
+    "example": null
+  },
+  {
+    "id": 54,
+    "category": "features",
+    "title": "Create a new space",
+    "text": "Click the '+' icon in the spaces overview to create a new space to organize your documents.",
+    "example": null
+  },
+  {
+    "id": 55,
+    "category": "shortcuts",
+    "title": "Quick open AI assistant",
+    "text": "Press Alt+Space to open or close the AI assistant.",
+    "example": null
+  }
+]

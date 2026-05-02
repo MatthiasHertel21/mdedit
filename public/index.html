@@ -1,0 +1,2381 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>md.twentyone.de</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" />
+    <meta name="description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
+    <link rel="canonical" href="https://md.twentyone.de/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="md.twentyone.de" />
+    <meta property="og:description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
+    <meta property="og:url" content="https://md.twentyone.de/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="md.twentyone.de" />
+    <meta name="twitter:description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "md.twentyone.de",
+        "applicationCategory": "Productivity",
+        "operatingSystem": "Web",
+        "url": "https://md.twentyone.de/",
+        "description": "Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export."
+      }
+    </script>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/print.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- YAML parser for document layout configuration -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <!-- Paged.js for professional print layout (manual preview only) -->
+    <script src="https://unpkg.com/pagedjs@0.4.3/dist/paged.js"></script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar collapsed" id="sidebar">
+        <div class="sidebar-top">
+          <input id="historySearch" class="search sidebar-search" type="text" placeholder="Suchen" data-i18n-placeholder="search" />
+        </div>
+        <div id="collapsedOpenItems" class="collapsed-open-items"></div>
+        <div class="sidebar-content">
+          <div id="currentSpaceName" class="current-space-name">Standard</div>
+          <div id="historyList" class="history"></div>
+        </div>
+        <div class="sidebar-bottom">
+          <button id="layoutEditorBtn" class="icon" title="Layout-Editor" aria-label="Layout-Editor" data-i18n-title="layoutEditor" data-i18n-aria="layoutEditor">
+            <i class="fa-solid fa-palette"></i>
+            <span class="icon-label" data-i18n="layoutEditor">Layout</span>
+          </button>
+          <button id="settingsBtn" class="icon" title="Einstellungen" aria-label="Einstellungen" data-i18n-title="settings" data-i18n-aria="settings">
+            <i class="fa-solid fa-gear"></i>
+            <span class="icon-label" data-i18n="settings">Einstellungen</span>
+          </button>
+          <button id="pinToggle" class="icon" title="Sidebar anheften" aria-label="Sidebar anheften">
+            <i class="fa-solid fa-thumbtack"></i>
+            <span class="icon-label" data-i18n="pin">Anheften</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="content two-col">
+          <section class="editor">
+            <div class="section-header header-actions">
+              <div class="header-left">
+                <button id="newPasteBtn" class="header-icon" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+                <span data-i18n="markdown">Markdown</span>
+              </div>
+              <div class="header-icons">
+                <div class="share-menu">
+                  <button id="shareBtn" class="header-icon" title="Teilen" aria-label="Teilen">
+                    <i class="fa-solid fa-share-nodes"></i>
+                  </button>
+                  <div id="shareMenu" class="share-menu-panel hidden">
+                    <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
+                      <i class="fa-solid fa-link"></i>
+                      <span data-i18n="permalink">Permalink kopieren</span>
+                    </button>
+                    <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
+                      <i class="fa-regular fa-copy"></i>
+                      <span data-i18n="copyMd">Markdown kopieren</span>
+                    </button>
+                    <button id="downloadMdBtn" class="share-menu-item" title="Markdown herunterladen" aria-label="Markdown herunterladen" data-i18n-title="downloadMd" data-i18n-aria="downloadMd">
+                      <i class="fa-solid fa-download"></i>
+                      <span data-i18n="downloadMd">Markdown herunterladen</span>
+                    </button>
+                    <button id="copyTextBtn" class="share-menu-item" title="Word kopieren" aria-label="Word kopieren">
+                      <i class="fa-regular fa-file-word"></i>
+                      <span>Word kopieren</span>
+                    </button>
+                    <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
+                      <i class="fa-solid fa-file-word"></i>
+                      <span data-i18n="downloadWord">Word herunterladen</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="markdownEditor" class="editor-host"></div>
+            <div id="editorSuggestion" class="editor-suggestion hidden"></div>
+          </section>
+
+          <div class="resizer editor-resizer" aria-hidden="true"></div>
+
+          <section class="right-pane">
+            <div class="right-body">
+              <div id="previewPanel" class="panel active">
+                <div class="section-header header-actions">
+                  <span id="previewTitle" data-i18n="preview">Vorschau</span>
+                  <div class="header-right-group">
+                    <div class="preview-presets" role="group" aria-label="Preview presets">
+                      <button id="previewPresetTrigger" class="preview-preset-btn" type="button">
+                        <span id="previewPresetLabel" data-i18n="presetScientific">Wissenschaftlich</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                      </button>
+                      <div id="previewPresetMenu" class="preview-preset-menu hidden" role="menu">
+                        <button class="preview-preset-item" data-preset="scientific" role="menuitem" data-i18n="presetScientific">Wissenschaftlich</button>
+                        <button class="preview-preset-item" data-preset="compact" role="menuitem" data-i18n="presetCompact">Kompakt</button>
+                        <button class="preview-preset-item" data-preset="literary" role="menuitem" data-i18n="presetLiterary">Literarisch</button>
+                      </div>
+                    </div>
+                    <div class="header-icons">
+                      <button id="togglePrintViewBtn" class="header-icon" title="Seitenansicht" aria-label="Seitenansicht" data-i18n-title="togglePagedView" data-i18n-aria="togglePagedView">
+                        <i class="fa-solid fa-file-lines"></i>
+                      </button>
+                      <span class="header-divider" aria-hidden="true"></span>
+                      <button id="previewRenderToggle" class="header-icon view-toggle-btn active" data-view="preview" title="Rendering" aria-label="Rendering">
+                        <i class="fa-solid fa-align-left"></i>
+                      </button>
+                      <button id="previewTreeToggle" class="header-icon view-toggle-btn" data-view="tree" title="Baum" aria-label="Baum" data-i18n-title="tree" data-i18n-aria="tree">
+                        <i class="fa-solid fa-network-wired"></i>
+                      </button>
+                      <button id="aiChatToggle" class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent (Alt+Space)" aria-label="KI-Assistent" data-i18n-title="aiChat" data-i18n-aria="aiChat">
+                        <i class="fa-solid fa-robot"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="previewBody" class="preview-body">
+                  <div id="preview" class="preview-content"></div>
+                </div>
+                <div id="printPreviewBody" class="print-preview-body" style="display: none;">
+                  <div id="printPreviewScroll" class="print-preview-scroll">
+                    <div id="printPreview" class="print-content"></div>
+                  </div>
+                  <div class="print-preview-controls">
+                    <div class="print-page-nav">
+                      <button id="printPrevPage" class="icon-sm" title="Vorherige Seite" aria-label="Vorherige Seite">
+                        <i class="fa-solid fa-chevron-left"></i>
+                      </button>
+                      <span id="printPageInfo" class="page-info">-</span>
+                      <button id="printNextPage" class="icon-sm" title="Nächste Seite" aria-label="Nächste Seite">
+                        <i class="fa-solid fa-chevron-right"></i>
+                      </button>
+                    </div>
+                    <div class="header-icons">
+                      <button id="openLayoutConfig" class="icon-sm" title="Layout-Einstellungen" aria-label="Layout-Einstellungen">
+                        <i class="fa-solid fa-sliders"></i>
+                      </button>
+                      <button id="printViewBtn" class="icon-sm" title="Drucken" aria-label="Drucken" data-i18n-title="print" data-i18n-aria="print">
+                        <i class="fa-solid fa-print"></i>
+                      </button>
+                      <button id="printPdfBtn" class="icon-sm" title="Als PDF herunterladen" aria-label="Als PDF herunterladen">
+                        <i class="fa-solid fa-file-pdf"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div id="treePanel" class="panel">
+                <div class="section-header header-actions">
+                  <span data-i18n="tree">Baum</span>
+                  <div class="header-icons">
+                    <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
+                      <i class="fa-solid fa-align-left"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn active" data-view="tree" title="Baum" aria-label="Baum">
+                      <i class="fa-solid fa-network-wired"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
+                      <i class="fa-solid fa-robot"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="tree-panel-body">
+                  <div id="treeView" class="tree-view"></div>
+                  <div class="tree-footer-hint">
+                    <span>Maus: Ziehen zum Verschieben, Mausrad zum Zoomen</span>
+                  </div>
+                </div>
+              </div>
+              <!-- AI Chat Panel -->
+              <div id="aiChatPanel" class="panel">
+                <div class="section-header header-actions">
+                  <div class="chat-title-row">
+                    <span data-i18n="aiChat">KI-Assistent</span>
+                  </div>
+                  <div class="header-icons">
+                    <button id="undoAiChangeBtn" title="Rückgängig" aria-label="Letzte AI-Änderung rückgängig machen" data-i18n-title="undo" style="display: none;">
+                      <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                    <select id="aiChatSessionSelect" class="ai-chat-session-select hidden" aria-label="Chat auswählen"></select>
+                    <button id="newChatBtn" class="header-icon" title="Neuer Chat" aria-label="Neuer Chat">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <span class="header-divider" aria-hidden="true"></span>
+                    <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
+                      <i class="fa-solid fa-align-left"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn" data-view="tree" title="Baum" aria-label="Baum">
+                      <i class="fa-solid fa-network-wired"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn active" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
+                      <i class="fa-solid fa-robot"></i>
+                    </button>
+                  </div>
+                </div>
+                <div id="aiChatBody" class="ai-chat-body">
+                  <div id="aiChatMessages" class="ai-chat-messages"></div>
+                  <div class="ai-chat-input-area">
+                    <textarea id="aiChatInput" class="ai-chat-input" placeholder="Frage den KI-Assistenten..." rows="3" data-i18n-placeholder="aiChatPlaceholder"></textarea>
+                    <button id="aiChatSendBtn" class="primary-btn" title="Senden" aria-label="Nachricht senden" data-i18n-title="send">
+                      <i class="fa-solid fa-paper-plane"></i>
+                      <span data-i18n="send">Senden</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="notFoundOverlay" class="modal-overlay hidden"></div>
+    <div id="notFoundModal" class="modal hidden">
+      <div class="modal-header">
+        <h2 id="notFoundTitle" data-i18n="notFoundTitle">Dokument nicht gefunden</h2>
+        <button id="notFoundClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p data-i18n="notFoundMessage">Das Dokument mit der angegebenen ID existiert nicht mehr oder wurde gelöscht.</p>
+        <p data-i18n="notFoundAction">Sie können ein neues Dokument erstellen, indem Sie im Editor Ihren Text eingeben.</p>
+      </div>
+    </div>
+
+    <div id="tipsOverlay" class="modal-overlay hidden"></div>
+    <div id="tipsModal" class="modal hidden">
+      <div class="modal-header">
+        <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+        <button id="tipsClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="tips-content">
+          <div id="randomTipContainer" class="tip-item">
+            <div class="tip-icon"><i id="randomTipIcon" class="fa-solid fa-lightbulb"></i></div>
+            <div class="tip-text">
+              <strong id="randomTipTitle">Tipp</strong>
+              <p id="randomTipText">Drücken Sie F2 für einen zufälligen Tipp</p>
+            </div>
+          </div>
+        </div>
+        <div class="tips-footer">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="tips-checkbox">
+              <input type="checkbox" id="dontShowTipsAgain" />
+              <span data-i18n="dontShowAgain">Beim nächsten Start nicht mehr anzeigen</span>
+            </label>
+            <button id="nextTipBtn" class="btn-primary" style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+              <i class="fa-solid fa-arrow-right"></i> <span data-i18n="nextTip">Nächster Tipp</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="spacesOverlay" class="modal-overlay hidden"></div>
+    <div id="spacesModal" class="modal modal-large hidden">
+      <div class="modal-header">
+        <h2 data-i18n="spacesOverview">Spaces Übersicht</h2>
+        <button id="spacesClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="spacesGrid" class="spaces-grid"></div>
+      </div>
+    </div>
+
+    <div id="mermaidEditorOverlay" class="modal-overlay hidden"></div>
+    <div id="mermaidEditorModal" class="modal modal-large hidden">
+      <div class="modal-header">
+        <h2 data-i18n="mermaidEditor">Mermaid Diagramm Editor</h2>
+        <button id="mermaidEditorClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body mermaid-editor-body">
+        <div class="mermaid-editor-container">
+          <div class="mermaid-canvas-panel">
+            <div class="mermaid-editor-toolbar">
+              <select id="mermaidDiagramType" class="mermaid-select">
+                <option value="flowchart">Flowchart</option>
+                <option value="sequenceDiagram">Sequence Diagram</option>
+                <option value="classDiagram">Class Diagram</option>
+              </select>
+              <select id="mermaidLayoutDirection" class="mermaid-select">
+                <option value="TD">Top-Down</option>
+                <option value="LR">Left-Right</option>
+                <option value="BT">Bottom-Top</option>
+                <option value="RL">Right-Left</option>
+              </select>
+              <div class="mermaid-toolbar-divider"></div>
+              <button id="mermaidAddNode" class="btn-icon" title="Node hinzufügen (N)">
+                <i class="fa-solid fa-square-plus"></i>
+              </button>
+              <button id="mermaidAddEdge" class="btn-icon" title="Verbindung hinzufügen (E)" data-mode="edge">
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <button id="mermaidDeleteSelected" class="btn-icon" title="Löschen (Delete)">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              <div class="mermaid-toolbar-divider"></div>
+              <button id="mermaidZoomIn" class="btn-icon" title="Zoom +">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+              </button>
+              <button id="mermaidZoomOut" class="btn-icon" title="Zoom -">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+              </button>
+              <button id="mermaidZoomReset" class="btn-icon" title="Zoom Reset">
+                <i class="fa-solid fa-expand"></i>
+              </button>
+            </div>
+            <div id="mermaidCanvas" class="mermaid-canvas"></div>
+            <div class="mermaid-canvas-help">
+              <div><strong>Klick:</strong> Node auswählen</div>
+              <div><strong>Doppelklick:</strong> Node bearbeiten</div>
+              <div><strong>E-Taste:</strong> Verbindungsmodus (2 Nodes anklicken)</div>
+              <div><strong>Delete:</strong> Ausgewählten Node löschen</div>
+              <div><strong>ESC:</strong> Aktion abbrechen</div>
+            </div>
+          </div>
+          <div class="mermaid-preview-panel">
+            <div class="mermaid-preview-toolbar">
+              <div class="mermaid-preview-title" data-i18n="mermaidPreview">Vorschau</div>
+              <div class="mermaid-auto-save" data-i18n="mermaidAutoSave">Automatisch gespeichert</div>
+            </div>
+            <div class="mermaid-properties">
+              <div class="mermaid-properties-title" data-i18n="mermaidProperties">Eigenschaften</div>
+              <label class="mermaid-property">
+                <span data-i18n="mermaidNodeLabel">Label</span>
+                <input id="mermaidNodeLabel" type="text" class="mermaid-property-input" />
+              </label>
+              <label class="mermaid-property">
+                <span data-i18n="mermaidNodeShape">Form</span>
+                <select id="mermaidNodeShape" class="mermaid-property-select">
+                  <option value="rect">Rechteck</option>
+                  <option value="round">Rund</option>
+                  <option value="stadium">Stadium</option>
+                  <option value="diamond">Raute</option>
+                  <option value="circle">Kreis</option>
+                </select>
+              </label>
+              <label class="mermaid-property">
+                <span data-i18n="mermaidNodeColor">Farbe</span>
+                <input id="mermaidNodeColor" type="color" class="mermaid-property-color" />
+              </label>
+            </div>
+            <div id="mermaidPreview" class="mermaid-preview-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsOverlay" class="modal-overlay hidden"></div>
+    <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-header">
+        <h2 id="settingsTitle" data-i18n="settings">Einstellungen</h2>
+        <button id="settingsClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-tabs">
+        <button class="tab active" data-tab="editor" data-i18n="tabEditor">Editor</button>
+        <button class="tab" data-tab="markdown" data-i18n="tabMarkdown">Markdown</button>
+        <button class="tab" data-tab="storage" data-i18n="tabSpaces">Spaces</button>
+        <button class="tab" data-tab="ai" data-i18n="tabAI">KI-Modelle</button>
+        <button class="tab" data-tab="about" data-i18n="tabImpressum">Impressum</button>
+      </div>
+      <div class="modal-body">
+        <div class="tab-panel active" data-tab-panel="editor">
+          <div class="settings-language-row">
+            <label for="languageSelect" data-i18n="viewLanguage">Standardsprache</label>
+            <select id="languageSelect" class="setting-select">
+              <option value="auto" data-i18n="viewLangAuto">Automatisch</option>
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="it">Italiano</option>
+              <option value="nl">Nederlands</option>
+              <option value="pl">Polski</option>
+              <option value="tr">Türkçe</option>
+              <option value="ru">Русский</option>
+              <option value="zh">中文</option>
+              <option value="ko">한국어</option>
+            </select>
+          </div>
+          <div class="settings-grid settings-grid-split">
+            <!-- Left Column: MD Editor specific -->
+            <div class="settings-column">
+              <h3 class="settings-column-title" data-i18n="editorColumnMd">Markdown Editor</h3>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="lineNumbers" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingLineNumbers">Zeilennummern anzeigen</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="lineWrapping" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingLineWrapping">Zeilenumbruch im Editor</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="syntaxHighlight" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingSyntaxHighlight">Syntax-Highlighting</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="hideLayoutBlock" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingHideLayoutBlock">Layout-Block im Editor ausblenden</div>
+                </div>
+              </div>
+            </div>
+            <!-- Right Column: General/App-wide -->
+            <div class="settings-column">
+              <h3 class="settings-column-title" data-i18n="editorColumnGeneral">Allgemein</h3>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="syncScroll" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingSyncScroll">Synchrones Scrollen</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="syncSelection" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingSyncSelection">Synchronisierte Auswahl</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="showStartupTips" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingStartupTips">Tipps beim Start anzeigen</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="showToasts" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingShowToasts">Toasts anzeigen</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="danger-zone">
+            <h3>
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span data-i18n="dangerZoneTitle">Gefahrenzone</span>
+            </h3>
+            <div class="danger-zone-content">
+              <div class="danger-zone-text">
+                <div class="danger-zone-title" data-i18n="settingDataReset">Alle Daten zurücksetzen</div>
+                <div class="danger-zone-desc" data-i18n="dangerZoneDesc">Löscht unwiderruflich alle Dokumente, Einstellungen, Historie und lokalen Daten. Diese Aktion kann nicht rückgängig gemacht werden!</div>
+              </div>
+              <button id="resetAllDataBtn" class="btn-danger-outline">
+                <i class="fa-solid fa-trash-can"></i> <span data-i18n="settingDataResetAction">Zurücksetzen</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-tab-panel="markdown">
+          <div class="settings-grid">
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="gfm" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingGfm">GFM (Tabellen, Aufgabenlisten, Autolinks, Durchstreichung)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="mermaid" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingMermaid">Mermaid (Diagramme)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="math" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingMath">KaTeX/MathJax (Formeln)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="footnotes" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingFootnotes">Fußnoten</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="deflist" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingDeflist">Definition Lists</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="admonitions" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingAdmonitions">Admonitions (Hinweis/Info/Warning)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="emoji" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingEmoji">Emoji</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="sub" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingSub">Subscript (z. B. H~2~O)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="sup" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingSup">Superscript (z. B. x^2^)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="mark" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingMark">Mark/Highlight (==Text==)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="abbr" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingAbbr">Abkürzungen</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="toc" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingToc">Inhaltsverzeichnis (TOC)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="attrs" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingAttrs">Attribute (IDs/Klassen)</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="typographer" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingTypographer">Typografische Anführungszeichen</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="columns" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingColumns">Layout: Spalten</div>
+            </div>
+          </div>
+          <div class="setting">
+            <label class="switch">
+              <input type="checkbox" data-setting="breaks" />
+              <span class="slider"></span>
+            </label>
+            <div class="setting-text">
+              <div class="setting-title" data-i18n="settingBreaks">Layout: Umbrüche (Zeile/Spalte/Abschnitt/Seite)</div>
+            </div>
+          </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-tab-panel="storage">
+          <div class="settings-grid">
+            <div class="setting setting-full">
+              <div class="setting-text">
+                <div class="setting-title" data-i18n="workspaceTitle">Workspace</div>
+                <div class="setting-description" data-i18n="workspaceDesc">Verwalten Sie verschiedene Dokumentsätze separat</div>
+                <div class="workspace-controls">
+                  <select id="workspaceSelect" class="setting-select"></select>
+                  <button id="newWorkspaceBtn" class="icon-btn" title="Neu" data-i18n-title="workspaceNew">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                  <button id="renameWorkspaceBtn" class="icon-btn" title="Umbenennen" data-i18n-title="workspaceRename">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button id="deleteWorkspaceBtn" class="icon-btn icon-btn-danger" title="Löschen" data-i18n-title="workspaceDelete">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+                <div id="workspaceInfo" class="workspace-info"></div>
+              </div>
+            </div>
+            <div class="setting">
+              <label class="switch">
+                <input type="checkbox" id="autoSyncToggle" data-setting="autoSync" />
+                <span class="slider"></span>
+              </label>
+              <div class="setting-text">
+                <div class="setting-title" data-i18n="settingAutoSync">Automatisch im Browser-Speicher sichern</div>
+              </div>
+            </div>
+            <div class="setting setting-full">
+              <div class="setting-text">
+                <div class="setting-title" data-i18n="storageActions">Aktionen</div>
+                <div class="storage-action-list">
+                  <button id="exportAllBtn" class="storage-action-item">
+                    <div class="storage-action-icon">
+                      <i class="fa-solid fa-file-zipper"></i>
+                    </div>
+                    <div class="storage-action-text">
+                      <div class="storage-action-title" data-i18n="storageExportAllTitle">Alle Dokumente exportieren</div>
+                      <div class="storage-action-desc" data-i18n="storageExportAllDesc">Erstellt ein ZIP-Archiv mit allen Markdown-Dateien aus dem aktuellen Workspace</div>
+                    </div>
+                  </button>
+                  <button id="syncNowBtn" class="storage-action-item">
+                    <div class="storage-action-icon">
+                      <i class="fa-solid fa-sync"></i>
+                    </div>
+                    <div class="storage-action-text">
+                      <div class="storage-action-title" data-i18n="storageSyncTitle">Jetzt synchronisieren</div>
+                      <div class="storage-action-desc" data-i18n="storageSyncDesc">Speichert alle aktuellen Dokumente sofort im lokalen Browser-Speicher</div>
+                    </div>
+                  </button>
+                  <button id="clearSyncBtn" class="storage-action-item storage-action-danger">
+                    <div class="storage-action-icon">
+                      <i class="fa-solid fa-trash"></i>
+                    </div>
+                    <div class="storage-action-text">
+                      <div class="storage-action-title" data-i18n="storageClearTitle">Lokalen Speicher leeren</div>
+                      <div class="storage-action-desc" data-i18n="storageClearDesc">Löscht alle lokal gespeicherten Dokumente aus diesem Workspace (nicht rückgängig machbar)</div>
+                    </div>
+                  </button>
+                </div>
+                <div id="syncStatus" class="sync-status"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-tab-panel="ai">
+          <div class="ai-providers">
+            <!-- Google Gemini -->
+            <div class="ai-provider-row">
+              <label class="switch">
+                <input type="checkbox" id="aiGeminiEnabled" data-ai-provider="gemini" checked />
+                <span class="slider"></span>
+              </label>
+              <div class="ai-provider-info">
+                <div class="ai-provider-name">Google Gemini</div>
+              </div>
+              <div class="ai-provider-controls">
+                <select id="aiGeminiModel" class="ai-model-select">
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                </select>
+                <form class="ai-key-form" onsubmit="return false;">
+                  <input type="password" id="aiGeminiKey" class="ai-key-input" placeholder="internal API key" data-i18n-placeholder="aiKeyInternal" autocomplete="off" />
+                </form>
+              </div>
+            </div>
+            
+            <!-- OpenAI -->
+            <div class="ai-provider-row">
+              <label class="switch">
+                <input type="checkbox" id="aiOpenAIEnabled" data-ai-provider="openai" />
+                <span class="slider"></span>
+              </label>
+              <div class="ai-provider-info">
+                <div class="ai-provider-name">OpenAI</div>
+              </div>
+              <div class="ai-provider-controls">
+                <select id="aiOpenAIModel" class="ai-model-select">
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                </select>
+                <form class="ai-key-form" onsubmit="return false;">
+                  <input type="password" id="aiOpenAIKey" class="ai-key-input" placeholder="sk-..." autocomplete="off" />
+                </form>
+              </div>
+            </div>
+            
+            <!-- xAI -->
+            <div class="ai-provider-row">
+              <label class="switch">
+                <input type="checkbox" id="aiXAIEnabled" data-ai-provider="xai" />
+                <span class="slider"></span>
+              </label>
+              <div class="ai-provider-info">
+                <div class="ai-provider-name">xAI (Grok)</div>
+              </div>
+              <div class="ai-provider-controls">
+                <select id="aiXAIModel" class="ai-model-select">
+                  <option value="grok-beta">Grok Beta</option>
+                  <option value="grok-vision-beta">Grok Vision Beta</option>
+                </select>
+                <form class="ai-key-form" onsubmit="return false;">
+                  <input type="password" id="aiXAIKey" class="ai-key-input" placeholder="xai-..." autocomplete="off" />
+                </form>
+              </div>
+            </div>
+            
+            <!-- Anthropic Claude -->
+            <div class="ai-provider-row">
+              <label class="switch">
+                <input type="checkbox" id="aiClaudeEnabled" data-ai-provider="claude" />
+                <span class="slider"></span>
+              </label>
+              <div class="ai-provider-info">
+                <div class="ai-provider-name">Anthropic Claude</div>
+              </div>
+              <div class="ai-provider-controls">
+                <select id="aiClaudeModel" class="ai-model-select">
+                  <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                  <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                  <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                </select>
+                <form class="ai-key-form" onsubmit="return false;">
+                  <input type="password" id="aiClaudeKey" class="ai-key-input" placeholder="sk-ant-..." autocomplete="off" />
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-tab-panel="about">
+          <h3 class="about-title" data-i18n="aboutImprint">Impressum</h3>
+          <p class="about-imprint">
+            <strong>Matthias Hertel</strong><br>
+            Dresden, Deutschland<br>
+            matthias.hertel@gmail.com
+          </p>
+          
+          <h4 class="about-subtitle" data-i18n="aboutPrivacy">Datenschutz</h4>
+          <p class="about-text" data-i18n="aboutPrivacyText">Ihre Daten werden lokal im Browser gespeichert. Es findet keine Übertragung an Dritte statt. Die Anwendung nutzt localStorage zur Speicherung Ihrer Einstellungen und Dokumente. Sie können alle Daten jederzeit über die Browser-Einstellungen löschen.</p>
+          
+          <h4 class="about-subtitle" data-i18n="aboutLicense">Lizenz</h4>
+          <p class="about-text" data-i18n="aboutLicenseText">Diese Anwendung steht unter der MIT-Lizenz und darf frei verwendet werden.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layout Editor Modal -->
+    <div id="layoutEditorOverlay" class="modal-overlay hidden"></div>
+    <div id="layoutEditorModal" class="modal modal-xlarge hidden">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-palette"></i> <span data-i18n="layoutEditor">Layout-Editor</span></h2>
+        <button id="layoutEditorClose" class="icon" aria-label="Schließen">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body layout-editor-body">
+        <div class="layout-editor-container">
+          <!-- Left Sidebar -->
+          <div class="layout-editor-sidebar">
+            <div class="layout-selector">
+              <label data-i18n="layoutEditorSelectLayout">Layout auswählen</label>
+              <select id="layoutEditorSelect" class="layout-editor-select">
+                <option value="scientific" data-i18n="presetScientific">Wissenschaftlich</option>
+                <option value="compact" data-i18n="presetCompact">Kompakt</option>
+                <option value="literary" data-i18n="presetLiterary">Literarisch</option>
+              </select>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="layout-editor-tabs">
+              <button class="layout-editor-tab active" data-tab="text">
+                <i class="fa-solid fa-font"></i>
+                <span data-i18n="layoutEditorText">Text</span>
+              </button>
+              <button class="layout-editor-tab" data-tab="special-text">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span data-i18n="layoutEditorSpecialText">Sondertext</span>
+              </button>
+              <button class="layout-editor-tab" data-tab="media">
+                <i class="fa-solid fa-photo-film"></i>
+                <span data-i18n="layoutEditorMedia">Medien</span>
+              </button>
+              <button class="layout-editor-tab" data-tab="page">
+                <i class="fa-solid fa-file"></i>
+                <span data-i18n="layoutEditorPage">Seite</span>
+              </button>
+              <button class="layout-editor-tab" data-tab="table">
+                <i class="fa-solid fa-table"></i>
+                <span data-i18n="layoutEditorTable">Tabelle</span>
+              </button>
+              <button class="layout-editor-tab" data-tab="css">
+                <i class="fa-solid fa-code"></i>
+                <span data-i18n="layoutEditorCss">CSS</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Content Area -->
+          <div class="layout-editor-content">
+            <!-- Text Tab -->
+            <div class="layout-editor-tab-content active" data-content="text">
+              <div class="layout-text-editor-grid">
+                <!-- Left: Element Selection List -->
+                <div class="layout-text-element-list">
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutEditorStandard">Standard</div>
+                    <div class="layout-text-element-item active" data-element="body">
+                      <span data-i18n="layoutElementBody">Normaler Text</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="table-cell">
+                      <span data-i18n="layoutElementTableCell">Tabellentext</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="table-header">
+                      <span data-i18n="layoutElementTableHeader">Tabellen-Header</span>
+                    </div>
+                  </div>
+                  
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutElementListsUnordered">Aufzählungen</div>
+                    <div class="layout-text-element-item" data-element="ul-1">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 1
+                    </div>
+                    <div class="layout-text-element-item" data-element="ul-2">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 2
+                    </div>
+                    <div class="layout-text-element-item" data-element="ul-3">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 3
+                    </div>
+                  </div>
+                  
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutElementListsOrdered">Nummerierungen</div>
+                    <div class="layout-text-element-item" data-element="ol-1">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 1
+                    </div>
+                    <div class="layout-text-element-item" data-element="ol-2">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 2
+                    </div>
+                    <div class="layout-text-element-item" data-element="ol-3">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 3
+                    </div>
+                  </div>
+                  
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutEditorHeadings">Überschriften</div>
+                    <div class="layout-text-element-item" data-element="h1">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 1
+                    </div>
+                    <div class="layout-text-element-item" data-element="h2">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 2
+                    </div>
+                    <div class="layout-text-element-item" data-element="h3">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 3
+                    </div>
+                    <div class="layout-text-element-item" data-element="h4">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 4
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Right: Attribute Box -->
+                <div class="layout-text-attributes">
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontFamily">Schriftart</label>
+                      <select id="attr-font-family">
+                        <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                        <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                        <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                        <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                        <option value="Garamond, serif">Garamond</option>
+                        <option value="'Bookman Old Style', serif">Bookman</option>
+                        <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                        <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                        <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                        <option value="Arial, Helvetica, sans-serif">Arial</option>
+                        <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                        <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                        <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                        <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                        <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                        <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                        <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                        <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                        <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                        <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                        <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                        <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                      </select>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontSize">Schriftgröße</label>
+                      <input type="text" id="attr-font-size" value="11pt" placeholder="11pt">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontWeight">Schriftgewicht</label>
+                      <select id="attr-font-weight">
+                        <option value="300">Light (300)</option>
+                        <option value="400" selected>Normal (400)</option>
+                        <option value="500">Medium (500)</option>
+                        <option value="600">Semi-Bold (600)</option>
+                        <option value="700">Bold (700)</option>
+                        <option value="800">Extra-Bold (800)</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <!-- Font Style, Alignment, Color in one row -->
+                  <div class="layout-form-row row-3 layout-style-align-color-row">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontStyle">Schriftattribute</label>
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn" id="attr-italic" data-toggle="italic" title="Kursiv">
+                          <i class="fas fa-italic"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn" id="attr-underline" data-toggle="underline" title="Unterstrichen">
+                          <i class="fas fa-underline"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn" id="attr-small-caps" data-toggle="small-caps" title="Kapitälchen">
+                          <i class="fas fa-font"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutTextAlign">Ausrichtung</label>
+                      <div class="layout-toggle-buttons layout-align-scope">
+                        <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                          <i class="fas fa-align-left"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                          <i class="fas fa-align-center"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                          <i class="fas fa-align-right"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                          <i class="fas fa-align-justify"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutColor">Farbe</label>
+                      <div class="layout-color-picker">
+                        <input type="color" id="attr-color" value="#1a1a1a">
+                        <div class="layout-color-palette">
+                          <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                          <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                          <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                          <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                          <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                          <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                      <input type="text" id="attr-line-height" value="1.6" placeholder="1.6">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutSpacingBefore">Abstand davor</label>
+                      <input type="text" id="attr-spacing-before" value="0" placeholder="0">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutSpacingAfter">Abstand danach</label>
+                      <input type="text" id="attr-spacing-after" value="12pt" placeholder="12pt">
+                    </div>
+                  </div>
+
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderLines">Rahmenlinien</label>
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="top" title="Oben" data-i18n-title="layoutBorderTop">
+                          <i class="fas fa-border-top"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="right" title="Rechts" data-i18n-title="layoutBorderRight">
+                          <i class="fas fa-border-right"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="bottom" title="Unten" data-i18n-title="layoutBorderBottom">
+                          <i class="fas fa-border-bottom"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="left" title="Links" data-i18n-title="layoutBorderLeft">
+                          <i class="fas fa-border-left"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderWidth">Rahmendicke</label>
+                      <input type="text" id="attr-border-width" value="1px" placeholder="1px">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderColor">Rahmenfarbe</label>
+                      <input type="color" id="attr-border-color" value="#cccccc">
+                    </div>
+                  </div>
+
+                  <!-- List-specific fields - combined in one row -->
+                  <div class="layout-form-row row-3 layout-attr-list-only" style="display: none;">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutTextIndent">Zeileneinzug</label>
+                      <input type="text" id="attr-indent" value="1.5em" placeholder="1.5em">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutListMarkerSpacing">Abstand Symbol↔Text</label>
+                      <input type="text" id="attr-marker-spacing" value="0.5em" placeholder="0.5em">
+                    </div>
+                    <div class="layout-form-group layout-attr-ul-only" style="display: none;">
+                      <label data-i18n="layoutListMarker">Aufzählzeichen</label>
+                      <select id="attr-ul-marker">
+                        <option value="disc">● Disc</option>
+                        <option value="circle">○ Circle</option>
+                        <option value="square">■ Square</option>
+                        <option value="'–'">– En Dash</option>
+                        <option value="'—'">— Em Dash</option>
+                        <option value="'►'">► Arrow Right</option>
+                        <option value="'‣'">‣ Triangle</option>
+                        <option value="'✓'">✓ Check</option>
+                        <option value="'✗'">✗ X Mark</option>
+                        <option value="'•'">• Bullet</option>
+                        <option value="'◦'">◦ White Bullet</option>
+                        <option value="'▪'">▪ Small Square</option>
+                        <option value="'▫'">▫ Small White Square</option>
+                        <option value="'◊'">◊ Diamond</option>
+                      </select>
+                    </div>
+                    <div class="layout-form-group layout-attr-ol-only" style="display: none;">
+                      <label data-i18n="layoutListNumberStyle">Nummerierungsart</label>
+                      <select id="attr-ol-style">
+                        <option value="decimal">1, 2, 3...</option>
+                        <option value="decimal-leading-zero">01, 02, 03...</option>
+                        <option value="lower-alpha">a, b, c...</option>
+                        <option value="upper-alpha">A, B, C...</option>
+                        <option value="lower-roman">i, ii, iii...</option>
+                        <option value="upper-roman">I, II, III...</option>
+                        <option value="lower-greek">α, β, γ...</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <!-- Heading numbering -->
+                  <div class="layout-form-row layout-attr-heading-only" style="display: none;">
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="attr-heading-numbered">
+                      <label for="attr-heading-numbered" data-i18n="layoutHeadingNumbered">Überschrift nummerieren</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Preview Text -->
+                  <div class="layout-preview-divider"></div>
+                  <div class="layout-preview-text">
+                    <p class="preview-para preview-para-1" data-i18n="previewPara1">Dies ist der erste Absatz als Beispieltext.</p>
+                    <div id="attr-preview-content">
+                      <p class="preview-para preview-para-2" id="attr-preview">Dies ist der zweite Absatz, der die aktuell gewählten Attribute anzeigt. Hier sehen Sie, wie Schriftart, Größe, Gewicht und Stil zusammenwirken.</p>
+                    </div>
+                    <p class="preview-para preview-para-3" data-i18n="previewPara3">Dies ist der dritte Absatz als normaler Text.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Special Text Tab -->
+            <div class="layout-editor-tab-content" data-content="special-text">
+              <div class="layout-text-editor-grid">
+                <!-- Left: Element Selection List -->
+                <div class="layout-text-element-list">
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutEditorSpecial">Sonderschriften</div>
+                    <div class="layout-text-element-item" data-element="title">
+                      <span data-i18n="layoutElementTitle">Titel</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="subtitle">
+                      <span data-i18n="layoutElementSubtitle">Untertitel</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="header">
+                      <span data-i18n="layoutElementHeader">Kopfzeile</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="footer">
+                      <span data-i18n="layoutElementFooter">Fußzeile</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="caption">
+                      <span data-i18n="layoutElementCaption">Bildunterschrift</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="table-caption">
+                      <span data-i18n="layoutElementTableCaption">Tabellenunterschrift</span>
+                    </div>
+                  </div>
+                  
+                  <div class="layout-text-element-group">
+                    <div class="layout-text-element-group-header" data-i18n="layoutEditorAdvanced">Erweitert</div>
+                    <div class="layout-text-element-item" data-element="blockquote">
+                      <span data-i18n="layoutElementBlockquote">Blockquote</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="inline-code">
+                      <span data-i18n="layoutElementInlineCode">Inline Code</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="code-block">
+                      <span data-i18n="layoutElementCodeBlock">Codeblock</span>
+                    </div>
+                    <div class="layout-text-element-item" data-element="footnote">
+                      <span data-i18n="layoutElementFootnote">Fußnote</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Right: Attribute Box (shared) -->
+                <div class="layout-text-attributes">
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontFamily">Schriftart</label>
+                      <select id="attr-font-family">
+                        <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                        <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                        <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                        <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                        <option value="Garamond, serif">Garamond</option>
+                        <option value="'Bookman Old Style', serif">Bookman</option>
+                        <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                        <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                        <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                        <option value="Arial, Helvetica, sans-serif">Arial</option>
+                        <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                        <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                        <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                        <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                        <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                        <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                        <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                        <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                        <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                        <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                        <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                        <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                      </select>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontSize">Schriftgröße</label>
+                      <input type="text" id="attr-font-size" value="11pt" placeholder="11pt">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontWeight">Schriftgewicht</label>
+                      <select id="attr-font-weight">
+                        <option value="300">Light (300)</option>
+                        <option value="400" selected>Normal (400)</option>
+                        <option value="500">Medium (500)</option>
+                        <option value="600">Semi-Bold (600)</option>
+                        <option value="700">Bold (700)</option>
+                        <option value="800">Extra-Bold (800)</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <!-- Font Style, Alignment, Color in one row -->
+                  <div class="layout-form-row row-3 layout-style-align-color-row">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutFontStyle">Schriftattribute</label>
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn" id="attr-italic" data-toggle="italic" title="Kursiv">
+                          <i class="fas fa-italic"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn" id="attr-underline" data-toggle="underline" title="Unterstrichen">
+                          <i class="fas fa-underline"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn" id="attr-small-caps" data-toggle="small-caps" title="Kapitälchen">
+                          <i class="fas fa-font"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutTextAlign">Ausrichtung</label>
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                          <i class="fas fa-align-left"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                          <i class="fas fa-align-center"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                          <i class="fas fa-align-right"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                          <i class="fas fa-align-justify"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutColor">Farbe</label>
+                      <div class="layout-color-picker">
+                        <input type="color" id="attr-color" value="#1a1a1a">
+                        <div class="layout-color-palette">
+                          <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                          <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                          <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                          <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                          <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                          <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                      <input type="text" id="attr-line-height" value="1.6" placeholder="1.6">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutSpacingBefore">Abstand davor</label>
+                      <input type="text" id="attr-spacing-before" value="0" placeholder="0">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutSpacingAfter">Abstand danach</label>
+                      <input type="text" id="attr-spacing-after" value="12pt" placeholder="12pt">
+                    </div>
+                  </div>
+
+                  <div class="layout-form-row row-3">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderLines">Rahmenlinien</label>
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="top" title="Oben" data-i18n-title="layoutBorderTop">
+                          <i class="fas fa-border-top"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="right" title="Rechts" data-i18n-title="layoutBorderRight">
+                          <i class="fas fa-border-right"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="bottom" title="Unten" data-i18n-title="layoutBorderBottom">
+                          <i class="fas fa-border-bottom"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-border-btn" data-border="left" title="Links" data-i18n-title="layoutBorderLeft">
+                          <i class="fas fa-border-left"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderWidth">Rahmendicke</label>
+                      <input type="text" id="attr-border-width" value="1px" placeholder="1px">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutBorderColor">Rahmenfarbe</label>
+                      <input type="color" id="attr-border-color" value="#cccccc">
+                    </div>
+                  </div>
+                  
+                  <!-- List-specific fields - combined in one row -->
+                  <div class="layout-form-row row-3 layout-attr-list-only" style="display: none;">
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutTextIndent">Zeileneinzug</label>
+                      <input type="text" id="attr-indent" value="1.5em" placeholder="1.5em">
+                    </div>
+                    <div class="layout-form-group">
+                      <label data-i18n="layoutListMarkerSpacing">Abstand Symbol↔Text</label>
+                      <input type="text" id="attr-marker-spacing" value="0.5em" placeholder="0.5em">
+                    </div>
+                    <div class="layout-form-group layout-attr-ul-only" style="display: none;">
+                      <label data-i18n="layoutListMarker">Aufzählzeichen</label>
+                      <select id="attr-ul-marker">
+                        <option value="disc">● Disc</option>
+                        <option value="circle">○ Circle</option>
+                        <option value="square">■ Square</option>
+                        <option value="'–'">– En Dash</option>
+                        <option value="'—'">— Em Dash</option>
+                        <option value="'►'">► Arrow Right</option>
+                        <option value="'‣'">‣ Triangle</option>
+                        <option value="'✓'">✓ Check</option>
+                        <option value="'✗'">✗ X Mark</option>
+                        <option value="'•'">• Bullet</option>
+                        <option value="'◦'">◦ White Bullet</option>
+                        <option value="'▪'">▪ Small Square</option>
+                        <option value="'▫'">▫ Small White Square</option>
+                        <option value="'◊'">◊ Diamond</option>
+                      </select>
+                    </div>
+                    <div class="layout-form-group layout-attr-ol-only" style="display: none;">
+                      <label data-i18n="layoutListNumberStyle">Nummerierungsart</label>
+                      <select id="attr-ol-style">
+                        <option value="decimal">1, 2, 3...</option>
+                        <option value="decimal-leading-zero">01, 02, 03...</option>
+                        <option value="lower-alpha">a, b, c...</option>
+                        <option value="upper-alpha">A, B, C...</option>
+                        <option value="lower-roman">i, ii, iii...</option>
+                        <option value="upper-roman">I, II, III...</option>
+                        <option value="lower-greek">α, β, γ...</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <!-- Heading numbering -->
+                  <div class="layout-form-row layout-attr-heading-only" style="display: none;">
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="attr-heading-numbered">
+                      <label for="attr-heading-numbered" data-i18n="layoutHeadingNumbered">Überschrift nummerieren</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Preview Text -->
+                  <div class="layout-preview-divider"></div>
+                  <div class="layout-preview-text">
+                    <p class="preview-para preview-para-1" data-i18n="previewPara1">Dies ist der erste Absatz als Beispieltext.</p>
+                    <div id="attr-preview-content">
+                      <p class="preview-para preview-para-2" id="attr-preview">Dies ist der zweite Absatz, der die aktuell gewählten Attribute anzeigt. Hier sehen Sie, wie Schriftart, Größe, Gewicht und Stil zusammenwirken.</p>
+                    </div>
+                    <p class="preview-para preview-para-3" data-i18n="previewPara3">Dies ist der dritte Absatz als normaler Text.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Media Tab -->
+            <div class="layout-editor-tab-content" data-content="media">
+              <h3>Medien</h3>
+              <p>Wird noch implementiert...</p>
+            </div>
+
+            <!-- Page Tab -->
+            <div class="layout-editor-tab-content" data-content="page">
+              <div class="layout-page-settings">
+                <div class="layout-page-grid">
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutPageSize">Seitengröße</h4>
+                    <label for="page-size" data-i18n="layoutPageSize">Seitengröße</label>
+                    <select id="page-size" class="layout-form-select">
+                      <option value="A4">A4 (210 × 297 mm)</option>
+                      <option value="A5">A5 (148 × 210 mm)</option>
+                      <option value="A6">A6 (105 × 148 mm)</option>
+                      <option value="B5">B5 (176 × 250 mm)</option>
+                      <option value="Letter">Letter (8.5 × 11")</option>
+                      <option value="Legal">Legal (8.5 × 14")</option>
+                      <option value="Tabloid">Tabloid (11 × 17")</option>
+                      <option value="Executive">Executive (7.25 × 10.5")</option>
+                      <option value="A3">A3 (297 × 420 mm)</option>
+                      <option value="B4">B4 (250 × 353 mm)</option>
+                      <option value="Folio">Folio (8.27 × 13")</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                  </div>
+
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutPageOrientation">Ausrichtung</h4>
+                    <label data-i18n="layoutPageOrientation">Ausrichtung</label>
+                    <div class="layout-orientation-buttons">
+                      <button type="button" class="layout-orientation-btn active" data-orientation="portrait" title="Hochformat">
+                        <i class="fa-solid fa-file-lines"></i>
+                      </button>
+                      <button type="button" class="layout-orientation-btn" data-orientation="landscape" title="Querformat">
+                        <i class="fa-solid fa-file-lines fa-rotate-90"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading">Seitenränder</h4>
+                    <label data-i18n="layoutPageMargins">Seitenränder (Oben • Rechts • Unten • Links)</label>
+                    <div class="layout-margins-inputs">
+                      <input type="text" id="page-margin-top" class="layout-form-input" placeholder="2.5cm" value="2.5cm" data-i18n-placeholder="layoutPageMarginsTop">
+                      <input type="text" id="page-margin-right" class="layout-form-input" placeholder="2cm" value="2cm" data-i18n-placeholder="layoutPageMarginsRight">
+                      <input type="text" id="page-margin-bottom" class="layout-form-input" placeholder="2cm" value="2cm" data-i18n-placeholder="layoutPageMarginsBottom">
+                      <input type="text" id="page-margin-left" class="layout-form-input" placeholder="2.5cm" value="2.5cm" data-i18n-placeholder="layoutPageMarginsLeft">
+                    </div>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="page-book-binding">
+                      <label for="page-book-binding" data-i18n="layoutPageBookBinding">Buchdruck (abwechselnde Ränder)</label>
+                    </div>
+                    <div class="layout-form-row" id="binding-offset-row" style="display: none;">
+                      <label for="page-binding-offset" data-i18n="layoutPageBindingOffset">Bindungsabstand</label>
+                      <input type="text" id="page-binding-offset" class="layout-form-input" placeholder="0.5cm" value="0.5cm">
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading">Spalten</h4>
+                    <div class="layout-columns-row">
+                      <div class="layout-form-group">
+                        <label for="page-columns" data-i18n="layoutPageColumns">Spaltenanzahl</label>
+                        <select id="page-columns" class="layout-form-select">
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="page-column-gap" data-i18n="layoutPageColumnGap">Spaltenzwischenraum</label>
+                        <input type="text" id="page-column-gap" class="layout-form-input" placeholder="1.5cm" value="1.5cm">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="layout-page-hf-grid">
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading">Kopfzeile</h4>
+                    <div class="layout-form-row">
+                      <label for="page-header-height" data-i18n="layoutPageHeaderHeight">Kopfzeilenhöhe</label>
+                      <input type="text" id="page-header-height" class="layout-form-input" placeholder="1.5cm" value="1.5cm">
+                    </div>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="page-header-first">
+                      <label for="page-header-first" data-i18n="layoutPageHeaderFirst">Auf erster Seite anzeigen</label>
+                    </div>
+                    <div class="layout-header-footer-content">
+                      <label data-i18n="layoutPageHeaderContent">Kopfzeilen-Inhalt</label>
+                      <div class="layout-hf-inputs">
+                        <input type="text" id="page-header-left" class="layout-form-input" placeholder="Links" data-i18n-placeholder="layoutPageContentLeft">
+                        <input type="text" id="page-header-center" class="layout-form-input" placeholder="Mitte" data-i18n-placeholder="layoutPageContentCenter">
+                        <input type="text" id="page-header-right" class="layout-form-input" placeholder="Rechts" data-i18n-placeholder="layoutPageContentRight">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading">Fußzeile</h4>
+                    <div class="layout-form-row">
+                      <label for="page-footer-height" data-i18n="layoutPageFooterHeight">Fußzeilenhöhe</label>
+                      <input type="text" id="page-footer-height" class="layout-form-input" placeholder="1.5cm" value="1.5cm">
+                    </div>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="page-footer-first">
+                      <label for="page-footer-first" data-i18n="layoutPageFooterFirst">Auf erster Seite anzeigen</label>
+                    </div>
+                    <div class="layout-header-footer-content">
+                      <label data-i18n="layoutPageFooterContent">Fußzeilen-Inhalt</label>
+                      <div class="layout-hf-inputs">
+                        <input type="text" id="page-footer-left" class="layout-form-input" placeholder="Links" data-i18n-placeholder="layoutPageContentLeft">
+                        <input type="text" id="page-footer-center" class="layout-form-input" placeholder="Mitte" data-i18n-placeholder="layoutPageContentCenter">
+                        <input type="text" id="page-footer-right" class="layout-form-input" placeholder="Rechts" data-i18n-placeholder="layoutPageContentRight">
+                      </div>
+                    </div>
+                    <div class="layout-variables-info">
+                      <i class="fa-solid fa-circle-info"></i>
+                      <span data-i18n="layoutPageVariablesInfo">Variablen: {{page}} {{total}} {{title}} {{author}} {{date}} {{savedate}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Table Tab -->
+            <div class="layout-editor-tab-content" data-content="table">
+              <div class="layout-table-editor-grid layout-table-settings">
+                <div class="layout-table-sidebar">
+                  <div class="layout-table-selector-panel">
+                    <label for="table-layout-profile-select" data-i18n="layoutTableLayouts">Tabellenlayouts</label>
+                    <select id="table-layout-profile-select" class="layout-form-select">
+                      <option value="default">default</option>
+                      <option value="__new__" data-i18n="layoutTableNew">Neues Layout</option>
+                    </select>
+                  </div>
+
+                  <div class="layout-table-section-list">
+                    <div class="layout-table-section-item active" data-table-section="layout">
+                      <span data-i18n="layoutTableBasics">Tabellenlayout</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="border">
+                      <span data-i18n="layoutTableBorder">Rahmen</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="cells">
+                      <span data-i18n="layoutTableCellText">Zellen</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="header">
+                      <span data-i18n="layoutTableHeaderText">Header</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="alt-row">
+                      <span data-i18n="layoutTableAltRowText">Alternierende Zeile</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="first-row">
+                      <span data-i18n="layoutTableFirstRowText">Erste Zeile</span>
+                    </div>
+                    <div class="layout-table-section-item" data-table-section="last-row">
+                      <span data-i18n="layoutTableLastRowText">Letzte Zeile</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="layout-table-section-content">
+                  <div class="layout-settings-section layout-table-block layout-table-section active" data-table-section="layout">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableBasics">Tabellenlayout</h4>
+                    <div class="layout-info" style="margin: 10px 0 14px 0;">
+                      <strong data-i18n="layoutTableAssign">Layout zuweisen:</strong>
+                      <code>&lt;!-- table:layoutName --&gt;</code>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="table-layout-name" data-i18n="layoutTableName">Layoutname</label>
+                        <input type="text" id="table-layout-name" class="layout-form-input" value="default">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-type" data-i18n="layoutTableType">Tabellentyp</label>
+                        <select id="table-type" class="layout-form-select">
+                          <option value="standard" data-i18n="layoutTableTypeStandard">Standard</option>
+                          <option value="scientific" data-i18n="layoutTableTypeScientific">Wissenschaftlich</option>
+                          <option value="compact" data-i18n="layoutTableTypeCompact">Kompakt</option>
+                          <option value="striped" data-i18n="layoutTableTypeStriped">Gestreift</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="table-layout" data-i18n="layoutTableLayout">Tabellenlayout</label>
+                        <select id="table-layout" class="layout-form-select">
+                          <option value="auto" data-i18n="layoutTableLayoutAuto">Automatisch</option>
+                          <option value="fixed" data-i18n="layoutTableLayoutFixed">Fest</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-width" data-i18n="layoutTableWidth">Tabellenbreite</label>
+                        <input type="text" id="table-width" class="layout-form-input" placeholder="100%" value="100%">
+                      </div>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="table-alignment" data-i18n="layoutTableAlignment">Tabellenausrichtung</label>
+                        <select id="table-alignment" class="layout-form-select">
+                          <option value="left" data-i18n="layoutTableAlignmentLeft">Links</option>
+                          <option value="center" data-i18n="layoutTableAlignmentCenter">Zentriert</option>
+                          <option value="right" data-i18n="layoutTableAlignmentRight">Rechts</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group layout-table-delete-group">
+                        <label>&nbsp;</label>
+                        <button id="table-layout-profile-delete" class="btn-danger" type="button">
+                          <i class="fa-solid fa-trash"></i>
+                          <span data-i18n="layoutTableDelete">Löschen</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="border">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableBorder">Rahmen</h4>
+                    <div class="layout-form-row row-3">
+                      <div class="layout-form-group">
+                        <label for="table-border-width" data-i18n="layoutTableBorderWidth">Rahmenbreite</label>
+                        <input type="text" id="table-border-width" class="layout-form-input" placeholder="1px" value="1px">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-border-style" data-i18n="layoutTableBorderStyle">Rahmenstil</label>
+                        <select id="table-border-style" class="layout-form-select">
+                          <option value="solid" data-i18n="layoutTableBorderStyleSolid">Durchgezogen</option>
+                          <option value="dashed" data-i18n="layoutTableBorderStyleDashed">Gestrichelt</option>
+                          <option value="dotted" data-i18n="layoutTableBorderStyleDotted">Gepunktet</option>
+                          <option value="none" data-i18n="layoutTableBorderStyleNone">Kein Rahmen</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-border-color" data-i18n="layoutTableBorderColor">Rahmenfarbe</label>
+                        <input type="color" id="table-border-color" class="layout-form-color" value="#cccccc">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="cells">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableCellText">Zellen</h4>
+                    <div class="layout-table-text-grid">
+                      <div class="layout-form-group">
+                        <label for="table-cell-font-family" data-i18n="layoutFontFamily">Schriftart</label>
+                        <select id="table-cell-font-family" class="layout-form-select">
+                          <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                          <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                          <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                          <option value="Georgia, serif">Georgia</option>
+                          <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                          <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                          <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                          <option value="Garamond, serif">Garamond</option>
+                          <option value="'Bookman Old Style', serif">Bookman</option>
+                          <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                          <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                          <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                          <option value="Arial, Helvetica, sans-serif">Arial</option>
+                          <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                          <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                          <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                          <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                          <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                          <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                          <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                          <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                          <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                          <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                          <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                          <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                          <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                          <option value="'Courier New', Courier, monospace">Courier New</option>
+                          <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                          <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-font-size" data-i18n="layoutFontSize">Schriftgröße</label>
+                        <input type="text" id="table-cell-font-size" class="layout-form-input" placeholder="10pt" value="10pt">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-font-weight" data-i18n="layoutFontWeight">Schriftgewicht</label>
+                        <select id="table-cell-font-weight" class="layout-form-select">
+                          <option value="300">Light (300)</option>
+                          <option value="400" selected>Normal (400)</option>
+                          <option value="500">Medium (500)</option>
+                          <option value="600">Semi-Bold (600)</option>
+                          <option value="700">Bold (700)</option>
+                          <option value="800">Extra-Bold (800)</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-align" data-i18n="layoutTextAlign">Ausrichtung</label>
+                        <div class="layout-toggle-buttons layout-align-scope" id="table-cell-align-group">
+                          <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                            <i class="fas fa-align-left"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                            <i class="fas fa-align-center"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                            <i class="fas fa-align-right"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                            <i class="fas fa-align-justify"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-line-height" data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                        <input type="text" id="table-cell-line-height" class="layout-form-input" placeholder="1.4" value="1.4">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-color" data-i18n="layoutColor">Farbe</label>
+                        <div class="layout-color-picker">
+                          <input type="color" id="table-cell-color" value="#1a1a1a">
+                          <div class="layout-color-palette">
+                            <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                            <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                            <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                            <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                            <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                            <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-indent-left" data-i18n="layoutTableIndentLeft">Einzug links</label>
+                        <input type="text" id="table-cell-indent-left" class="layout-form-input" placeholder="0" value="0">
+                      </div>
+                    </div>
+                    <div class="layout-table-style-row">
+                      <div class="layout-toggle-buttons">
+                        <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-cell-italic" title="Kursiv">
+                          <i class="fas fa-italic"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-cell-underline" title="Unterstrichen">
+                          <i class="fas fa-underline"></i>
+                        </button>
+                        <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-cell-small-caps" title="Kapitälchen">
+                          <i class="fas fa-font"></i>
+                        </button>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="table-cell-bg" data-i18n="layoutTableCellBg">Hintergrund</label>
+                        <input type="color" id="table-cell-bg" class="layout-form-color" value="#ffffff">
+                      </div>
+                    </div>
+                    <div class="layout-table-padding-row">
+                      <span class="layout-table-padding-label" data-i18n="layoutTablePadding">Padding</span>
+                      <div class="layout-form-row row-4">
+                        <div class="layout-form-group">
+                          <label for="table-cell-padding-top" data-i18n="layoutTablePaddingTop">Oben</label>
+                          <input type="text" id="table-cell-padding-top" class="layout-form-input" placeholder="8px" value="8px">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-cell-padding-right" data-i18n="layoutTablePaddingRight">Rechts</label>
+                          <input type="text" id="table-cell-padding-right" class="layout-form-input" placeholder="8px" value="8px">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-cell-padding-bottom" data-i18n="layoutTablePaddingBottom">Unten</label>
+                          <input type="text" id="table-cell-padding-bottom" class="layout-form-input" placeholder="8px" value="8px">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-cell-padding-left" data-i18n="layoutTablePaddingLeft">Links</label>
+                          <input type="text" id="table-cell-padding-left" class="layout-form-input" placeholder="8px" value="8px">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="header">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableHeaderText">Header</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="table-header-dedicated" checked>
+                      <label for="table-header-dedicated" data-i18n="layoutTableDedicatedLayout">Eigenes Layout</label>
+                    </div>
+                    <div class="layout-table-dedicated-content" data-dedicated-content="table-header-dedicated">
+                      <div class="layout-table-text-grid">
+                        <div class="layout-form-group">
+                          <label for="table-header-font-family" data-i18n="layoutFontFamily">Schriftart</label>
+                          <select id="table-header-font-family" class="layout-form-select">
+                            <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                            <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                            <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                            <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                            <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                            <option value="Garamond, serif">Garamond</option>
+                            <option value="'Bookman Old Style', serif">Bookman</option>
+                            <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                            <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                            <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                            <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                            <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                            <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                            <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                            <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                            <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                            <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                            <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                            <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                            <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                            <option value="'Courier New', Courier, monospace">Courier New</option>
+                            <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                            <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-font-size" data-i18n="layoutFontSize">Schriftgröße</label>
+                          <input type="text" id="table-header-font-size" class="layout-form-input" placeholder="10pt" value="10pt">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-font-weight" data-i18n="layoutFontWeight">Schriftgewicht</label>
+                          <select id="table-header-font-weight" class="layout-form-select">
+                            <option value="300">Light (300)</option>
+                            <option value="400">Normal (400)</option>
+                            <option value="500">Medium (500)</option>
+                            <option value="600">Semi-Bold (600)</option>
+                            <option value="700" selected>Bold (700)</option>
+                            <option value="800">Extra-Bold (800)</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-align" data-i18n="layoutTextAlign">Ausrichtung</label>
+                          <div class="layout-toggle-buttons layout-align-scope" id="table-header-align-group">
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="left" title="Linksbündig">
+                              <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="center" title="Zentriert">
+                              <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                              <i class="fas fa-align-right"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                              <i class="fas fa-align-justify"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-line-height" data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                          <input type="text" id="table-header-line-height" class="layout-form-input" placeholder="1.4" value="1.4">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-color" data-i18n="layoutColor">Farbe</label>
+                          <div class="layout-color-picker">
+                            <input type="color" id="table-header-color" value="#1a1a1a">
+                            <div class="layout-color-palette">
+                              <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                              <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                              <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                              <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                              <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                              <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-indent-left" data-i18n="layoutTableIndentLeft">Einzug links</label>
+                          <input type="text" id="table-header-indent-left" class="layout-form-input" placeholder="0" value="0">
+                        </div>
+                      </div>
+                      <div class="layout-table-style-row">
+                        <div class="layout-toggle-buttons">
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-header-italic" title="Kursiv">
+                            <i class="fas fa-italic"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-header-underline" title="Unterstrichen">
+                            <i class="fas fa-underline"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-header-small-caps" title="Kapitälchen">
+                            <i class="fas fa-font"></i>
+                          </button>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-header-bg" data-i18n="layoutTableHeaderBg">Hintergrund</label>
+                          <input type="color" id="table-header-bg" class="layout-form-color" value="#f0f0f0">
+                        </div>
+                      </div>
+                      <div class="layout-table-padding-row">
+                        <span class="layout-table-padding-label" data-i18n="layoutTablePadding">Padding</span>
+                        <div class="layout-form-row row-4">
+                          <div class="layout-form-group">
+                            <label for="table-header-padding-top" data-i18n="layoutTablePaddingTop">Oben</label>
+                            <input type="text" id="table-header-padding-top" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-header-padding-right" data-i18n="layoutTablePaddingRight">Rechts</label>
+                            <input type="text" id="table-header-padding-right" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-header-padding-bottom" data-i18n="layoutTablePaddingBottom">Unten</label>
+                            <input type="text" id="table-header-padding-bottom" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-header-padding-left" data-i18n="layoutTablePaddingLeft">Links</label>
+                            <input type="text" id="table-header-padding-left" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="alt-row">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableAltRowText">Alternierende Zeile</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="table-alt-row-dedicated" checked>
+                      <label for="table-alt-row-dedicated" data-i18n="layoutTableDedicatedLayout">Eigenes Layout</label>
+                    </div>
+                    <div class="layout-table-dedicated-content" data-dedicated-content="table-alt-row-dedicated">
+                      <div class="layout-table-text-grid">
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-font-family" data-i18n="layoutFontFamily">Schriftart</label>
+                          <select id="table-alt-row-font-family" class="layout-form-select">
+                            <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                            <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                            <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                            <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                            <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                            <option value="Garamond, serif">Garamond</option>
+                            <option value="'Bookman Old Style', serif">Bookman</option>
+                            <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                            <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                            <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                            <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                            <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                            <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                            <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                            <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                            <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                            <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                            <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                            <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                            <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                            <option value="'Courier New', Courier, monospace">Courier New</option>
+                            <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                            <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-font-size" data-i18n="layoutFontSize">Schriftgröße</label>
+                          <input type="text" id="table-alt-row-font-size" class="layout-form-input" placeholder="10pt" value="10pt">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-font-weight" data-i18n="layoutFontWeight">Schriftgewicht</label>
+                          <select id="table-alt-row-font-weight" class="layout-form-select">
+                            <option value="300">Light (300)</option>
+                            <option value="400" selected>Normal (400)</option>
+                            <option value="500">Medium (500)</option>
+                            <option value="600">Semi-Bold (600)</option>
+                            <option value="700">Bold (700)</option>
+                            <option value="800">Extra-Bold (800)</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-align" data-i18n="layoutTextAlign">Ausrichtung</label>
+                          <div class="layout-toggle-buttons layout-align-scope" id="table-alt-row-align-group">
+                            <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                              <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                              <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                              <i class="fas fa-align-right"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                              <i class="fas fa-align-justify"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-line-height" data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                          <input type="text" id="table-alt-row-line-height" class="layout-form-input" placeholder="1.4" value="1.4">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-color" data-i18n="layoutColor">Farbe</label>
+                          <div class="layout-color-picker">
+                            <input type="color" id="table-alt-row-color" value="#1a1a1a">
+                            <div class="layout-color-palette">
+                              <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                              <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                              <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                              <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                              <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                              <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-indent-left" data-i18n="layoutTableIndentLeft">Einzug links</label>
+                          <input type="text" id="table-alt-row-indent-left" class="layout-form-input" placeholder="0" value="0">
+                        </div>
+                      </div>
+                      <div class="layout-table-style-row">
+                        <div class="layout-toggle-buttons">
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-alt-row-italic" title="Kursiv">
+                            <i class="fas fa-italic"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-alt-row-underline" title="Unterstrichen">
+                            <i class="fas fa-underline"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-alt-row-small-caps" title="Kapitälchen">
+                            <i class="fas fa-font"></i>
+                          </button>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-alt-row-bg" data-i18n="layoutTableAltRowBg">Hintergrund</label>
+                          <input type="color" id="table-alt-row-bg" class="layout-form-color" value="#f9f9f9">
+                        </div>
+                      </div>
+                      <div class="layout-table-padding-row">
+                        <span class="layout-table-padding-label" data-i18n="layoutTablePadding">Padding</span>
+                        <div class="layout-form-row row-4">
+                          <div class="layout-form-group">
+                            <label for="table-alt-row-padding-top" data-i18n="layoutTablePaddingTop">Oben</label>
+                            <input type="text" id="table-alt-row-padding-top" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-alt-row-padding-right" data-i18n="layoutTablePaddingRight">Rechts</label>
+                            <input type="text" id="table-alt-row-padding-right" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-alt-row-padding-bottom" data-i18n="layoutTablePaddingBottom">Unten</label>
+                            <input type="text" id="table-alt-row-padding-bottom" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-alt-row-padding-left" data-i18n="layoutTablePaddingLeft">Links</label>
+                            <input type="text" id="table-alt-row-padding-left" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="first-row">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableFirstRowText">Erste Zeile</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="table-first-row-dedicated" checked>
+                      <label for="table-first-row-dedicated" data-i18n="layoutTableDedicatedLayout">Eigenes Layout</label>
+                    </div>
+                    <div class="layout-table-dedicated-content" data-dedicated-content="table-first-row-dedicated">
+                      <div class="layout-table-text-grid">
+                        <div class="layout-form-group">
+                          <label for="table-first-row-font-family" data-i18n="layoutFontFamily">Schriftart</label>
+                          <select id="table-first-row-font-family" class="layout-form-select">
+                            <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                            <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                            <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                            <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                            <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                            <option value="Garamond, serif">Garamond</option>
+                            <option value="'Bookman Old Style', serif">Bookman</option>
+                            <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                            <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                            <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                            <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                            <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                            <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                            <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                            <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                            <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                            <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                            <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                            <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                            <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                            <option value="'Courier New', Courier, monospace">Courier New</option>
+                            <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                            <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-font-size" data-i18n="layoutFontSize">Schriftgröße</label>
+                          <input type="text" id="table-first-row-font-size" class="layout-form-input" placeholder="10pt" value="10pt">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-font-weight" data-i18n="layoutFontWeight">Schriftgewicht</label>
+                          <select id="table-first-row-font-weight" class="layout-form-select">
+                            <option value="300">Light (300)</option>
+                            <option value="400" selected>Normal (400)</option>
+                            <option value="500">Medium (500)</option>
+                            <option value="600">Semi-Bold (600)</option>
+                            <option value="700">Bold (700)</option>
+                            <option value="800">Extra-Bold (800)</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-align" data-i18n="layoutTextAlign">Ausrichtung</label>
+                          <div class="layout-toggle-buttons layout-align-scope" id="table-first-row-align-group">
+                            <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                              <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                              <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                              <i class="fas fa-align-right"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                              <i class="fas fa-align-justify"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-line-height" data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                          <input type="text" id="table-first-row-line-height" class="layout-form-input" placeholder="1.4" value="1.4">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-color" data-i18n="layoutColor">Farbe</label>
+                          <div class="layout-color-picker">
+                            <input type="color" id="table-first-row-color" value="#1a1a1a">
+                            <div class="layout-color-palette">
+                              <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                              <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                              <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                              <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                              <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                              <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-indent-left" data-i18n="layoutTableIndentLeft">Einzug links</label>
+                          <input type="text" id="table-first-row-indent-left" class="layout-form-input" placeholder="0" value="0">
+                        </div>
+                      </div>
+                      <div class="layout-table-style-row">
+                        <div class="layout-toggle-buttons">
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-first-row-italic" title="Kursiv">
+                            <i class="fas fa-italic"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-first-row-underline" title="Unterstrichen">
+                            <i class="fas fa-underline"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-first-row-small-caps" title="Kapitälchen">
+                            <i class="fas fa-font"></i>
+                          </button>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-first-row-bg" data-i18n="layoutTableFirstRowBg">Hintergrund</label>
+                          <input type="color" id="table-first-row-bg" class="layout-form-color" value="#ffffff">
+                        </div>
+                      </div>
+                      <div class="layout-table-padding-row">
+                        <span class="layout-table-padding-label" data-i18n="layoutTablePadding">Padding</span>
+                        <div class="layout-form-row row-4">
+                          <div class="layout-form-group">
+                            <label for="table-first-row-padding-top" data-i18n="layoutTablePaddingTop">Oben</label>
+                            <input type="text" id="table-first-row-padding-top" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-first-row-padding-right" data-i18n="layoutTablePaddingRight">Rechts</label>
+                            <input type="text" id="table-first-row-padding-right" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-first-row-padding-bottom" data-i18n="layoutTablePaddingBottom">Unten</label>
+                            <input type="text" id="table-first-row-padding-bottom" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-first-row-padding-left" data-i18n="layoutTablePaddingLeft">Links</label>
+                            <input type="text" id="table-first-row-padding-left" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="layout-settings-section layout-table-block layout-table-section" data-table-section="last-row">
+                    <h4 class="layout-settings-heading" data-i18n="layoutTableLastRowText">Letzte Zeile</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="table-last-row-dedicated" checked>
+                      <label for="table-last-row-dedicated" data-i18n="layoutTableDedicatedLayout">Eigenes Layout</label>
+                    </div>
+                    <div class="layout-table-dedicated-content" data-dedicated-content="table-last-row-dedicated">
+                      <div class="layout-table-text-grid">
+                        <div class="layout-form-group">
+                          <label for="table-last-row-font-family" data-i18n="layoutFontFamily">Schriftart</label>
+                          <select id="table-last-row-font-family" class="layout-form-select">
+                            <option value="system-ui, -apple-system, 'Segoe UI', sans-serif">System Standard</option>
+                            <option value="-apple-system, BlinkMacSystemFont, sans-serif">System (Apple)</option>
+                            <option value="'Segoe UI', Tahoma, sans-serif">System (Windows)</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                            <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+                            <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+                            <option value="Garamond, serif">Garamond</option>
+                            <option value="'Bookman Old Style', serif">Bookman</option>
+                            <option value="'Baskerville', 'Baskerville Old Face', serif">Baskerville</option>
+                            <option value="'Cambria', 'Times New Roman', serif">Cambria</option>
+                            <option value="'Didot', 'Bodoni MT', 'Didot LT STD', serif">Didot</option>
+                            <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            <option value="'Arial Black', Arial, sans-serif">Arial Black</option>
+                            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                            <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica Neue</option>
+                            <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                            <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                            <option value="'Gill Sans', 'Gill Sans MT', sans-serif">Gill Sans</option>
+                            <option value="'Calibri', Arial, sans-serif">Calibri</option>
+                            <option value="'Tahoma', Arial, sans-serif">Tahoma</option>
+                            <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+                            <option value="'Optima', 'Segoe UI', sans-serif">Optima</option>
+                            <option value="'Candara', 'Segoe UI', sans-serif">Candara</option>
+                            <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                            <option value="'Courier New', Courier, monospace">Courier New</option>
+                            <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+                            <option value="Monaco, 'Courier New', monospace">Monaco</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-font-size" data-i18n="layoutFontSize">Schriftgröße</label>
+                          <input type="text" id="table-last-row-font-size" class="layout-form-input" placeholder="10pt" value="10pt">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-font-weight" data-i18n="layoutFontWeight">Schriftgewicht</label>
+                          <select id="table-last-row-font-weight" class="layout-form-select">
+                            <option value="300">Light (300)</option>
+                            <option value="400" selected>Normal (400)</option>
+                            <option value="500">Medium (500)</option>
+                            <option value="600">Semi-Bold (600)</option>
+                            <option value="700">Bold (700)</option>
+                            <option value="800">Extra-Bold (800)</option>
+                          </select>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-align" data-i18n="layoutTextAlign">Ausrichtung</label>
+                          <div class="layout-toggle-buttons layout-align-scope" id="table-last-row-align-group">
+                            <button type="button" class="layout-toggle-btn layout-align-btn active" data-align="left" title="Linksbündig">
+                              <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="center" title="Zentriert">
+                              <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="right" title="Rechtsbündig">
+                              <i class="fas fa-align-right"></i>
+                            </button>
+                            <button type="button" class="layout-toggle-btn layout-align-btn" data-align="justify" title="Blocksatz">
+                              <i class="fas fa-align-justify"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-line-height" data-i18n="layoutLineHeight">Zeilenhöhe</label>
+                          <input type="text" id="table-last-row-line-height" class="layout-form-input" placeholder="1.4" value="1.4">
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-color" data-i18n="layoutColor">Farbe</label>
+                          <div class="layout-color-picker">
+                            <input type="color" id="table-last-row-color" value="#1a1a1a">
+                            <div class="layout-color-palette">
+                              <button type="button" class="color-swatch" data-color="#000000" style="background: #000000" title="Schwarz"></button>
+                              <button type="button" class="color-swatch" data-color="#2d2d2d" style="background: #2d2d2d" title="Dunkelgrau"></button>
+                              <button type="button" class="color-swatch" data-color="#6b6b6b" style="background: #6b6b6b" title="Grau"></button>
+                              <button type="button" class="color-swatch" data-color="#22536b" style="background: #22536b" title="Blau Dunkel"></button>
+                              <button type="button" class="color-swatch" data-color="#0089cf" style="background: #0089cf" title="Blau Hell"></button>
+                              <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b" title="Orange Dunkel"></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-indent-left" data-i18n="layoutTableIndentLeft">Einzug links</label>
+                          <input type="text" id="table-last-row-indent-left" class="layout-form-input" placeholder="0" value="0">
+                        </div>
+                      </div>
+                      <div class="layout-table-style-row">
+                        <div class="layout-toggle-buttons">
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-last-row-italic" title="Kursiv">
+                            <i class="fas fa-italic"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-last-row-underline" title="Unterstrichen">
+                            <i class="fas fa-underline"></i>
+                          </button>
+                          <button type="button" class="layout-toggle-btn layout-table-toggle" id="table-last-row-small-caps" title="Kapitälchen">
+                            <i class="fas fa-font"></i>
+                          </button>
+                        </div>
+                        <div class="layout-form-group">
+                          <label for="table-last-row-bg" data-i18n="layoutTableLastRowBg">Hintergrund</label>
+                          <input type="color" id="table-last-row-bg" class="layout-form-color" value="#ffffff">
+                        </div>
+                      </div>
+                      <div class="layout-table-padding-row">
+                        <span class="layout-table-padding-label" data-i18n="layoutTablePadding">Padding</span>
+                        <div class="layout-form-row row-4">
+                          <div class="layout-form-group">
+                            <label for="table-last-row-padding-top" data-i18n="layoutTablePaddingTop">Oben</label>
+                            <input type="text" id="table-last-row-padding-top" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-last-row-padding-right" data-i18n="layoutTablePaddingRight">Rechts</label>
+                            <input type="text" id="table-last-row-padding-right" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-last-row-padding-bottom" data-i18n="layoutTablePaddingBottom">Unten</label>
+                            <input type="text" id="table-last-row-padding-bottom" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                          <div class="layout-form-group">
+                            <label for="table-last-row-padding-left" data-i18n="layoutTablePaddingLeft">Links</label>
+                            <input type="text" id="table-last-row-padding-left" class="layout-form-input" placeholder="8px" value="8px">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CSS Tab -->
+            <div class="layout-editor-tab-content" data-content="css">
+              <div class="layout-css-editor">
+                <div class="layout-settings-section">
+                  <h4 class="layout-settings-heading" data-i18n="layoutEditorCssHeading">CSS Styles für Vorschau</h4>
+                  <p class="layout-css-description" data-i18n="layoutEditorCssDescription">Definieren Sie eigene CSS-Regeln für die Vorschau. Diese Styles werden zusätzlich zu den oben definierten Layout-Einstellungen angewendet.</p>
+                  <textarea id="layoutCustomCssInput" class="layout-css-textarea" rows="20" placeholder=".preview-content { font-size: 16px; }" data-i18n-placeholder="viewCustomCssPlaceholder"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="layout-editor-footer">
+          <button id="layoutEditorCancel" class="btn-secondary" data-i18n="cancel">Abbrechen</button>
+          <button id="layoutEditorSave" class="btn-primary">
+            <i class="fa-solid fa-check"></i> <span data-i18n="save">Speichern</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

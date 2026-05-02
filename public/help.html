@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Markdown‑Hilfe</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f9fcfe;
+        --panel: #ffffff;
+        --text: #22536b;
+        --muted: #637381;
+        --border: #e1e7ec;
+        --primary: #22536b;
+        --accent: #0089cf;
+        --accent-light: #d9eefb;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      header {
+        padding: 32px 40px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      h1 {
+        color: var(--primary);
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+      }
+      main {
+        padding: 32px 40px 64px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin: 24px 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      h2 {
+        color: var(--accent);
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      th, td {
+        border: 1px solid var(--border);
+        padding: 12px;
+        vertical-align: top;
+        font-size: 14px;
+        text-align: left;
+      }
+      th {
+        background: #f8fafc;
+        color: var(--primary);
+        font-weight: 600;
+      }
+      td {
+        color: var(--text);
+      }
+      code, pre {
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      code {
+        padding: 3px 6px;
+      }
+      pre {
+        padding: 14px;
+        overflow: auto;
+        margin: 8px 0;
+      }
+      pre code {
+        padding: 0;
+        background: transparent;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      a:hover {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+      strong {
+        color: var(--primary);
+        font-weight: 600;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  </head>
+  <body>
+    <header>
+      <h1>Markdown‑Hilfe &amp; Syntax‑Referenz</h1>
+      <p class="note">Alle in der App verfügbaren Erweiterungen mit Beispiel und Erklärung.</p>
+    </header>
+    <main>
+      <section>
+        <h2>Basis‑Markdown</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Thema</th>
+              <th>.md‑Beispiel</th>
+              <th>Gerendertes Beispiel</th>
+              <th>Erklärung</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Überschriften</td>
+              <td><pre><code># H1
+## H2
+### H3</code></pre></td>
+              <td><strong>H1/H2/H3</strong></td>
+              <td>Mit <code>#</code> bis <code>######</code>.</td>
+            </tr>
+            <tr>
+              <td>Listen</td>
+              <td><pre><code>- Punkt 1
+- Punkt 2
+
+1. Erstens
+2. Zweitens</code></pre></td>
+              <td>Aufzählung und Nummerierung.</td>
+              <td>Ungeordnete und geordnete Listen.</td>
+            </tr>
+            <tr>
+              <td>Links & Bilder</td>
+              <td><pre><code>[Link](https://example.com)
+![Alt](https://via.placeholder.com/120)</code></pre></td>
+              <td>Link und Bild.</td>
+              <td>Klassische Markdown‑Syntax.</td>
+            </tr>
+            <tr>
+              <td>Code</td>
+              <td><pre><code>`inline`
+
+```js
+console.log("Hi")
+```</code></pre></td>
+              <td>Inline‑ und Block‑Code.</td>
+              <td>Backticks für Code.</td>
+            </tr>
+            <tr>
+              <td>Zitat & Trennlinie</td>
+              <td><pre><code>> Zitat
+
+---</code></pre></td>
+              <td>Zitat und horizontale Linie.</td>
+              <td><code>></code> für Zitate, <code>---</code> für Trennlinie.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>GFM</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Thema</th>
+              <th>.md‑Beispiel</th>
+              <th>Gerendertes Beispiel</th>
+              <th>Erklärung</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Aufgabenlisten</td>
+              <td><pre><code>- [x] Erledigt
+- [ ] Offen</code></pre></td>
+              <td><ul><li><input type="checkbox" checked disabled /> Erledigt</li><li><input type="checkbox" disabled /> Offen</li></ul></td>
+              <td>Interaktive Aufgabenlisten nach GFM.</td>
+            </tr>
+            <tr>
+              <td>Autolinks</td>
+              <td><pre><code>https://example.com</code></pre></td>
+              <td><a href="https://example.com">https://example.com</a></td>
+              <td>URLs werden automatisch verlinkt.</td>
+            </tr>
+            <tr>
+              <td>Durchstreichung</td>
+              <td><pre><code>~~veraltet~~</code></pre></td>
+              <td><s>veraltet</s></td>
+              <td>Text wird als gestrichen gerendert.</td>
+            </tr>
+            <tr>
+              <td>Tabellen</td>
+              <td><pre><code>| A | B |
+| --- | --- |
+| 1 | 2 |</code></pre></td>
+              <td><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table></td>
+              <td>Einfaches Tabellenlayout.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Mermaid</h2>
+        <table>
+          <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Flowchart</td>
+              <td><pre><code>```mermaid
+flowchart TD
+  A[Start] --> B{Entscheidung}
+  B -->|Ja| C[Weiter]
+```</code></pre></td>
+              <td>Flussdiagramm.</td>
+              <td>Knoten/Edges, Richtung z. B. TD/LR.</td>
+            </tr>
+            <tr>
+              <td>Sequence</td>
+              <td><pre><code>```mermaid
+sequenceDiagram
+  participant A
+  participant B
+  A->>B: Hallo
+```</code></pre></td>
+              <td>Sequenzdiagramm.</td>
+              <td>Teilnehmer und Nachrichten.</td>
+            </tr>
+            <tr>
+              <td>State</td>
+              <td><pre><code>```mermaid
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Published
+```</code></pre></td>
+              <td>Zustandsdiagramm.</td>
+              <td>Zustände und Transitionen.</td>
+            </tr>
+            <tr>
+              <td>Class</td>
+              <td><pre><code>```mermaid
+classDiagram
+  class Document {
+    +id: string
+  }
+```</code></pre></td>
+              <td>Klassendiagramm.</td>
+              <td>Klassen, Attribute, Beziehungen.</td>
+            </tr>
+            <tr>
+              <td>ER</td>
+              <td><pre><code>```mermaid
+erDiagram
+  USER ||--o{ DOCUMENT : owns
+```</code></pre></td>
+              <td>ER‑Diagramm.</td>
+              <td>Entitäten und Kardinalitäten.</td>
+            </tr>
+            <tr>
+              <td>Gantt</td>
+              <td><pre><code>```mermaid
+gantt
+  dateFormat YYYY-MM-DD
+  section MVP
+  Planung :a1, 2026-02-01, 7d
+```</code></pre></td>
+              <td>Gantt‑Diagramm.</td>
+              <td>Aufgaben mit Zeitachsen.</td>
+            </tr>
+            <tr>
+              <td>Journey</td>
+              <td><pre><code>```mermaid
+journey
+  title Nutzerreise
+  section Start
+    Öffnen: 5: User
+```</code></pre></td>
+              <td>User‑Journey.</td>
+              <td>Schritte mit Bewertung.</td>
+            </tr>
+            <tr>
+              <td>Pie</td>
+              <td><pre><code>```mermaid
+pie title Verteilung
+  "A": 40
+  "B": 60
+```</code></pre></td>
+              <td>Pie‑Chart.</td>
+              <td>Anteile nach Kategorien.</td>
+            </tr>
+            <tr>
+              <td>Mindmap</td>
+              <td><pre><code>```mermaid
+mindmap
+  root((Topic))
+    A
+    B
+```</code></pre></td>
+              <td>Mindmap.</td>
+              <td>Hierarchische Struktur.</td>
+            </tr>
+            <tr>
+              <td>Timeline</td>
+              <td><pre><code>```mermaid
+timeline
+  2025 : Idee
+  2026 : Umsetzung
+```</code></pre></td>
+              <td>Timeline.</td>
+              <td>Meilensteine über Zeit.</td>
+            </tr>
+            <tr>
+              <td>QuadrantChart</td>
+              <td><pre><code>```mermaid
+quadrantChart
+  title Priorisierung
+  IdeeA: [0.8, 0.2]
+```</code></pre></td>
+              <td>Quadranten‑Chart.</td>
+              <td>2‑D‑Positionen in Quadranten.</td>
+            </tr>
+            <tr>
+              <td>GitGraph</td>
+              <td><pre><code>```mermaid
+gitGraph
+  commit
+  branch feature
+  merge feature
+```</code></pre></td>
+              <td>Git‑Verlauf.</td>
+              <td>Commits, Branches, Merges.</td>
+            </tr>
+            <tr>
+              <td>Requirement</td>
+              <td><pre><code>```mermaid
+requirementDiagram
+  requirement req1 {
+    id: 1
+    text: Muss X können
+  }
+```</code></pre></td>
+              <td>Requirements.</td>
+              <td>Anforderungen und Tests.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Mathe (KaTeX/MathJax)</h2>
+        <table>
+          <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Inline</td>
+              <td><pre><code>$E=mc^2$</code></pre></td>
+              <td>$E=mc^2$</td>
+              <td>Inline‑Formeln zwischen <code>$</code>.</td>
+            </tr>
+            <tr>
+              <td>Block</td>
+              <td><pre><code>$$
+\int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
+$$</code></pre></td>
+              <td>Block‑Formel mit doppelten <code>$$</code>.</td>
+              <td>Mehrzeilige Formeln als Block.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Struktur &amp; Hinweise</h2>
+        <table>
+          <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Fußnoten</td>
+              <td><pre><code>Text[^1]
+
+[^1]: Fußnote</code></pre></td>
+              <td>Text mit Fußnote¹</td>
+              <td>Fußnoten werden gesammelt angezeigt.</td>
+            </tr>
+            <tr>
+              <td>Definition Lists</td>
+              <td><pre><code>Begriff
+: Definition</code></pre></td>
+              <td><dl><dt>Begriff</dt><dd>Definition</dd></dl></td>
+              <td>Begriffe mit Definitionen.</td>
+            </tr>
+            <tr>
+              <td>Admonitions</td>
+              <td><pre><code>::: info
+Hinweis
+:::</code></pre></td>
+              <td><div class="admonition admonition-info"><div class="admonition-title">Info</div>Hinweis</div></td>
+              <td>Hinweisboxen (Info/Warning/Tip).</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Zusätzliche Syntax</h2>
+        <table>
+          <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Emoji</td>
+              <td><pre><code>Ich :heart: Markdown</code></pre></td>
+              <td>Ich ❤️ Markdown</td>
+              <td>Emoji‑Codes werden ersetzt.</td>
+            </tr>
+            <tr>
+              <td>Sub/Sup</td>
+              <td><pre><code>H~2~O, x^2^</code></pre></td>
+              <td>H<sub>2</sub>O, x<sup>2</sup></td>
+              <td>Tief‑/Hochstellung.</td>
+            </tr>
+            <tr>
+              <td>Mark</td>
+              <td><pre><code>==Wichtig==</code></pre></td>
+              <td><mark>Wichtig</mark></td>
+              <td>Textmarkierung.</td>
+            </tr>
+            <tr>
+              <td>Abkürzungen</td>
+              <td><pre><code>*[HTML]: HyperText Markup Language
+HTML</code></pre></td>
+              <td><abbr title="HyperText Markup Language">HTML</abbr></td>
+              <td>Abkürzungen mit Tooltip.</td>
+            </tr>
+            <tr>
+              <td>TOC</td>
+              <td><pre><code>[[toc]]</code></pre></td>
+              <td>Automatisches Inhaltsverzeichnis.</td>
+              <td>Platzhalter wird ersetzt. Überschriften werden gesammelt.</td>
+            </tr>
+            <tr>
+              <td>Attribute</td>
+              <td><pre><code>### Titel {#id}
+
+Absatz {.klasse}</code></pre></td>
+              <td>Überschrift mit ID/Klasse.</td>
+              <td>IDs/Klassen/Attribute direkt im Markdown.</td>
+            </tr>
+            <tr>
+              <td>Typografie</td>
+              <td><pre><code>"Gerade" -> „schön“</code></pre></td>
+              <td>„Gerade“ -> „schön“</td>
+              <td>Typografische Anführungszeichen und Ligaturen.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Layout</h2>
+        <table>
+          <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Spalten</td>
+              <td><pre><code>::: columns
+::: column
+Spalte 1
+:::
+::: column
+Spalte 2
+:::
+:::</code></pre></td>
+              <td>Mehrspaltiges Layout.</td>
+              <td>Container‑Syntax für Spalten.</td>
+            </tr>
+            <tr>
+              <td>Umbrüche</td>
+              <td><pre><code>::: pagebreak
+:::
+::: sectionbreak
+:::
+::: columnbreak
+:::
+::: linebreak
+:::</code></pre></td>
+              <td>Visuelle Umbruch‑Marker.</td>
+              <td>Zeilen/Spalten/Abschnitt/Seite als Marker.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html><!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Markdown‑Hilfe</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+            <section>
+              <h2>Emoji</h2>
+              <pre><code>Ich :heart: Markdown :rocket:</code></pre>
+            </section>
+
+            <section>
+              <h2>Subscript / Superscript</h2>
+              <pre><code>H~2~O und x^2^</code></pre>
+            </section>
+
+            <section>
+              <h2>Mark/Highlight</h2>
+              <pre><code>==Wichtiger Text==</code></pre>
+            </section>
+
+            <section>
+              <h2>Abkürzungen</h2>
+              <pre><code>*[HTML]: HyperText Markup Language
+      body {
+        margin: 0;
+            </section>
+
+            <section>
+              <h2>Inhaltsverzeichnis (TOC)</h2>
+              <p class="note">Platzhalter <code>[[toc]]</code> erzeugt ein Inhaltsverzeichnis.</p>
+              <pre><code>[[toc]]</code></pre>
+            </section>
+
+            <section>
+              <h2>Attribute (IDs/Klassen)</h2>
+              <pre><code>### Überschrift {#meine-id}
+        background: #f8fafc;
+        color: #0f172a;
+            </section>
+
+            <section>
+              <h2>Typografische Anführungszeichen</h2>
+              <pre><code>"Gerade" werden zu „typografisch“</code></pre>
+            </section>
+
+            <section>
+              <h2>Layout: Spalten</h2>
+              <pre><code>::: columns
+      }
+      header {
+        padding: 24px 28px;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      main {
+        padding: 24px 28px 48px;
+            </section>
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      h1, h2, h3 {
+        margin-top: 24px;
+      }
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: #0f172a;
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 8px;
+        }
+        th, td {
+          border: 1px solid #e2e8f0;
+          padding: 8px;
+          vertical-align: top;
+          font-size: 13px;
+        }
+        th {
+          background: #f1f5f9;
+          text-align: left;
+        }
+        color: #f8fafc;
+        border-radius: 6px;
+      }
+      code {
+        padding: 2px 6px;
+      }
+      pre {
+        padding: 12px;
+        overflow: auto;
+      }
+      section {
+        <main>
+          <section>
+            <h2>GFM</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Thema</th>
+                  <th>.md‑Beispiel</th>
+                  <th>Gerendertes Beispiel</th>
+                  <th>Erklärung</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Aufgabenlisten</td>
+                  <td><pre><code>- [x] Erledigt
+    - [ ] Offen</code></pre></td>
+                  <td><ul><li><input type="checkbox" checked disabled /> Erledigt</li><li><input type="checkbox" disabled /> Offen</li></ul></td>
+                  <td>Interaktive Aufgabenlisten nach GFM.</td>
+                </tr>
+                <tr>
+                  <td>Autolinks</td>
+                  <td><pre><code>https://example.com</code></pre></td>
+                  <td><a href="https://example.com">https://example.com</a></td>
+                  <td>URLs werden automatisch verlinkt.</td>
+                </tr>
+                <tr>
+                  <td>Durchstreichung</td>
+                  <td><pre><code>~~veraltet~~</code></pre></td>
+                  <td><s>veraltet</s></td>
+                  <td>Text wird als gestrichen gerendert.</td>
+                </tr>
+                <tr>
+                  <td>Tabellen</td>
+                  <td><pre><code>| A | B |
+    | --- | --- |
+    | 1 | 2 |</code></pre></td>
+                  <td><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table></td>
+                  <td>Einfaches Tabellenlayout.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2>Mermaid</h2>
+            <table>
+              <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Diagramme</td>
+                  <td><pre><code>```mermaid
+    flowchart TD
+      A --> B
+    ```</code></pre></td>
+                  <td>Diagramm aus Mermaid‑Codeblöcken.</td>
+                  <td>Codeblöcke mit Sprache <code>mermaid</code> werden gerendert.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2>Mathe (KaTeX/MathJax)</h2>
+            <table>
+              <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Inline</td>
+                  <td><pre><code>$E=mc^2$</code></pre></td>
+                  <td>$E=mc^2$</td>
+                  <td>Inline‑Formeln zwischen <code>$</code>.</td>
+                </tr>
+                <tr>
+                  <td>Block</td>
+                  <td><pre><code>$$
+    \int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
+    $$</code></pre></td>
+                  <td>Block‑Formel mit doppelten <code>$$</code>.</td>
+                  <td>Mehrzeilige Formeln als Block.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2>Struktur &amp; Hinweise</h2>
+            <table>
+              <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Fußnoten</td>
+                  <td><pre><code>Text[^1]
+
+    [^1]: Fußnote</code></pre></td>
+                  <td>Text mit Fußnote¹</td>
+                  <td>Fußnoten werden gesammelt angezeigt.</td>
+                </tr>
+                <tr>
+                  <td>Definition Lists</td>
+                  <td><pre><code>Begriff
+    : Definition</code></pre></td>
+                  <td><dl><dt>Begriff</dt><dd>Definition</dd></dl></td>
+                  <td>Begriffe mit Definitionen.</td>
+                </tr>
+                <tr>
+                  <td>Admonitions</td>
+                  <td><pre><code>::: info
+    Hinweis
+    :::</code></pre></td>
+                  <td><div class="admonition admonition-info"><div class="admonition-title">Info</div>Hinweis</div></td>
+                  <td>Hinweisboxen (Info/Warning/Tip).</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2>Zusätzliche Syntax</h2>
+            <table>
+              <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Emoji</td>
+                  <td><pre><code>Ich :heart: Markdown</code></pre></td>
+                  <td>Ich ❤️ Markdown</td>
+                  <td>Emoji‑Codes werden ersetzt.</td>
+                </tr>
+                <tr>
+                  <td>Sub/Sup</td>
+                  <td><pre><code>H~2~O, x^2^</code></pre></td>
+                  <td>H<sub>2</sub>O, x<sup>2</sup></td>
+                  <td>Tief‑/Hochstellung.</td>
+                </tr>
+                <tr>
+                  <td>Mark</td>
+                  <td><pre><code>==Wichtig==</code></pre></td>
+                  <td><mark>Wichtig</mark></td>
+                  <td>Textmarkierung.</td>
+                </tr>
+                <tr>
+                  <td>Abkürzungen</td>
+                  <td><pre><code>*[HTML]: HyperText Markup Language
+    HTML</code></pre></td>
+                  <td><abbr title="HyperText Markup Language">HTML</abbr></td>
+                  <td>Abkürzungen mit Tooltip.</td>
+                </tr>
+                <tr>
+                  <td>TOC</td>
+                  <td><pre><code>[[toc]]</code></pre></td>
+                  <td>Automatisches Inhaltsverzeichnis.</td>
+                  <td>Platzhalter wird ersetzt.</td>
+                </tr>
+                <tr>
+                  <td>Attribute</td>
+                  <td><pre><code>### Titel {#id}
+
+    Absatz {.klasse}</code></pre></td>
+                  <td>Überschrift mit ID/Klasse.</td>
+                  <td>IDs/Klassen direkt im Markdown.</td>
+                </tr>
+                <tr>
+                  <td>Typografie</td>
+                  <td><pre><code>"Gerade" -> „schön“</code></pre></td>
+                  <td>„Gerade“ -> „schön“</td>
+                  <td>Typografische Anführungszeichen.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section>
+            <h2>Layout</h2>
+            <table>
+              <thead><tr><th>Thema</th><th>.md‑Beispiel</th><th>Gerendertes Beispiel</th><th>Erklärung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Spalten</td>
+                  <td><pre><code>::: columns
+    ::: column
+    Spalte 1
+    :::
+    ::: column
+    Spalte 2
+    :::
+    :::</code></pre></td>
+                  <td>Mehrspaltiges Layout.</td>
+                  <td>Container‑Syntax für Spalten.</td>
+                </tr>
+                <tr>
+                  <td>Umbrüche</td>
+                  <td><pre><code>::: pagebreak
+    :::
+    ::: sectionbreak
+    :::
+    ::: columnbreak
+    :::
+    ::: linebreak
+    :::</code></pre></td>
+                  <td>Visuelle Umbruch‑Marker.</td>
+                  <td>Zeilen/Spalten/Abschnitt/Seite als Marker.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+    <script>
+      // Simple language detection and title translation
+      const urlParams = new URLSearchParams(window.location.search);
+      const lang = urlParams.get('lang') || 'de';
+      
+      const translations = {
+        de: {
+          title: 'Markdown‑Hilfe & Syntax‑Referenz',
+          note: 'Alle in der App verfügbaren Erweiterungen mit Beispiel und Erklärung.'
+        },
+        en: {
+          title: 'Markdown Help & Syntax Reference',
+          note: 'All extensions available in the app with examples and explanations.'
+        },
+        fr: {
+          title: 'Aide Markdown & Référence de Syntaxe',
+          note: 'Toutes les extensions disponibles dans l'"'"'application avec exemples et explications.'
+        },
+        es: {
+          title: 'Ayuda Markdown & Referencia de Sintaxis',
+          note: 'Todas las extensiones disponibles en la aplicación con ejemplos y explicaciones.'
+        },
+        it: {
+          title: 'Aiuto Markdown & Riferimento Sintassi',
+          note: 'Tutte le estensioni disponibili nell'"'"'app con esempi e spiegazioni.'
+        },
+        nl: {
+          title: 'Markdown Hulp & Syntaxisreferentie',
+          note: 'Alle beschikbare extensies in de app met voorbeelden en uitleg.'
+        },
+        pl: {
+          title: 'Pomoc Markdown & Składnia',
+          note: 'Wszystkie rozszerzenia dostępne w aplikacji z przykładami i wyjaśnieniami.'
+        },
+        tr: {
+          title: 'Markdown Yardım & Sözdizimi Referansı',
+          note: 'Uygulamada mevcut tüm uzantılar, örnekler ve açıklamalar ile.'
+        },
+        ru: {
+          title: 'Справка Markdown и Синтаксис',
+          note: 'Все доступные расширения в приложении с примерами и объяснениями.'
+        },
+        zh: {
+          title: 'Markdown 帮助与语法参考',
+          note: '应用中所有可用的扩展及示例和说明。'
+        }
+      };
+      
+      const t = translations[lang] || translations.de;
+      document.title = t.title;
+      document.querySelector('h1').textContent = t.title;
+      document.querySelector('.note').textContent = t.note;
+      document.documentElement.lang = lang;
+    </script>
+  </body>
+</html>

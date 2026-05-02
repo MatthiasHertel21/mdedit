@@ -1,0 +1,23 @@
+{
+  "name": "md-tree-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "smoke:visual": "node scripts/visual-smoke.js"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^9.3.0",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/static": "^7.0.4",
+    "@google/generative-ai": "^0.24.1",
+    "better-sqlite3": "^9.4.5",
+    "fastify": "^4.26.2",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "^24.37.3"
+  }
+}

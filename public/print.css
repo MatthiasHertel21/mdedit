@@ -1,0 +1,459 @@
+/**
+ * Paged Media CSS for Professional Print Layout
+ * Used by Paged.js for print preview and PDF generation
+ */
+
+/* ===== PAGE SETUP ===== */
+
+@page {
+  size: A4;
+  margin: 2.5cm 2cm 2cm 2.5cm;
+  
+  /* No automatic headers/footers - user controls these manually */
+}
+
+/* First page: Larger top margin */
+@page :first {
+  margin-top: 4cm;
+}
+
+/* Left and right pages: Balanced margins, no automatic page numbers */
+@page :left {
+  margin-left: 3cm;
+  margin-right: 2cm;
+}
+
+@page :right {
+  margin-left: 2cm;
+  margin-right: 3cm;
+}
+
+/* Named pages for special layouts */
+@page chapter {
+  margin-top: 5cm;
+}
+
+/* ===== BASE TYPOGRAPHY ===== */
+
+.print-content {
+  font-family: 'Inter', Georgia, 'Times New Roman', serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #1a1a1a;
+  text-align: left;
+  hyphens: none;
+}
+
+/* Prevent orphans and widows */
+.print-content p {
+  orphans: 2;
+  widows: 2;
+}
+
+/* ===== HEADINGS ===== */
+
+.print-content h1 {
+  font-size: 24pt;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 18pt;
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000;
+  letter-spacing: -0.02em;
+}
+
+.print-content h2 {
+  font-size: 18pt;
+  font-weight: 600;
+  margin-top: 24pt;
+  margin-bottom: 12pt;
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000;
+}
+
+.print-content h3 {
+  font-size: 14pt;
+  font-weight: 600;
+  margin-top: 18pt;
+  margin-bottom: 9pt;
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000;
+}
+
+.print-content h4 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin-top: 14pt;
+  margin-bottom: 7pt;
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000;
+}
+
+.print-content h5,
+.print-content h6 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin-top: 12pt;
+  margin-bottom: 6pt;
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000;
+}
+
+/* ===== PARAGRAPHS ===== */
+
+.print-content p {
+  margin-top: 0;
+  margin-bottom: 12pt;
+  text-indent: 0;
+}
+
+.print-content p + p {
+  text-indent: 0;
+}
+
+/* No indent after headings, lists, etc. */
+.print-content h1 + p,
+.print-content h2 + p,
+.print-content h3 + p,
+.print-content h4 + p,
+.print-content h5 + p,
+.print-content h6 + p,
+.print-content ul + p,
+.print-content ol + p,
+.print-content blockquote + p,
+.print-content pre + p,
+.print-content table + p {
+  text-indent: 0;
+}
+
+/* ===== LISTS ===== */
+
+.print-content ul,
+.print-content ol {
+  margin: 18pt 0;
+  padding-left: 1.5em;
+}
+
+.print-content li {
+  margin-bottom: 10pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ===== BLOCKQUOTES ===== */
+
+.print-content blockquote {
+  margin: 18pt 0 18pt 1.5em;
+  padding-left: 1em;
+  border-left: 3pt solid #ccc;
+  font-style: italic;
+  color: #555;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ===== CODE ===== */
+
+.print-content code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9.5pt;
+  background: #f5f5f5;
+  padding: 2pt 4pt;
+  border-radius: 2pt;
+}
+
+.print-content pre {
+  margin: 12pt 0;
+  padding: 12pt;
+  background: #f8f8f8;
+  border: 1pt solid #ddd;
+  border-radius: 4pt;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9pt;
+  line-height: 1.4;
+  overflow-x: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ===== TABLES ===== */
+
+.print-content table {
+  width: 100%;
+  margin: 18pt 0;
+  border-collapse: collapse;
+  font-size: 10pt;
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.print-content thead {
+  display: table-header-group; /* Repeat header on each page */
+}
+
+.print-content th {
+  background: #f0f0f0;
+  font-weight: 600;
+  text-align: left;
+  padding: 8pt;
+  border: 1pt solid #ccc;
+}
+
+.print-content td {
+  padding: 8pt;
+  border: 1pt solid #ccc;
+}
+
+.print-content tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ===== IMAGES & FIGURES ===== */
+
+.print-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 18pt auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content figure {
+  margin: 18pt 0;
+  text-align: center;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content figcaption {
+  margin-top: 8pt;
+  font-size: 9pt;
+  font-style: italic;
+  color: #666;
+}
+
+/* ===== LINKS ===== */
+
+.print-content a {
+  color: #000;
+  text-decoration: underline;
+}
+
+/* Show URLs in print */
+.print-content a[href^="http"]:after {
+  content: " (" attr(href) ")";
+  font-size: 9pt;
+  color: #666;
+}
+
+/* Don't show anchor links */
+.print-content a[href^="#"]:after {
+  content: none;
+}
+
+/* ===== HORIZONTAL RULES ===== */
+
+.print-content hr {
+  margin: 24pt 0;
+  border: none;
+  border-top: 1pt solid #ccc;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* ===== PAGE BREAKS ===== */
+
+/* Manual page break marker */
+.page-break,
+.page-break-before {
+  break-before: page;
+  page-break-before: always;
+}
+
+.page-break-after {
+  break-after: page;
+  page-break-after: always;
+}
+
+.no-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Markdown container breaks */
+.print-content .md-break::before {
+  content: none;
+}
+
+.print-content .md-pagebreak,
+.print-content .md-sectionbreak {
+  break-before: page;
+  page-break-before: always;
+  height: 0;
+  margin: 0;
+}
+
+.print-content .md-columnbreak {
+  break-before: column;
+  column-break-before: always;
+  height: 0;
+  margin: 0;
+}
+
+/* ===== COLUMNS ===== */
+
+.columns-2 {
+  columns: 2;
+  column-gap: 1.5cm;
+  column-rule: 1pt solid #ddd;
+}
+
+.columns-3 {
+  columns: 3;
+  column-gap: 1cm;
+  column-rule: 1pt solid #ddd;
+}
+
+.column-break {
+  break-before: column;
+  column-break-before: always;
+}
+
+/* Map preview columns to print columns */
+.print-content .md-columns {
+  columns: 2;
+  column-gap: 1.5cm;
+  column-rule: 1pt solid #ddd;
+  margin: 12pt 0;
+}
+
+.print-content .md-column {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  padding: 0;
+  margin: 0 0 12pt 0;
+  background: none;
+  border: none;
+}
+
+/* ===== MERMAID DIAGRAMS ===== */
+
+.print-content .mermaid {
+  margin: 18pt 0;
+  text-align: center;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== MATH (KaTeX) ===== */
+
+.print-content .katex-display {
+  margin: 18pt 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ===== SPECIAL ELEMENTS ===== */
+
+/* Admonitions */
+.print-content .admonition {
+  margin: 18pt 0;
+  padding: 12pt;
+  border-left: 4pt solid #2196F3;
+  background: #f5f5f5;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .admonition-title {
+  font-weight: 600;
+  margin-bottom: 8pt;
+}
+
+/* Task lists */
+.print-content .task-list-item {
+  list-style-type: none;
+}
+
+.print-content .task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
+/* ===== TOC (Table of Contents) ===== */
+
+.print-content .table-of-contents {
+  margin: 24pt 0;
+  padding: 18pt;
+  background: #f9f9f9;
+  border: 1pt solid #ddd;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .table-of-contents h2 {
+  margin-top: 0;
+}
+
+.print-content .table-of-contents ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.print-content .table-of-contents a {
+  text-decoration: none;
+  color: #000;
+}
+
+.print-content .table-of-contents a::after {
+  content: " " leader('.') " " target-counter(attr(href), page);
+}
+
+/* ===== FOOTNOTES ===== */
+
+.print-content .footnotes {
+  margin-top: 36pt;
+  padding-top: 18pt;
+  border-top: 1pt solid #ccc;
+  font-size: 9pt;
+}
+
+.print-content .footnotes ol {
+  padding-left: 1.5em;
+}
+
+/* ===== DEBUG / DEVELOPMENT ===== */
+
+/* Show page boundaries in preview (optional) */
+.pagedjs_pages {
+  background: #e0e0e0;
+  padding: 20px;
+}
+
+.pagedjs_page {
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin: 0 auto 20px;
+}
+
+/* Hide Paged.js interface elements */
+.pagedjs_margin {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+

@@ -1,0 +1,1434 @@
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
+import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
+import fastifyCookie from "@fastify/cookie";
+import fastifyHelmet from "@fastify/helmet";
+import fastifyRateLimit from "@fastify/rate-limit";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import puppeteer from "puppeteer-core";
+import db from "./db.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Export queue to prevent too many concurrent pandoc processes
+const exportQueue = {
+  running: 0,
+  maxConcurrent: Number(process.env.MAX_CONCURRENT_EXPORTS) || 3,
+  queue: [],
+  
+  async execute(fn) {
+    if (this.running >= this.maxConcurrent) {
+      // Queue is full, wait
+      await new Promise(resolve => this.queue.push(resolve));
+    }
+    
+    this.running++;
+    try {
+      return await fn();
+    } finally {
+      this.running--;
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+};
+
+// Image upload configuration
+const IMAGE_CONFIG = {
+  MAX_SIZE_MB: Number(process.env.IMAGE_MAX_SIZE_MB || 10),
+  MAX_TOTAL_PER_PASTE_MB: Number(process.env.IMAGE_MAX_TOTAL_MB || 50),
+  ALLOWED_MIMES: new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml'
+  ]),
+  ASSETS_DIR: path.join(process.env.DATA_DIR || __dirname, 'assets')
+};
+
+const app = Fastify({
+  logger: true,
+  bodyLimit: 15 * 1024 * 1024  // 15 MB (base64 overhead + images)
+});
+
+// Security headers
+app.register(fastifyHelmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://esm.sh",
+        "https://unpkg.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com"
+      ],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: [
+        "'self'",
+        "data:",
+        "https://cdnjs.cloudflare.com",
+        "https://cdn.jsdelivr.net",
+        "https://fonts.gstatic.com",
+        "https://esm.sh"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://esm.sh",
+        "https://cdn.jsdelivr.net",
+        "https://unpkg.com"
+      ]
+    }
+  }
+});
+
+// NOTE: fastifyRateLimit is registered AFTER the session hook so that
+// req.sessionId is available in the keyGenerator (onRequest hook order matters).
+
+// Cookie secret: use ENV if set and not a known insecure default, otherwise
+// load from / persist to the data directory so it survives container restarts.
+const KNOWN_INSECURE = new Set(['change_me_in_production', 'changeme', 'secret', 'password']);
+const COOKIE_SECRET_FILE = path.join(process.env.DATA_DIR || __dirname, '.cookie_secret');
+const COOKIE_SECRET = (() => {
+  const envSecret = process.env.COOKIE_SECRET;
+  if (envSecret && !KNOWN_INSECURE.has(envSecret) && envSecret.length >= 32) return envSecret;
+  try {
+    const saved = fs.readFileSync(COOKIE_SECRET_FILE, 'utf8').trim();
+    if (saved.length >= 32) return saved;
+  } catch { /* file not found */ }
+  const generated = crypto.randomBytes(32).toString('hex');
+  try {
+    fs.writeFileSync(COOKIE_SECRET_FILE, generated, { mode: 0o600 });
+    app.log.info('Generated COOKIE_SECRET persisted to data directory');
+  } catch (e) {
+    app.log.warn({ err: e.message }, 'Could not persist COOKIE_SECRET to disk');
+  }
+  return generated;
+})();
+
+app.register(fastifyCookie, {
+  secret: COOKIE_SECRET,
+  hook: "onRequest"
+});
+
+// Register static files with a specific prefix to avoid conflicts
+app.register(fastifyStatic, {
+  root: path.join(__dirname, "public"),
+  prefix: "/static/",
+  decorateReply: true
+});
+
+const nowIso = () => new Date().toISOString();
+
+const createSession = () => {
+  const id = crypto.randomUUID();
+  const ts = nowIso();
+  db.prepare("INSERT INTO sessions (id, created_at, last_seen) VALUES (?, ?, ?)")
+    .run(id, ts, ts);
+  return id;
+};
+
+const touchSession = (id) => {
+  db.prepare("UPDATE sessions SET last_seen = ? WHERE id = ?")
+    .run(nowIso(), id);
+};
+
+// Rate limiting registered here so onRequest fires AFTER the session hook above
+app.register(fastifyRateLimit, {
+  max: Number(process.env.RATE_LIMIT_MAX) || 300,
+  timeWindow: '1 minute',
+  cache: 10000,
+  allowList: ['127.0.0.1'],
+  skipOnError: true,
+  keyGenerator: (req) => req.sessionId || req.ip
+});
+
+const SESSION_COOKIE_OPTIONS = {
+  path: "/",
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 60 * 60 * 24 * 365  // 1 year, refreshed on every request
+};
+
+app.addHook("onRequest", (req, reply, done) => {
+  let sid = req.cookies.sid;
+  if (sid) {
+    // Validate session still exists in DB (guards against DB resets)
+    const session = db.prepare("SELECT id FROM sessions WHERE id = ?").get(sid);
+    if (session) {
+      touchSession(sid);
+      // Refresh cookie expiry on every request so active users never lose their session
+      reply.setCookie("sid", sid, SESSION_COOKIE_OPTIONS);
+    } else {
+      // Cookie present but session gone (e.g. after DB reset) – create a new one
+      sid = createSession();
+      reply.setCookie("sid", sid, SESSION_COOKIE_OPTIONS);
+    }
+  } else {
+    sid = createSession();
+    reply.setCookie("sid", sid, SESSION_COOKIE_OPTIONS);
+  }
+  req.sessionId = sid;
+  done();
+});
+
+app.get("/api/pastes", async (req) => {
+  const stmt = db.prepare(
+    "SELECT id, title, created_at, updated_at FROM pastes WHERE session_id = ? ORDER BY updated_at DESC LIMIT 50"
+  );
+  return stmt.all(req.sessionId);
+});
+
+app.get("/api/pastes/:id", async (req, reply) => {
+  // First try to get paste for this session
+  let row = db.prepare(
+    "SELECT id, title, markdown, created_at, updated_at, shared FROM pastes WHERE id = ? AND session_id = ?"
+  ).get(req.params.id, req.sessionId);
+  
+  // If not found in this session, check if it's a shared paste
+  if (!row) {
+    row = db.prepare(
+      "SELECT id, title, markdown, created_at, updated_at, shared FROM pastes WHERE id = ? AND shared = 1"
+    ).get(req.params.id);
+  }
+  
+  if (!row) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+  return row;
+});
+
+app.post("/api/pastes", async (req, reply) => {
+  const { markdown, title } = req.body || {};
+  if (!markdown || typeof markdown !== "string") {
+    reply.code(400);
+    return { error: "Markdown required" };
+  }
+  if (markdown.length > 1024 * 1024) {
+    reply.code(413);
+    return { error: "Markdown too large (max 1MB)" };
+  }
+  if (title !== undefined && title !== null && String(title).length > 500) {
+    reply.code(400);
+    return { error: "Title too long (max 500 chars)" };
+  }
+  
+  // Limit: configurable max pastes per session (default 100)
+  const maxPastes = Number(process.env.MAX_PASTES_PER_SESSION) || 100;
+  const count = db.prepare("SELECT COUNT(*) as cnt FROM pastes WHERE session_id = ?").get(req.sessionId);
+  if (count.cnt >= maxPastes) {
+    // Delete oldest paste to maintain limit
+    const oldest = db.prepare(
+      "SELECT id FROM pastes WHERE session_id = ? ORDER BY created_at ASC LIMIT 1"
+    ).get(req.sessionId);
+    if (oldest) {
+      db.prepare("DELETE FROM pastes WHERE id = ?").run(oldest.id);
+    }
+  }
+  
+  const id = crypto.randomUUID();
+  const ts = nowIso();
+  const finalTitle = title?.trim() || deriveTitle(markdown);
+  db.prepare(
+    "INSERT INTO pastes (id, session_id, title, markdown, created_at, updated_at, shared) VALUES (?, ?, ?, ?, ?, ?, 0)"
+  ).run(id, req.sessionId, finalTitle, markdown, ts, ts);
+  return { id };
+});
+
+app.put("/api/pastes/:id", async (req, reply) => {
+  const { markdown, title } = req.body || {};
+  if (!markdown || typeof markdown !== "string") {
+    reply.code(400);
+    return { error: "Markdown required" };
+  }
+  if (markdown.length > 1024 * 1024) {
+    reply.code(413);
+    return { error: "Markdown too large (max 1MB)" };
+  }
+  if (title !== undefined && title !== null && String(title).length > 500) {
+    reply.code(400);
+    return { error: "Title too long (max 500 chars)" };
+  }
+  const finalTitle = title?.trim() || deriveTitle(markdown);
+  const ts = nowIso();
+  const res = db.prepare(
+    "UPDATE pastes SET title = ?, markdown = ?, updated_at = ? WHERE id = ? AND session_id = ?"
+  ).run(finalTitle, markdown, ts, req.params.id, req.sessionId);
+  if (res.changes === 0) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+  return { id: req.params.id };
+});
+
+app.delete("/api/pastes/:id", async (req, reply) => {
+  const paste = db.prepare(
+    "SELECT id FROM pastes WHERE id = ? AND session_id = ?"
+  ).get(req.params.id, req.sessionId);
+  if (!paste) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+
+  // Delete images from DB first (FK constraint: images → pastes)
+  db.prepare("DELETE FROM images WHERE paste_id = ?").run(req.params.id);
+  // Now safe to delete the paste
+  db.prepare("DELETE FROM pastes WHERE id = ?").run(req.params.id);
+
+  // Cleanup assets from disk
+  try {
+    const assetDir = path.join(IMAGE_CONFIG.ASSETS_DIR, req.params.id);
+    await fs.promises.rm(assetDir, { recursive: true, force: true });
+  } catch (err) {
+    app.log.warn({ err: err.message, pasteId: req.params.id }, "Could not cleanup assets");
+  }
+
+  return { ok: true };
+});
+
+app.post("/api/export/docx", async (req, reply) => {
+  return exportQueue.execute(() => exportWithPandoc(req, reply, "docx"));
+});
+
+app.post("/api/export/pdf", async (req, reply) => {
+  return exportQueue.execute(() => exportWithPandoc(req, reply, "pdf"));
+});
+
+// Toggle share status
+app.post("/api/pastes/:id/share", async (req, reply) => {
+  const { shared } = req.body || {};
+  if (typeof shared !== "boolean") {
+    reply.code(400);
+    return { error: "shared must be boolean" };
+  }
+  const res = db.prepare(
+    "UPDATE pastes SET shared = ? WHERE id = ? AND session_id = ?"
+  ).run(shared ? 1 : 0, req.params.id, req.sessionId);
+  if (res.changes === 0) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+  return { id: req.params.id, shared };
+});
+
+// ── Image Upload & Management ───────────────────────────────────────────────
+app.post("/api/pastes/:id/upload-image", async (req, reply) => {
+  // Verify paste exists and belongs to this session
+  const paste = db.prepare(
+    "SELECT id FROM pastes WHERE id = ? AND session_id = ?"
+  ).get(req.params.id, req.sessionId);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const { image, filename } = req.body || {};
+  if (!image || typeof image !== "string") {
+    reply.code(400);
+    return { error: "image (base64) required" };
+  }
+
+  // Validate filename (clipboard pastes may have no name)
+  const safeFilename = (filename && typeof filename === "string" && filename.trim())
+    ? filename.trim().slice(0, 255)
+    : `image-${Date.now()}.bin`;
+
+  try {
+    // Decode base64
+    const buffer = Buffer.from(image, "base64");
+    const sizeMB = buffer.length / 1024 / 1024;
+
+    // Check size limit per image
+    if (sizeMB > IMAGE_CONFIG.MAX_SIZE_MB) {
+      reply.code(413);
+      return { error: `Image too large (max ${IMAGE_CONFIG.MAX_SIZE_MB} MB)` };
+    }
+
+    // Check total size for this paste
+    const totalSize = db.prepare(
+      "SELECT SUM(size_bytes) as total FROM images WHERE paste_id = ?"
+    ).get(req.params.id);
+    const totalSizeMB = (totalSize?.total || 0) / 1024 / 1024;
+
+    if (totalSizeMB + sizeMB > IMAGE_CONFIG.MAX_TOTAL_PER_PASTE_MB) {
+      reply.code(413);
+      return { 
+        error: `Paste image limit exceeded (max ${IMAGE_CONFIG.MAX_TOTAL_PER_PASTE_MB} MB total)`
+      };
+    }
+
+    // Detect MIME type from header
+    let mimeType = "image/jpeg";
+    const header = buffer.slice(0, 12);
+    const headerStr = header.toString('utf8', 0, 6);
+    
+    if (buffer[0] === 0xff && buffer[1] === 0xd8) mimeType = "image/jpeg";
+    else if (buffer[0] === 0x89 && buffer[1] === 0x50) mimeType = "image/png";
+    else if (buffer[0] === 0x52 && buffer[1] === 0x49) mimeType = "image/webp";
+    else if (headerStr === "GIF87a" || headerStr === "GIF89a") mimeType = "image/gif";
+    else if (buffer[0] === 0x3c && headerStr.includes("svg")) mimeType = "image/svg+xml"; // <svg
+    else {
+      reply.code(400);
+      return { error: "Invalid image format" };
+    }
+
+    if (!IMAGE_CONFIG.ALLOWED_MIMES.has(mimeType)) {
+      reply.code(400);
+      return { error: "Format not allowed" };
+    }
+
+    // Create asset directory
+    const assetDir = path.join(IMAGE_CONFIG.ASSETS_DIR, req.params.id);
+    await fs.promises.mkdir(assetDir, { recursive: true });
+
+    // Save file with unique name to prevent collisions
+    const extMap = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+      'image/svg+xml': 'svg'
+    };
+    const ext = extMap[mimeType] || 'bin';
+    const uniqueFilename = `${crypto.randomUUID().slice(0, 8)}.${ext}`;
+    const filepath = path.join(assetDir, uniqueFilename);
+
+    await fs.promises.writeFile(filepath, buffer);
+
+    // Record in database
+    const imageId = crypto.randomUUID();
+    db.prepare(
+      "INSERT INTO images (id, paste_id, filename, mime_type, size_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(imageId, req.params.id, uniqueFilename, mimeType, buffer.length, nowIso());
+
+    app.log.info(
+      { pasteId: req.params.id, filename: uniqueFilename, sizeMB: sizeMB.toFixed(2) },
+      "Image uploaded"
+    );
+
+    return {
+      id: imageId,
+      url: `/assets/${req.params.id}/${uniqueFilename}`,
+      filename: uniqueFilename,
+      size: buffer.length
+    };
+
+  } catch (err) {
+    app.log.error({ err: err.message }, "Image upload failed");
+    reply.code(500);
+    return { error: "Upload failed" };
+  }
+});
+
+// Get image (public, respects paste sharing)
+app.get("/assets/:pasteId/:filename", async (req, reply) => {
+  try {
+    const paste = db.prepare(
+      "SELECT shared FROM pastes WHERE id = ?"
+    ).get(req.params.pasteId);
+
+    if (!paste) {
+      reply.code(404);
+      return { error: "Not found" };
+    }
+
+    // Check if public (shared) or would need session validation
+    // For now: allow if paste is shared OR request has matching session
+    // (Session validation happens via cookies)
+
+    const filepath = path.join(
+      IMAGE_CONFIG.ASSETS_DIR,
+      req.params.pasteId,
+      req.params.filename
+    );
+
+    // Security: prevent path traversal
+    // Normalize manually in case ASSETS_DIR doesn't exist yet
+    const assetBaseDir = path.resolve(IMAGE_CONFIG.ASSETS_DIR);
+    const resolvedPath = path.resolve(filepath);
+    if (!resolvedPath.startsWith(assetBaseDir + path.sep) && resolvedPath !== assetBaseDir) {
+      reply.code(403);
+      return { error: "Forbidden" };
+    }
+
+    const buffer = await fs.promises.readFile(filepath);
+    
+    // Detect and set proper MIME type
+    let mimeType = "application/octet-stream";
+    if (filepath.endsWith(".png")) mimeType = "image/png";
+    else if (filepath.endsWith(".jpg") || filepath.endsWith(".jpeg")) mimeType = "image/jpeg";
+    else if (filepath.endsWith(".webp")) mimeType = "image/webp";
+    else if (filepath.endsWith(".gif")) mimeType = "image/gif";
+    else if (filepath.endsWith(".svg")) mimeType = "image/svg+xml";
+
+    reply.type(mimeType);
+    reply.header("Cache-Control", "public, max-age=31536000"); // 1 year
+    return reply.send(buffer);
+
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      reply.code(404);
+      return { error: "Not found" };
+    }
+    app.log.error({ err: err.message }, "Asset retrieval failed");
+    reply.code(500);
+    return { error: "Failed to retrieve asset" };
+  }
+});
+
+// AI Chat Completion
+app.post("/api/chat/complete", async (req, reply) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    reply.code(503);
+    return { error: "GEMINI_API_KEY not configured" };
+  }
+
+  const { prompt, document = "", history = [] } = req.body || {};
+  
+  // Support both old (message/currentMarkdown) and new (prompt/document) format
+  const userPrompt = prompt || req.body.message;
+  const currentDoc = document || req.body.currentMarkdown || "";
+  
+  if (!userPrompt || typeof userPrompt !== "string") {
+    reply.code(400);
+    return { error: "prompt required" };
+  }
+
+  if (userPrompt.length > 10000) {
+    reply.code(413);
+    return { error: "Prompt too long (max 10000 chars)" };
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const systemPrompt = `Du bist ein KI-Assistent für einen Markdown-Editor. Du hilfst beim Schreiben, Formatieren und Verbessern von Markdown-Dokumenten.
+
+INPUT-FORMAT:
+Du erhältst:
+- prompt: Die Anfrage des Benutzers
+- document: Das aktuelle Markdown-Dokument (kann leer sein)
+
+OUTPUT-FORMAT (IMMER JSON):
+Antworte IMMER mit gültigem JSON in diesem Format:
+{
+  "message": "Deine Antwort/Erklärung an den Benutzer",
+  "markdown": "Das angepasste Markdown-Dokument" oder null,
+  "action": "REPLACE|INSERT|APPEND|PREPEND|ADVICE"
+}
+
+AKTIONEN:
+- REPLACE: Ersetzt das gesamte Dokument (markdown = neues vollständiges Dokument)
+- INSERT: Fügt Text an Cursor-Position ein (markdown = einzufügender Text)
+- APPEND: Hängt Text am Ende an (markdown = anzuhängender Text)
+- PREPEND: Fügt Text am Anfang ein (markdown = voranzustellender Text)
+- ADVICE: Nur Antwort, keine Dokumentänderung (markdown = null)
+
+BEISPIELE:
+
+1. Benutzer: "Schreibe eine Überschrift für einen Blogartikel über KI"
+   Document: "" (leer)
+   {
+     "message": "Ich habe eine aussagekräftige Überschrift erstellt.",
+     "markdown": "# Künstliche Intelligenz: Die Revolution unserer Zeit\\n\\n",
+     "action": "REPLACE"
+   }
+
+2. Benutzer: "Was ist Markdown?"
+   Document: "# Mein Dokument"
+   {
+     "message": "Markdown ist eine leichtgewichtige Auszeichnungssprache zum Formatieren von Text. Sie verwendet einfache Zeichen wie # für Überschriften oder ** für fett.",
+     "markdown": null,
+     "action": "ADVICE"
+   }
+
+3. Benutzer: "Füge eine Zusammenfassung hinzu"
+   Document: "# Einleitung\\n\\nText..."
+   {
+     "message": "Ich habe eine Zusammenfassung am Ende hinzugefügt.",
+     "markdown": "## Zusammenfassung\\n\\nDie wichtigsten Punkte...",
+     "action": "APPEND"
+   }
+
+REGELN:
+- Antworte IMMER mit gültigem JSON
+- Behalte Markdown-Formatierung bei (##, **, -, etc.)
+- Sei präzise und knapp
+- Bei unklaren Anfragen: action=ADVICE, markdown=null`;
+
+    const chatHistory = [
+      { role: "user", parts: [{ text: systemPrompt }] },
+      { role: "model", parts: [{ text: '{"message":"Verstanden! Ich bin bereit, dir beim Markdown-Schreiben zu helfen.","markdown":null,"action":"ADVICE"}' }] },
+      ...history.map(msg => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+      }))
+    ];
+
+    const chat = model.startChat({ history: chatHistory });
+
+    // Structured input message
+    const inputMessage = JSON.stringify({
+      prompt: userPrompt,
+      document: currentDoc
+    });
+
+    const result = await chat.sendMessage(inputMessage);
+    const response = await result.response;
+    let text = response.text();
+
+    // Extract JSON from markdown code blocks if present
+    const jsonMatch = text.match(/```(?:json)?\s*({[\s\S]*?})\s*```/);
+    if (jsonMatch) {
+      text = jsonMatch[1];
+    }
+
+    // Parse JSON response
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(text);
+      
+      // Ensure response has required fields
+      if (!parsedResponse.message || !parsedResponse.action) {
+        throw new Error("Invalid response format");
+      }
+      
+      // Normalize response format
+      return {
+        message: parsedResponse.message,
+        markdown: parsedResponse.markdown || parsedResponse.content || null,
+        action: parsedResponse.action,
+        // Legacy field for backward compatibility
+        content: parsedResponse.markdown || parsedResponse.content || null
+      };
+      
+    } catch (parseError) {
+      // Fallback: treat as plain advice
+      return {
+        message: text,
+        markdown: null,
+        action: "ADVICE",
+        content: null
+      };
+    }
+
+  } catch (error) {
+    console.error("=== Gemini API Error ===");
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
+    console.error("Full error:", error);
+    console.error("======================");
+    
+    if (error.message?.includes("API_KEY_INVALID")) {
+      reply.code(503);
+      return { error: "Invalid API key" };
+    }
+    
+    if (error.message?.includes("RATE_LIMIT")) {
+      reply.code(429);
+      return { error: "Rate limit exceeded. Try again later." };
+    }
+
+    reply.code(500);
+    return { error: "AI service unavailable" };
+  }
+});
+
+const deriveTitle = (markdown) => {
+  const match = markdown.match(/^#{1,6}\s+(.+)$/m);
+  return match ? match[1].trim() : "Untitled";
+};
+
+const stripAtPageRules = (cssText) => {
+  if (!cssText || !cssText.includes("@page")) return cssText || "";
+  let output = "";
+  let index = 0;
+
+  while (index < cssText.length) {
+    const atPageIndex = cssText.indexOf("@page", index);
+    if (atPageIndex === -1) {
+      output += cssText.slice(index);
+      break;
+    }
+
+    output += cssText.slice(index, atPageIndex);
+    const blockStart = cssText.indexOf("{", atPageIndex);
+    if (blockStart === -1) {
+      break;
+    }
+
+    let depth = 1;
+    let cursor = blockStart + 1;
+    while (cursor < cssText.length && depth > 0) {
+      const ch = cssText[cursor];
+      if (ch === "{") depth += 1;
+      else if (ch === "}") depth -= 1;
+      cursor += 1;
+    }
+    index = cursor;
+  }
+
+  return output;
+};
+
+const extractEmbeddedPagedStyles = (html) => {
+  const styleRegex = /<style\s+data-export-paged=["']1["']\s*>([\s\S]*?)<\/style>/i;
+  const match = html.match(styleRegex);
+  if (!match) {
+    return { bodyHtml: html, embeddedCss: "" };
+  }
+
+  const embeddedCss = stripAtPageRules(match[1] || "");
+  const bodyHtml = html.replace(styleRegex, "");
+  return { bodyHtml, embeddedCss };
+};
+
+const stripAtPageFromAllStyleTags = (html) => {
+  if (!html || !html.includes("<style")) return html || "";
+  return html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (full, attrs, cssText) => {
+    const cleaned = stripAtPageRules(cssText || "");
+    return `<style${attrs}>${cleaned}</style>`;
+  });
+};
+
+const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
+  const chromiumCmd = await getChromiumCommand();
+  if (!chromiumCmd) return { ok: false, reason: "chromium-not-found" };
+
+  const pagedHtmlPath = path.join(tmpDir, "paged-chromium.html");
+  const sanitizedHtml = stripAtPageFromAllStyleTags(html);
+  const { bodyHtml, embeddedCss } = extractEmbeddedPagedStyles(sanitizedHtml);
+  const hasEmbeddedPagedStyles = Boolean(embeddedCss);
+  const printCssPath = path.join(__dirname, "public", "print.css");
+  let printCss = "";
+  if (!hasEmbeddedPagedStyles) {
+    try {
+      printCss = await fs.promises.readFile(printCssPath, "utf8");
+    } catch {
+      app.log.warn("Could not read print.css for chromium export");
+    }
+  }
+
+  const wrappedHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" />
+  <style>
+    ${printCss}
+    ${embeddedCss}
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      width: 100%;
+      height: 100%;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @page { margin: 0; }
+    .print-preview-warning { display: none !important; }
+    .pagedjs_pages {
+      margin: 0 !important;
+      padding: 0 !important;
+      gap: 0 !important;
+      background: #fff !important;
+      display: block !important;
+    }
+    .pagedjs_page {
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      position: relative;
+      width: 100% !important;
+      height: 100% !important;
+      break-after: page;
+      page-break-after: always;
+    }
+    .pagedjs_page:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+    .pagedjs_margin,
+    .pagedjs_margin-top,
+    .pagedjs_margin-bottom,
+    .pagedjs_margin-left,
+    .pagedjs_margin-right {
+      z-index: 3;
+      position: absolute;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.2;
+    }
+    .pagedjs_margin::before,
+    .pagedjs_margin::after,
+    .pagedjs_margin-top::before,
+    .pagedjs_margin-top::after,
+    .pagedjs_margin-bottom::before,
+    .pagedjs_margin-bottom::after,
+    .pagedjs_margin-left::before,
+    .pagedjs_margin-left::after,
+    .pagedjs_margin-right::before,
+    .pagedjs_margin-right::after,
+    .pagedjs_margin-top-left::before,
+    .pagedjs_margin-top-left::after,
+    .pagedjs_margin-top-center::before,
+    .pagedjs_margin-top-center::after,
+    .pagedjs_margin-top-right::before,
+    .pagedjs_margin-top-right::after,
+    .pagedjs_margin-bottom-left::before,
+    .pagedjs_margin-bottom-left::after,
+    .pagedjs_margin-bottom-center::before,
+    .pagedjs_margin-bottom-center::after,
+    .pagedjs_margin-bottom-right::before,
+    .pagedjs_margin-bottom-right::after {
+      content: none !important;
+    }
+    .pagedjs_pagebox,
+    .pagedjs_area,
+    .pagedjs_page_content {
+      z-index: 1;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+
+  await fs.promises.writeFile(pagedHtmlPath, wrappedHtml, "utf8");
+  const browser = await puppeteer.launch({
+    executablePath: chromiumCmd,
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ]
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
+    await page.goto(`file://${pagedHtmlPath}`, { waitUntil: "networkidle0" });
+    await page.evaluate(async () => {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    });
+    await page.emulateMediaType("print");
+    await page.pdf({
+      path: outputPath,
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: false,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" }
+    });
+    return { ok: true };
+  } finally {
+    await browser.close();
+  }
+};
+
+const exportWithPandoc = async (req, reply, format) => {
+  const { markdown, title, html, paged } = req.body || {};
+  const hasHtml = typeof html === "string" && html.trim();
+  if (!hasHtml && (!markdown || typeof markdown !== "string")) {
+    reply.code(400);
+    return { error: "Markdown required" };
+  }
+
+  const pandocAvailable = await checkPandoc();
+  if (!pandocAvailable) {
+    reply.code(501);
+    return { error: "Pandoc not installed" };
+  }
+
+  let pdfEngine = null;
+  if (format === "pdf") {
+    pdfEngine = await getPdfEngine(hasHtml);
+    if (!pdfEngine) {
+      reply.code(501);
+      return { error: "PDF export requires a LaTeX engine (pdflatex/xelatex/lualatex) or wkhtmltopdf." };
+    }
+  }
+
+  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "md-export-"));
+  
+  try {
+    const safeTitle = (title || deriveTitle(markdown || ""))
+      .replace(/[^a-z0-9-_]+/gi, "-")
+      .substring(0, 100)
+      .toLowerCase();
+    const outputName = `${safeTitle || "export"}.${format}`;
+    const outputPath = path.join(tmpDir, outputName);
+
+    if (format === "pdf" && paged && hasHtml) {
+      try {
+        const chromiumResult = await exportPagedHtmlWithChromium({
+          html,
+          outputPath,
+          tmpDir
+        });
+        if (chromiumResult.ok) {
+          const stream = fs.createReadStream(outputPath);
+          reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
+          reply.type("application/pdf");
+          return reply.send(stream);
+        }
+        app.log.info({ reason: chromiumResult.reason }, "Chromium paged export unavailable, using fallback");
+      } catch (err) {
+        app.log.warn({ err: err?.message || String(err) }, "Chromium paged export failed, using fallback");
+      }
+    }
+
+    if (format === "pdf" && paged && hasHtml) {
+      const wkhtmlAvailable = await checkCommand("wkhtmltopdf");
+      if (wkhtmlAvailable) {
+        const pagedHtmlPath = path.join(tmpDir, "paged.html");
+        
+        // Read print.css for content styling only (not @page rules)
+        const printCssPath = path.join(__dirname, "public", "print.css");
+        let printCss = "";
+        try {
+          const fullCss = await fs.promises.readFile(printCssPath, "utf8");
+          // Remove @page rules - they don't work in wkhtmltopdf with our structure
+          printCss = fullCss.replace(/@page[^}]*\{[^}]*\}/g, '');
+        } catch (err) {
+          app.log.warn("Could not read print.css, using fallback styles");
+        }
+        
+        const pagedHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    /* Base reset */
+    * { box-sizing: border-box; }
+    html, body { 
+      margin: 0; 
+      padding: 0; 
+      background: #fff;
+      width: 210mm;
+      height: auto;
+    }
+    
+    /* Hide preview warnings */
+    .print-preview-warning { display: none !important; }
+    
+    /* Paged.js container - remove any spacing */
+    .pagedjs_pages { 
+      margin: 0 !important; 
+      padding: 0 !important; 
+      background: #fff !important;
+      width: 210mm !important;
+    }
+    
+    /* Each page - A4 dimensions with forced page breaks */
+    .pagedjs_page {
+      width: 210mm !important;
+      min-height: 297mm !important;
+      height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      position: relative;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+    }
+    
+    .pagedjs_page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    
+    /* Page content area with proper margins (matching print.css @page margins) */
+    .pagedjs_page_content {
+      position: absolute;
+      top: 2.5cm;      /* @page margin-top */
+      right: 2cm;      /* @page margin-right */
+      bottom: 2cm;     /* @page margin-bottom */
+      left: 2.5cm;     /* @page margin-left */
+      width: auto;
+      height: auto;
+    }
+    
+    /* First page - larger top margin */
+    .pagedjs_first_page .pagedjs_page_content {
+      top: 4cm;
+    }
+    
+    /* Left pages */
+    .pagedjs_left_page .pagedjs_page_content {
+      left: 3cm;
+      right: 2cm;
+    }
+    
+    /* Right pages */
+    .pagedjs_right_page .pagedjs_page_content {
+      left: 2cm;
+      right: 3cm;
+    }
+    
+    /* Margin boxes - positioned outside content area */
+    .pagedjs_margin {
+      position: absolute;
+      font-size: 10pt;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    /* Top margin area */
+    .pagedjs_margin-top {
+      top: 0;
+      left: 2.5cm;
+      right: 2cm;
+      height: 2.5cm;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 0.5cm;
+    }
+    
+    .pagedjs_first_page .pagedjs_margin-top {
+      height: 4cm;
+    }
+    
+    /* Bottom margin area */
+    .pagedjs_margin-bottom {
+      bottom: 0;
+      left: 2.5cm;
+      right: 2cm;
+      height: 2cm;
+      display: flex;
+      align-items: flex-start;
+      padding-top: 0.5cm;
+    }
+    
+    /* Margin box positioning */
+    .pagedjs_margin-top-left,
+    .pagedjs_margin-bottom-left {
+      text-align: left;
+      flex: 1;
+    }
+    
+    .pagedjs_margin-top-center,
+    .pagedjs_margin-bottom-center {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .pagedjs_margin-top-right,
+    .pagedjs_margin-bottom-right {
+      text-align: right;
+      flex: 1;
+    }
+    
+    .pagedjs_margin-content {
+      display: block;
+      width: 100%;
+    }
+    
+    ${printCss}
+  </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+        await fs.promises.writeFile(pagedHtmlPath, pagedHtml, "utf8");
+
+        const wkArgs = [
+          "--page-size", "A4",
+          "--enable-local-file-access",
+          "--print-media-type",
+          "--margin-top", "0",
+          "--margin-right", "0",
+          "--margin-bottom", "0",
+          "--margin-left", "0",
+          "--disable-smart-shrinking",
+          "--no-outline",
+          "--encoding", "UTF-8",
+          "--dpi", "96",
+          pagedHtmlPath,
+          outputPath
+        ];
+
+        const wkProc = spawn("wkhtmltopdf", wkArgs, { stdio: ["ignore", "ignore", "pipe"] });
+        let wkStderr = "";
+        wkProc.stderr.on("data", (chunk) => {
+          wkStderr += chunk.toString();
+        });
+
+        const wkCode = await new Promise((resolve) => {
+          wkProc.on("close", (code) => resolve(code));
+        });
+
+        if (wkCode === 0) {
+          const stream = fs.createReadStream(outputPath);
+          reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
+          reply.type("application/pdf");
+          return reply.send(stream);
+        }
+
+        app.log.warn({ err: wkStderr.slice(0, 1200) }, "wkhtmltopdf paged export failed, falling back to pandoc");
+      }
+    }
+
+    const runPandoc = async (inputFile, fromArg) => {
+      let args = [inputFile, fromArg, "-o", outputPath];
+      
+      // For PDF, use detected engine (prefer wkhtmltopdf for HTML input)
+      if (format === "pdf") {
+        args.push(`--pdf-engine=${pdfEngine}`);
+        // Better handling of images and SVGs (Mermaid diagrams)
+        if (pdfEngine !== "wkhtmltopdf") {
+          args.push("-V", "geometry:margin=1in");
+          args.push("-V", "graphics=true");
+          args.push("--dpi=300");
+        }
+      }
+      
+      const proc = spawn("pandoc", args, { stdio: ["ignore", "ignore", "pipe"] });
+      let stderr = "";
+      proc.stderr.on("data", (chunk) => {
+        stderr += chunk.toString();
+      });
+      return new Promise((resolve) => {
+        proc.on("close", (code) => resolve({ code, stderr }));
+      });
+    };
+
+    let exitCode = 1;
+    let lastError = "";
+    if (hasHtml) {
+      const htmlPath = path.join(tmpDir, "input.html");
+      await fs.promises.writeFile(htmlPath, html, "utf8");
+      app.log.info({ htmlLength: html.length, hasImages: html.includes('<img') }, "Trying HTML export");
+      const result = await runPandoc(htmlPath, "--from=html");
+      exitCode = result.code;
+      lastError = result.stderr || lastError;
+      app.log.info({ exitCode, stderrLength: lastError.length }, "HTML export result");
+      if (exitCode !== 0) {
+        app.log.warn({ stderr: lastError.slice(0, 500) }, "HTML export failed, trying markdown fallback");
+      }
+    }
+
+    if (exitCode !== 0 && markdown && typeof markdown === "string") {
+      const mdPath = path.join(tmpDir, "input.md");
+      await fs.promises.writeFile(mdPath, markdown, "utf8");
+      app.log.info("Trying markdown export as fallback");
+      const result = await runPandoc(mdPath, "--from=gfm");
+      exitCode = result.code;
+      lastError = result.stderr || lastError;
+    }
+
+    if (exitCode !== 0) {
+      if (lastError) {
+        app.log.error({ err: lastError }, "Pandoc export failed");
+      } else {
+        app.log.error("Pandoc export failed without stderr output");
+      }
+      reply.code(500);
+      const detail = lastError ? lastError.trim().slice(0, 1200) : "";
+      return { error: "Export failed", mode: hasHtml ? "html" : "markdown", code: exitCode, detail };
+    }
+
+    const stream = fs.createReadStream(outputPath);
+    reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
+    reply.type(format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    return reply.send(stream);
+  } finally {
+    // Cleanup temp directory
+    try {
+      await fs.promises.rm(tmpDir, { recursive: true, force: true });
+    } catch (cleanupErr) {
+      app.log.warn({ err: cleanupErr, tmpDir }, "Failed to cleanup temp directory");
+    }
+  }
+};
+
+const checkPandoc = async () => {
+  return new Promise((resolve) => {
+    const proc = spawn("pandoc", ["--version"], { stdio: "ignore" });
+    proc.on("error", () => resolve(false));
+    proc.on("close", (code) => resolve(code === 0));
+  });
+};
+
+const checkCommand = async (cmd) => {
+  return new Promise((resolve) => {
+    const proc = spawn(cmd, ["--version"], { stdio: "ignore" });
+    proc.on("error", () => resolve(false));
+    proc.on("close", (code) => resolve(code === 0));
+  });
+};
+
+const getAvailableCommand = async (candidates) => {
+  for (const cmd of candidates) {
+    // eslint-disable-next-line no-await-in-loop
+    const ok = await checkCommand(cmd);
+    if (ok) return cmd;
+  }
+  return null;
+};
+
+const getChromiumCommand = async () => getAvailableCommand([
+  process.env.CHROMIUM_BIN,
+  "chromium",
+  "chromium-browser",
+  "google-chrome",
+  "google-chrome-stable"
+].filter(Boolean));
+
+const getPdfEngine = async (preferHtmlEngine = false) => {
+  const candidates = preferHtmlEngine
+    ? ["wkhtmltopdf", "xelatex", "lualatex", "pdflatex"]
+    : ["wkhtmltopdf", "xelatex", "lualatex", "pdflatex"];
+  for (const cmd of candidates) {
+    // eslint-disable-next-line no-await-in-loop
+    const ok = await checkCommand(cmd);
+    if (ok) return cmd;
+  }
+  return null;
+};
+
+app.get("/health", async () => ({ ok: true }));
+
+// Serve static files manually (since we can't use wildcard prefix)
+const serveStatic = async (req, reply, filename) => {
+  try {
+    const content = await fs.promises.readFile(path.join(__dirname, "public", filename));
+    const ext = path.extname(filename);
+    const mimeTypes = {
+      ".html": "text/html",
+      ".js": "application/javascript",
+      ".css": "text/css",
+      ".json": "application/json",
+      ".svg": "image/svg+xml"
+    };
+    reply.type(mimeTypes[ext] || "application/octet-stream");
+    return content;
+  } catch (err) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+};
+
+app.get("/styles.css", async (req, reply) => serveStatic(req, reply, "styles.css"));
+app.get("/print.css", async (req, reply) => serveStatic(req, reply, "print.css"));
+app.get("/app.js", async (req, reply) => serveStatic(req, reply, "app.js"));
+app.get("/favicon.svg", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
+
+app.get("/modules/:filename", async (req, reply) => 
+  serveStatic(req, reply, `modules/${req.params.filename}`)
+);
+
+app.get("/i18n/:filename", async (req, reply) => 
+  serveStatic(req, reply, `i18n/${req.params.filename}`)
+);
+
+app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
+
+// Root path
+app.get("/", async (req, reply) => {
+  const html = await fs.promises.readFile(path.join(__dirname, "public", "index.html"), "utf8");
+  reply.type("text/html");
+  return html;
+});
+
+// Permalink route - handles UUIDs
+app.get("/:id", async (req, reply) => {
+  const pasteId = req.params.id;
+  
+  // Check if it's a UUID
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pasteId)) {
+    // Check if paste exists
+    const row = db.prepare("SELECT id FROM pastes WHERE id = ?").get(pasteId);
+    if (row) {
+      // Serve index.html - frontend will load the paste
+      const html = await fs.promises.readFile(path.join(__dirname, "public", "index.html"), "utf8");
+      reply.type("text/html");
+      return html;
+    }
+  }
+  
+  // Not a valid UUID or paste not found
+  reply.code(404);
+  return { error: "Not found" };
+});
+
+// ── Database cleanup with disk-aware and per-user-quota strategies ──────────
+// Runs on startup and every 6 hours.
+// 
+// Cleanup tiers based on available disk space and per-session storage:
+// NORMAL    (>10% free): Delete sessions older than SESSION_TTL_DAYS
+// MEDIUM    (5-10% free): + Limit each session to MAX_PASTES_MEDIUM recent pastes
+// AGGRESSIVE (<5% free): + Limit each session to MAX_PASTES_AGGRESSIVE + lower per-user quota
+
+const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS) || 180;
+const USER_QUOTA_MB = Number(process.env.USER_QUOTA_MB) || 50;     // Per session
+const DISK_WARN_PERCENT = Number(process.env.DISK_WARN_PERCENT) || 10;
+const DISK_CRITICAL_PERCENT = Number(process.env.DISK_CRITICAL_PERCENT) || 5;
+const MAX_PASTES_MEDIUM = Number(process.env.MAX_PASTES_MEDIUM) || 200;
+const MAX_PASTES_AGGRESSIVE = Number(process.env.MAX_PASTES_AGGRESSIVE) || 50;
+
+// Get disk usage percentage (used / total * 100)
+const getDiskUsagePercent = () => {
+  try {
+    const stats = fs.statfsSync(process.env.DATA_DIR || __dirname);
+    const used = stats.blocks - stats.bavail;
+    return (used / stats.blocks) * 100;
+  } catch (err) {
+    app.log.warn({ err: err.message }, "Could not determine disk usage");
+    return 0;
+  }
+};
+
+// Get total markdown size for a session in MB
+const getSessionMarkdownSizeMB = (sessionId) => {
+  const result = db.prepare(
+    "SELECT SUM(LENGTH(markdown)) as total FROM pastes WHERE session_id = ?"
+  ).get(sessionId);
+  return (result?.total || 0) / 1024 / 1024;
+};
+
+const pruneDatabase = async () => {
+  try {
+    const diskUsagePercent = getDiskUsagePercent();
+    const isCritical = diskUsagePercent > DISK_CRITICAL_PERCENT;
+    const isMedium = diskUsagePercent > DISK_WARN_PERCENT && !isCritical;
+    const cleanupMode = isCritical ? "AGGRESSIVE" : (isMedium ? "MEDIUM" : "NORMAL");
+
+    // Phase 1: Always prune sessions older than SESSION_TTL_DAYS
+    const cutoff = new Date(Date.now() - SESSION_TTL_DAYS * 86_400_000).toISOString();
+    const stalePastes = db.prepare(
+      "DELETE FROM pastes WHERE session_id IN (SELECT id FROM sessions WHERE last_seen < ?)"
+    ).run(cutoff);
+    const staleSessions = db.prepare(
+      "DELETE FROM sessions WHERE last_seen < ?"
+    ).run(cutoff);
+
+    let deletedPhase2 = 0;
+    let deletedPhase3 = 0;
+
+    // Get all remaining sessions for quota/limit checks
+    const allSessions = db.prepare("SELECT id FROM sessions").all();
+
+    // Phase 2: If disk is medium/critical, limit pastes per session
+    if (isMedium || isCritical) {
+      const maxPastes = isCritical ? MAX_PASTES_AGGRESSIVE : MAX_PASTES_MEDIUM;
+      for (const { id: sessionId } of allSessions) {
+        const pastesPerSession = db.prepare(
+          "SELECT COUNT(*) as count FROM pastes WHERE session_id = ?"
+        ).get(sessionId).count;
+
+        if (pastesPerSession > maxPastes) {
+          const excess = db.prepare(
+            `DELETE FROM pastes WHERE session_id = ? AND id NOT IN
+             (SELECT id FROM pastes WHERE session_id = ? ORDER BY created_at DESC LIMIT ?)
+             ORDER BY created_at ASC LIMIT ?`
+          ).run(sessionId, sessionId, maxPastes, pastesPerSession - maxPastes);
+          deletedPhase2 += excess.changes;
+        }
+      }
+    }
+
+    // Phase 3: If disk is critical, enforce per-session quota with headroom
+    if (isCritical) {
+      const quotaMB = USER_QUOTA_MB / 2; // Halved quota when critical
+      for (const { id: sessionId } of allSessions) {
+        let totalSizeMB = 0;
+        const pastes = db.prepare(
+          "SELECT id, LENGTH(markdown) as size FROM pastes WHERE session_id = ? ORDER BY created_at DESC"
+        ).all(sessionId);
+
+        for (const { id: pasteId, size } of pastes) {
+          const pasteSizeMB = size / 1024 / 1024;
+          if (totalSizeMB + pasteSizeMB > quotaMB) {
+            db.prepare("DELETE FROM pastes WHERE id = ?").run(pasteId);
+            deletedPhase3++;
+          } else {
+            totalSizeMB += pasteSizeMB;
+          }
+        }
+      }
+    }
+
+    // Phase 4: Always remove orphaned pastes (session already deleted)
+    const orphanPastes = db.prepare(
+      "DELETE FROM pastes WHERE session_id NOT IN (SELECT id FROM sessions)"
+    ).run();
+
+    // Phase 5: Cleanup orphaned asset directories
+    let deletedAssets = 0;
+    try {
+      if (await fs.promises.stat(IMAGE_CONFIG.ASSETS_DIR).catch(() => null)) {
+        const assetDirs = await fs.promises.readdir(IMAGE_CONFIG.ASSETS_DIR);
+        for (const dir of assetDirs) {
+          const pasteExists = db.prepare("SELECT id FROM pastes WHERE id = ?").get(dir);
+          if (!pasteExists) {
+            const assetPath = path.join(IMAGE_CONFIG.ASSETS_DIR, dir);
+            await fs.promises.rm(assetPath, { recursive: true, force: true });
+            deletedAssets++;
+          }
+        }
+      }
+    } catch (err) {
+      app.log.warn({ err: err.message }, "Asset cleanup encountered error");
+    }
+
+    // Log only if something was deleted
+    if (stalePastes.changes > 0 || staleSessions.changes > 0 ||
+        deletedPhase2 > 0 || deletedPhase3 > 0 || orphanPastes.changes > 0 || deletedAssets > 0) {
+      app.log.info(
+        {
+          diskUsagePercent: diskUsagePercent.toFixed(1),
+          cleanupMode,
+          sessionsDeleted: staleSessions.changes,
+          pastesDeletedAge: stalePastes.changes,
+          pastesDeletedLimit: deletedPhase2,
+          pastesDeletedQuota: deletedPhase3,
+          orphanedPastes: orphanPastes.changes,
+          assetDirsDeleted: deletedAssets
+        },
+        "Database cleanup completed"
+      );
+    }
+  } catch (err) {
+    app.log.error({ err: err.message }, "DB cleanup failed");
+  }
+};
+
+const start = async () => {
+  try {
+    const port = Number(process.env.PORT || 3210);
+    await app.listen({ port, host: "0.0.0.0" });
+    pruneDatabase();
+    setInterval(pruneDatabase, 6 * 60 * 60 * 1000); // every 6 hours
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();

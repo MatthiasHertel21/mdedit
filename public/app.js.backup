@@ -1,0 +1,2289 @@
+import MarkdownIt from "https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm";
+import markdownItTaskLists from "https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/+esm";
+import markdownItMultimdTable from "https://cdn.jsdelivr.net/npm/markdown-it-multimd-table@4.2.3/+esm";
+import { Markmap } from "https://esm.sh/markmap-view@0.18.9";
+import markdownItFootnote from "https://cdn.jsdelivr.net/npm/markdown-it-footnote@3.0.3/+esm";
+import markdownItDeflist from "https://cdn.jsdelivr.net/npm/markdown-it-deflist@2.1.0/+esm";
+import markdownItContainer from "https://cdn.jsdelivr.net/npm/markdown-it-container@3.0.0/+esm";
+import markdownItKatex from "https://cdn.jsdelivr.net/npm/markdown-it-katex@2.0.3/+esm";
+import mermaid from "https://esm.sh/mermaid@10.9.0";
+import markdownItEmoji from "https://cdn.jsdelivr.net/npm/markdown-it-emoji@3.0.0/+esm";
+import markdownItSub from "https://cdn.jsdelivr.net/npm/markdown-it-sub@2.0.0/+esm";
+import markdownItSup from "https://cdn.jsdelivr.net/npm/markdown-it-sup@2.0.0/+esm";
+import markdownItMark from "https://cdn.jsdelivr.net/npm/markdown-it-mark@3.0.1/+esm";
+import markdownItAbbr from "https://cdn.jsdelivr.net/npm/markdown-it-abbr@1.0.4/+esm";
+import markdownItAnchor from "https://cdn.jsdelivr.net/npm/markdown-it-anchor@8.6.7/+esm";
+import markdownItToc from "https://cdn.jsdelivr.net/npm/markdown-it-toc-done-right@4.2.0/+esm";
+import markdownItAttrs from "https://cdn.jsdelivr.net/npm/markdown-it-attrs@4.1.6/+esm";
+
+const defaultSettings = {
+  gfm: true,
+  mermaid: true,
+  math: true,
+  footnotes: true,
+  deflist: true,
+  admonitions: true,
+  emoji: true,
+  sub: true,
+  sup: true,
+  mark: true,
+  abbr: true,
+  toc: true,
+  attrs: true,
+  typographer: true,
+  columns: true,
+  breaks: true,
+  mermaidCompletion: true,
+  lineNumbers: true,
+  syntaxHighlight: true,
+  showStartupTips: true,
+  syncScroll: true
+};
+
+const settingsKey = "md-settings";
+const themeKey = "md-theme";
+const previewPresetKey = "md-preview-preset";
+const customCssKey = "md-custom-css";
+const localeKey = "md-locale";
+
+const loadSettings = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(settingsKey));
+    return { ...defaultSettings, ...(stored || {}) };
+  } catch {
+    return { ...defaultSettings };
+  }
+};
+
+const saveSettings = (next) => {
+  localStorage.setItem(settingsKey, JSON.stringify(next));
+};
+
+let activeSettings = loadSettings();
+let md = null;
+let mermaidReady = false;
+let previewPreset = localStorage.getItem(previewPresetKey) || "scientific";
+let uiTheme = localStorage.getItem(themeKey) || "twentyone";
+let customCss = localStorage.getItem(customCssKey) || "";
+const defaultCustomCssTemplate = `/* Example: customize preview styles */
+.preview-content {
+  font-size: 16px;
+  line-height: 1.7;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #22536b;
+}
+
+.preview-content h1 { font-size: 28px; letter-spacing: 0.2px; }
+.preview-content h2 { font-size: 22px; }
+.preview-content h3 { font-size: 18px; }
+
+.preview-content p { margin-bottom: 12px; }
+.preview-content a { color: #0089cf; }
+.preview-content code { background: #eaf6fd; }
+
+.preview-content blockquote { border-left: 3px solid #0089cf; }
+.preview-content table { border-color: #e1e7ec; }
+.preview-content th { background: #f3fbff; }
+
+.admonition { border-left-color: #0089cf; }
+.md-columns { gap: 16px; }
+.md-break { opacity: 0.7; }
+
+/* Mermaid diagram customization */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon,
+.mermaid .node path {
+  fill: #d9eefb !important;
+  stroke: #0089cf !important;
+  stroke-width: 2px !important;
+}
+
+.mermaid .edgePath .path {
+  stroke: #22536b !important;
+  stroke-width: 2px !important;
+}
+
+.mermaid .cluster rect {
+  fill: #f9fcfe !important;
+  stroke: #0089cf !important;
+}
+
+.mermaid .label,
+.mermaid .nodeLabel,
+.mermaid .edgeLabel {
+  color: #22536b !important;
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 13px !important;
+}
+
+.mermaid .titleText {
+  fill: #22536b !important;
+  font-weight: 600 !important;
+}
+`;
+
+const addAdmonition = (instance, type, title) => {
+  instance.use(markdownItContainer, type, {
+    render(tokens, idx) {
+      if (tokens[idx].nesting === 1) {
+        return `<div class="admonition admonition-${type}"><div class="admonition-title">${title}</div>`;
+      }
+      return "</div>";
+    }
+  });
+};
+
+const buildMarkdownIt = (settings) => {
+  const instance = MarkdownIt({
+    html: true,
+    linkify: settings.gfm,
+    breaks: false,
+    typographer: settings.typographer,
+    sourcepos: true
+  });
+
+  const usePlugin = (plugin, ...args) => {
+    const fn = plugin?.default || plugin;
+    if (typeof fn === "function") {
+      instance.use(fn, ...args);
+    }
+  };
+
+  if (settings.gfm) {
+    usePlugin(markdownItTaskLists, { enabled: true });
+    usePlugin(markdownItMultimdTable, { multiline: true, rowspan: true, headerless: true });
+  }
+
+  if (settings.footnotes) {
+    usePlugin(markdownItFootnote);
+  }
+
+  if (settings.deflist) {
+    usePlugin(markdownItDeflist);
+  }
+
+  if (settings.emoji) {
+    usePlugin(markdownItEmoji);
+  }
+
+  if (settings.sub) {
+    usePlugin(markdownItSub);
+  }
+
+  if (settings.sup) {
+    usePlugin(markdownItSup);
+  }
+
+  if (settings.mark) {
+    usePlugin(markdownItMark);
+  }
+
+  if (settings.abbr) {
+    usePlugin(markdownItAbbr);
+  }
+
+  if (settings.toc) {
+    usePlugin(markdownItAnchor, { permalink: false });
+    usePlugin(markdownItToc, { level: [1, 2, 3, 4, 5, 6], listType: "ul" });
+  }
+
+  if (settings.attrs) {
+    usePlugin(markdownItAttrs);
+  }
+
+  if (settings.math) {
+    usePlugin(markdownItKatex);
+  }
+
+  if (settings.admonitions) {
+    addAdmonition(instance, "info", "Info");
+    addAdmonition(instance, "warning", "Warning");
+    addAdmonition(instance, "tip", "Hinweis");
+  }
+
+  if (settings.columns) {
+    usePlugin(markdownItContainer, "columns", {
+      render(tokens, idx) {
+        return tokens[idx].nesting === 1 ? "<div class=\"md-columns\">" : "</div>";
+      }
+    });
+    usePlugin(markdownItContainer, "column", {
+      render(tokens, idx) {
+        return tokens[idx].nesting === 1 ? "<div class=\"md-column\">" : "</div>";
+      }
+    });
+  }
+
+  if (settings.breaks) {
+    const breakRenderer = (label, className) => (tokens, idx) =>
+      tokens[idx].nesting === 1
+        ? `<div class=\"md-break ${className}\" data-label=\"${label}\"></div>`
+        : "";
+    usePlugin(markdownItContainer, "pagebreak", { render: breakRenderer("Seitenumbruch", "md-pagebreak") });
+    usePlugin(markdownItContainer, "sectionbreak", { render: breakRenderer("Abschnittsumbruch", "md-sectionbreak") });
+    usePlugin(markdownItContainer, "columnbreak", { render: breakRenderer("Spaltenumbruch", "md-columnbreak") });
+    usePlugin(markdownItContainer, "linebreak", { render: breakRenderer("Zeilenumbruch", "md-linebreak") });
+  }
+
+  if (settings.mermaid) {
+    const fence = instance.renderer.rules.fence;
+    instance.renderer.rules.fence = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const info = token.info?.trim().toLowerCase() || "";
+      if (info === "mermaid") {
+        const map = token.map || [];
+        const start = map[0] ? map[0] + 1 : 1;
+        const end = map[1] ? map[1] : start;
+        const sourcepos = `${start}:1-${end}:1`;
+        return `<div class="mermaid" data-sourcepos="${sourcepos}">${token.content}</div>`;
+      }
+      return fence ? fence(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options);
+    };
+  }
+
+  return instance;
+};
+
+const getCssVarValue = (name, fallback) => {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const initMermaid = () => {
+  const accent = getCssVarValue("--accent", "#0089cf");
+  const accentLight = getCssVarValue("--accent-light", "#d9eefb");
+  const primary = getCssVarValue("--primary", "#22536b");
+  const bg = getCssVarValue("--bg", "#f9fcfe");
+  const preset = previewPreset || "scientific";
+  const presetMap = {
+    scientific: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
+    compact: { fontSize: 11, nodePadding: 6, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
+    literary: { fontSize: 14, nodePadding: 12, fontFamily: "Georgia, Times New Roman, serif" },
+    custom: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" }
+  };
+  const presetVars = presetMap[preset] || presetMap.scientific;
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    themeVariables: {
+      primaryColor: accentLight,
+      primaryBorderColor: accent,
+      primaryTextColor: primary,
+      lineColor: accent,
+      secondaryColor: accentLight,
+      tertiaryColor: bg,
+      fontFamily: presetVars.fontFamily,
+      fontSize: presetVars.fontSize,
+      nodePadding: presetVars.nodePadding
+    }
+  });
+  mermaidReady = true;
+};
+
+const escapeHtml = (text) => {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+};
+
+const healMermaidSyntax = (code) => {
+  let healed = code;
+  
+  // Kommentare korrigieren: # in %% umwandeln (Mermaid Syntax)
+  healed = healed.replace(/#(.*)$/gm, (match, comment) => {
+    return `%% ${comment.trim()}`;
+  });
+  
+  // Typische Tippfehler korrigieren
+  healed = healed.replace(/\bflowchar\b/g, "flowchart");
+  healed = healed.replace(/\bsequencediagram\b/gi, "sequenceDiagram");
+  healed = healed.replace(/\bclassdiagram\b/gi, "classDiagram");
+  healed = healed.replace(/\bgantt\b/gi, "gantt");
+  healed = healed.replace(/\berdiagram\b/gi, "erDiagram");
+  healed = healed.replace(/\bstatediagram\b/gi, "stateDiagram");
+  
+  // WICHTIG: Labels mit Sonderzeichen in Quotes setzen
+  // Mermaid hat Probleme mit Klammern, Doppelpunkten, etc. in Labels
+  healed = healed.replace(/-->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+    const trimmed = label.trim();
+    // Wenn Label Klammern, Doppelpunkt oder Sonderzeichen enthält, in Quotes setzen
+    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+      return `-->|"${trimmed}"|`;
+    }
+    return `-->|${trimmed}|`;
+  });
+  healed = healed.replace(/->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+    const trimmed = label.trim();
+    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+      return `->|"${trimmed}"|`;
+    }
+    return `->|${trimmed}|`;
+  });
+  healed = healed.replace(/---\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+    const trimmed = label.trim();
+    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+      return `---|"${trimmed}"|`;
+    }
+    return `---|${trimmed}|`;
+  });
+  healed = healed.replace(/-\.\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+    const trimmed = label.trim();
+    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+      return `-.|"${trimmed}"|`;
+    }
+    return `-.|${trimmed}|`;
+  });
+  
+  // Fehlende Leerzeichen nach Pfeilen hinzufügen (nur wenn kein | folgt)
+  healed = healed.replace(/-->([^\s\-|])/g, "--> $1");
+  healed = healed.replace(/->([^\s\-|])/g, "-> $1");
+  healed = healed.replace(/---([^\s\-|])/g, "--- $1");
+  healed = healed.replace(/==([^\s=|])/g, "== $1");
+  healed = healed.replace(/-\.([^\s\.|])/g, "-. $1");
+  
+  // Node-Labels mit Sonderzeichen in Quotes setzen
+  // Behandle NodeID[Label], NodeID(Label), NodeID{Label}, NodeID>Label]
+  healed = healed.replace(/(\w+)\[([^\]]+)\]/g, (match, id, label) => {
+    // Wenn Label Sonderzeichen hat und nicht schon in Quotes ist
+    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+      return `${id}["${label}"]`;
+    }
+    return match;
+  });
+  healed = healed.replace(/(\w+)\(([^)]+)\)/g, (match, id, label) => {
+    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+      return `${id}("${label}")`;
+    }
+    return match;
+  });
+  healed = healed.replace(/(\w+)\{([^}]+)\}/g, (match, id, label) => {
+    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+      return `${id}{"${label}"}`;
+    }
+    return match;
+  });
+  
+  // Ungültige Zeichen in Node-IDs ersetzen (nur alphanumerisch + Unterstrich erlaubt)
+  const lines = healed.split('\n');
+  const processedLines = lines.map(line => {
+    // Flowchart node definitions: NodeID[Label] oder NodeID(Label) etc.
+    if (line.match(/^\s*[\w-]+[\[\(\{<]/)) {
+      return line.replace(/^(\s*)([\w.-]+)([\[\(\{<])/, (match, spaces, id, bracket) => {
+        const cleanId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
+        return spaces + cleanId + bracket;
+      });
+    }
+    return line;
+  });
+  healed = processedLines.join('\n');
+  
+  // Leere Zeilen am Ende entfernen
+  healed = healed.trim();
+  
+  return healed;
+};
+
+const renderMermaid = async () => {
+  if (!activeSettings.mermaid) return;
+  initMermaid();
+  const mermaidBlocks = document.querySelectorAll(".mermaid");
+  for (const block of mermaidBlocks) {
+    if (block.hasAttribute("data-processed")) continue;
+    const originalContent = block.textContent;
+    const healedContent = healMermaidSyntax(originalContent);
+    
+    try {
+      // Versuche erst mit geheiltem Code
+      if (healedContent !== originalContent) {
+        block.textContent = healedContent;
+      }
+      await mermaid.run({ nodes: [block] });
+    } catch (error) {
+      // Fehler auch nach Healing - zeige Original-Code
+      block.textContent = originalContent;
+      block.classList.add("mermaid-error");
+      block.innerHTML = `<div class="syntax-error">
+        <div class="syntax-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="syntax-error-title">Mermaid Syntax-Fehler</div>
+        <div class="syntax-error-message">${escapeHtml(error.message || "Ungültige Syntax")}</div>
+        <details class="syntax-error-details">
+          <summary>Diagramm-Code anzeigen</summary>
+          <pre>${escapeHtml(originalContent)}</pre>
+        </details>
+      </div>`;
+    }
+  }
+};
+
+const applySettings = (nextSettings) => {
+  activeSettings = { ...activeSettings, ...nextSettings };
+  saveSettings(activeSettings);
+  md = buildMarkdownIt(activeSettings);
+  
+  // Update Editor-Optionen
+  if (editorView) {
+    if ('lineNumbers' in nextSettings) {
+      editorView.setOption('lineNumbers', nextSettings.lineNumbers);
+    }
+    if ('syntaxHighlight' in nextSettings) {
+      editorView.setOption('mode', nextSettings.syntaxHighlight ? 'markdown' : null);
+    }
+  }
+  
+  renderPreview();
+};
+
+md = buildMarkdownIt(activeSettings);
+
+const headingIdState = {
+  ids: [],
+  index: 0
+};
+
+md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
+  const id = headingIdState.ids[headingIdState.index++] || "";
+  if (id) {
+    tokens[idx].attrSet("id", id);
+  }
+  return self.renderToken(tokens, idx, options);
+};
+
+const elements = {
+  editorHost: document.getElementById("markdownEditor"),
+  preview: document.getElementById("preview"),
+  treeView: document.getElementById("treeView"),
+  viewPreviewBtn: document.getElementById("viewPreviewBtn"),
+  viewTreeBtn: document.getElementById("viewTreeBtn"),
+  previewPanel: document.getElementById("previewPanel"),
+  previewBody: document.getElementById("previewBody"),
+  treeInline: document.getElementById("treeInline"),
+  nodeContent: document.getElementById("nodeContent"),
+  treeUpBtn: document.getElementById("treeUpBtn"),
+  treeRootBtn: document.getElementById("treeRootBtn"),
+  treeMaxBtn: document.getElementById("treeMaxBtn"),
+  nodeStatsBtn: document.getElementById("nodeStatsBtn"),
+  permalinkBtn: document.getElementById("permalinkBtn"),
+  copyMdBtn: document.getElementById("copyMdBtn"),
+  copyTextBtn: document.getElementById("copyTextBtn"),
+  copyNodeMdBtn: document.getElementById("copyNodeMdBtn"),
+  copyNodeTextBtn: document.getElementById("copyNodeTextBtn"),
+  previewTreeToggle: document.getElementById("previewTreeToggle"),
+  previewDocxBtn: document.getElementById("previewDocxBtn"),
+  previewPdfBtn: document.getElementById("previewPdfBtn"),
+  historyList: document.getElementById("historyList"),
+  newPasteBtn: document.getElementById("newPasteBtn"),
+  historySearch: document.getElementById("historySearch"),
+  status: document.getElementById("status"),
+  content: document.querySelector(".content"),
+  editorSection: document.querySelector(".editor"),
+  previewSection: document.querySelector(".right-pane"),
+  editorResizer: document.querySelector(".editor-resizer"),
+  treeResizer: document.querySelector(".tree-resizer"),
+  sidebar: document.getElementById("sidebar"),
+  footerStats: document.getElementById("footerStats"),
+  previewTitle: document.getElementById("previewTitle"),
+  settingsBtn: document.getElementById("settingsBtn"),
+  settingsModal: document.getElementById("settingsModal"),
+  settingsOverlay: document.getElementById("settingsOverlay"),
+  settingsClose: document.getElementById("settingsClose"),
+  themeSelect: document.getElementById("themeSelect"),
+  languageSelect: document.getElementById("languageSelect"),
+  customCssInput: document.getElementById("customCssInput"),
+  pinToggle: document.getElementById("pinToggle"),
+  collapsedOpenItems: document.getElementById("collapsedOpenItems"),
+  toastContainer: document.getElementById("toastContainer"),
+  previewPresetTrigger: document.getElementById("previewPresetTrigger"),
+  previewPresetMenu: document.getElementById("previewPresetMenu"),
+  previewPresetLabel: document.getElementById("previewPresetLabel"),
+  previewPresetItems: Array.from(document.querySelectorAll(".preview-preset-item")),
+  tipsModal: document.getElementById("tipsModal"),
+  tipsOverlay: document.getElementById("tipsOverlay"),
+  tipsClose: document.getElementById("tipsClose"),
+  dontShowTipsAgain: document.getElementById("dontShowTipsAgain")
+};
+
+let currentPasteId = null;
+let historyCache = [];
+let treeFocusId = null;
+let selectedNodeId = null;
+let currentView = "preview";
+let lastSavedMarkdown = "";
+let lastHeadings = [];
+let lastTree = [];
+let headingMetrics = { headings: [], previewOffsets: {}, lineHeight: 20 };
+let clearedForNew = false;
+let outlineCache = new Map();
+let historyOrder = [];
+let isDragging = false;
+let dragMode = null;
+let startX = 0;
+let startEditor = 0;
+let startPreview = 0;
+let startY = 0;
+let startTreeHeight = 0;
+const minTreeHeight = 140;
+const minNodeHeight = 140;
+const minCol = 220;
+let editorView = null;
+let treeVisible = false;
+let lastStatsText = "";
+
+const sidebarPinModeKey = "sidebarPinMode";
+const sidebarCollapsedKey = "sidebarCollapsed";
+let sidebarPinMode = localStorage.getItem(sidebarPinModeKey) || "unpinned";
+let sidebarCollapsed = localStorage.getItem(sidebarCollapsedKey) !== "false";
+
+const updateSidebarState = () => {
+  const sidebar = elements.sidebar;
+  const app = sidebar?.closest(".app");
+  if (!sidebar || !app) return;
+  const effectiveCollapsed = sidebarPinMode === "pinned-collapsed"
+    ? true
+    : sidebarPinMode === "pinned-expanded"
+      ? false
+      : sidebarCollapsed;
+  sidebar.classList.toggle("collapsed", effectiveCollapsed);
+  app.classList.toggle("sidebar-collapsed", effectiveCollapsed);
+  elements.pinToggle?.classList.toggle("active", sidebarPinMode !== "unpinned");
+  const label = elements.pinToggle?.querySelector(".icon-label");
+  if (elements.pinToggle) {
+    if (sidebarPinMode === "pinned-collapsed") {
+      elements.pinToggle.title = "Angepinnt (eingeklappt)";
+      elements.pinToggle.setAttribute("aria-label", "Angepinnt (eingeklappt)");
+      if (label) label.textContent = "Angepinnt (eingeklappt)";
+    } else if (sidebarPinMode === "pinned-expanded") {
+      elements.pinToggle.title = "Angepinnt (ausgeklappt)";
+      elements.pinToggle.setAttribute("aria-label", "Angepinnt (ausgeklappt)");
+      if (label) label.textContent = "Angepinnt (ausgeklappt)";
+    } else {
+      elements.pinToggle.title = "Nicht angepinnt";
+      elements.pinToggle.setAttribute("aria-label", "Nicht angepinnt");
+      if (label) label.textContent = "Nicht angepinnt";
+    }
+  }
+};
+
+const setSidebarPinMode = (mode) => {
+  sidebarPinMode = mode;
+  localStorage.setItem(sidebarPinModeKey, sidebarPinMode);
+  updateSidebarState();
+};
+
+const setSidebarCollapsed = (value) => {
+  sidebarCollapsed = value;
+  localStorage.setItem(sidebarCollapsedKey, String(sidebarCollapsed));
+  updateSidebarState();
+};
+
+const renderCollapsedOpenItems = () => {
+  if (!elements.collapsedOpenItems) return;
+  elements.collapsedOpenItems.innerHTML = "";
+  const items = historyCache.slice(0, 9);
+  items.forEach((item, index) => {
+    const btn = document.createElement("button");
+    btn.className = "collapsed-open-item" + (item.id === currentPasteId ? " active" : "");
+    btn.textContent = String(index + 1);
+    btn.title = item.title || "Untitled";
+    btn.setAttribute("aria-label", item.title || "Untitled");
+    btn.addEventListener("click", () => loadPaste(item.id));
+    elements.collapsedOpenItems.appendChild(btn);
+  });
+};
+
+const getMarkdown = () => (editorView ? editorView.getValue() : "");
+
+const setMarkdown = (text) => {
+  if (!editorView) return;
+  const current = editorView.getValue();
+  if (current === text) return;
+  editorView.setValue(text);
+};
+
+const getEditorScrollTop = () => (editorView ? editorView.getScrollInfo().top : 0);
+
+const setEditorScrollTop = (value) => {
+  if (editorView) editorView.scrollTo(null, value);
+};
+
+let lastToast = { text: "", at: 0 };
+
+const showToast = (message, type = "info", duration = 2400) => {
+  if (!message) return;
+  const now = Date.now();
+  if (lastToast.text === message && now - lastToast.at < 800) return;
+  lastToast = { text: message, at: now };
+  if (!elements.toastContainer) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  elements.toastContainer.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+  const remove = () => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 180);
+  };
+  setTimeout(remove, duration);
+};
+
+const setStatus = (text, type = "info") => {
+  if (elements.status) {
+    elements.status.textContent = text;
+  }
+  showToast(text, type);
+};
+
+const translations = {};
+const supportedLocales = ["de", "en"];
+
+const loadTranslations = async (locale) => {
+  if (!translations[locale]) {
+    try {
+      const response = await fetch(`/i18n/${locale}.json`);
+      if (response.ok) {
+        translations[locale] = await response.json();
+      } else {
+        console.warn(`Failed to load translations for ${locale}`);
+        if (locale !== "en") {
+          await loadTranslations("en");
+        }
+      }
+    } catch (err) {
+      console.error(`Error loading translations for ${locale}:`, err);
+      if (locale !== "en") {
+        await loadTranslations("en");
+      }
+    }
+  }
+};
+
+const getLocale = () => {
+  const saved = localStorage.getItem(localeKey);
+  if (saved && supportedLocales.includes(saved)) return saved;
+  const lang = (navigator.language || "de").toLowerCase();
+  const base = lang.split("-")[0];
+  return supportedLocales.includes(base) ? base : "en";
+};
+
+let currentLocale = getLocale();
+
+const t = (key) => translations[currentLocale]?.[key] || translations.en?.[key] || key;
+
+const applyTranslations = async () => {
+  await loadTranslations(currentLocale);
+  if (currentLocale !== "en") {
+    await loadTranslations("en");
+  }
+  
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+    el.setAttribute("aria-label", t(el.dataset.i18nAria));
+  });
+  updatePreviewTitle();
+  if (elements.previewPresetLabel) {
+    const key = `preset${previewPreset[0].toUpperCase()}${previewPreset.slice(1)}`;
+    elements.previewPresetLabel.textContent = t(key);
+  }
+};
+
+const applyTheme = (theme) => {
+  uiTheme = theme || "twentyone";
+  document.body.dataset.theme = uiTheme;
+  localStorage.setItem(themeKey, uiTheme);
+  renderPreview();
+};
+
+const applyPreviewPreset = (preset) => {
+  const requested = preset || "scientific";
+  previewPreset = requested === "custom" && !customCss.trim() ? "scientific" : requested;
+  localStorage.setItem(previewPresetKey, previewPreset);
+  const presets = ["preset-compact", "preset-scientific", "preset-literary", "preset-custom"];
+  [elements.preview, elements.nodeContent].forEach((el) => {
+    if (!el) return;
+    presets.forEach((p) => el.classList.remove(p));
+    el.classList.add(`preset-${previewPreset}`);
+  });
+  if (elements.previewPresetLabel) {
+    const key = `preset${previewPreset[0].toUpperCase()}${previewPreset.slice(1)}`;
+    elements.previewPresetLabel.textContent = t(key);
+  }
+  
+  // Scientific: Schwarz-Weiß für Druck
+  if (previewPreset === "scientific") {
+    ensureCustomStyle();
+    const scientificStyles = `
+.preset-scientific h1, .preset-scientific h2, .preset-scientific h3, 
+.preset-scientific h4, .preset-scientific h5, .preset-scientific h6 {
+  color: #000000 !important;
+}
+.preset-scientific .mermaid {
+  filter: grayscale(100%) contrast(1.2);
+}
+    `;
+    if (customStyleEl) {
+      const existingCustom = localStorage.getItem(customCssKey) || "";
+      customStyleEl.textContent = scientificStyles + "\n" + existingCustom;
+    }
+  }
+  
+  mermaidReady = false;
+  renderPreview();
+};
+
+let customStyleEl = null;
+const ensureCustomStyle = () => {
+  if (customStyleEl) return;
+  customStyleEl = document.createElement("style");
+  customStyleEl.id = "customStyles";
+  document.head.appendChild(customStyleEl);
+};
+
+const applyCustomCss = (css) => {
+  customCss = css || "";
+  localStorage.setItem(customCssKey, customCss);
+  ensureCustomStyle();
+  customStyleEl.textContent = customCss;
+  const hasCustom = Boolean(customCss.trim());
+  elements.previewPresetItems?.forEach((item) => {
+    if (item.dataset.preset === "custom") {
+      item.classList.toggle("hidden", !hasCustom);
+    }
+  });
+  if (previewPreset === "custom" && !hasCustom) {
+    applyPreviewPreset("scientific");
+  }
+  if (hasCustom) {
+    applyPreviewPreset("custom");
+  }
+};
+
+const syncSettingsUI = () => {
+  document.querySelectorAll("[data-setting]").forEach((input) => {
+    const key = input.dataset.setting;
+    if (key in activeSettings) {
+      input.checked = Boolean(activeSettings[key]);
+    }
+  });
+  if (elements.themeSelect) {
+    elements.themeSelect.value = uiTheme || "twentyone";
+  }
+  if (elements.languageSelect) {
+    const saved = localStorage.getItem(localeKey) || "auto";
+    elements.languageSelect.value = saved;
+  }
+  if (elements.customCssInput) {
+    elements.customCssInput.value = customCss || defaultCustomCssTemplate;
+  }
+  const hasCustom = Boolean(customCss.trim());
+  elements.previewPresetItems?.forEach((item) => {
+    if (item.dataset.preset === "custom") {
+      item.classList.toggle("hidden", !hasCustom);
+    }
+  });
+};
+
+const openSettings = () => {
+  elements.settingsModal?.classList.remove("hidden");
+  elements.settingsOverlay?.classList.remove("hidden");
+  syncSettingsUI();
+};
+
+const closeSettings = () => {
+  elements.settingsModal?.classList.add("hidden");
+  elements.settingsOverlay?.classList.add("hidden");
+};
+
+const showTipsModal = () => {
+  elements.tipsModal?.classList.remove("hidden");
+  elements.tipsOverlay?.classList.remove("hidden");
+};
+
+const closeTipsModal = () => {
+  elements.tipsModal?.classList.add("hidden");
+  elements.tipsOverlay?.classList.add("hidden");
+  
+  // Check if "don't show again" was checked
+  if (elements.dontShowTipsAgain?.checked) {
+    activeSettings.showStartupTips = false;
+    saveSettings();
+  }
+};
+
+const renderPreview = () => {
+  let text = getMarkdown();
+  headingIdState.ids = lastHeadings.map((h) => h.slug);
+  headingIdState.index = 0;
+  
+  // Prüfe auf unvollständige Code-Blöcke und heile automatisch
+  const incompleteCodeBlocks = [];
+  const lines = text.split("\n");
+  let inCodeBlock = false;
+  let codeBlockStart = -1;
+  let closeBeforeLine = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trimStart().startsWith("```")) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeBlockStart = i + 1;
+      } else {
+        inCodeBlock = false;
+      }
+    } else if (inCodeBlock) {
+      // Prüfe ob Leerzeile + # (Überschrift) kommt - dann vorher schließen
+      if (line.trim() === "" && i + 1 < lines.length && lines[i + 1].trimStart().startsWith("#")) {
+        closeBeforeLine = i;
+        break;
+      }
+    }
+  }
+  
+  let wasHealed = false;
+  let healingMessage = "";
+  
+  if (inCodeBlock) {
+    incompleteCodeBlocks.push({ line: codeBlockStart });
+    
+    if (closeBeforeLine > -1) {
+      // Schließe vor der Leerzeile
+      lines.splice(closeBeforeLine, 0, "```");
+      text = lines.join("\n");
+      healingMessage = `Code-Block automatisch vor Zeile ${closeBeforeLine + 1} geschlossen (Überschrift erkannt)`;
+    } else {
+      // Schließe am Ende
+      text = text + "\n```";
+      healingMessage = `Code-Block automatisch am Ende geschlossen (ab Zeile ${codeBlockStart})`;
+    }
+    wasHealed = true;
+  }
+  
+  elements.preview.innerHTML = md.render(text);
+  
+  // Zeige Korrekturvorschlag im Editor
+  const suggestionEl = document.getElementById("editorSuggestion");
+  if (wasHealed && suggestionEl) {
+    suggestionEl.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${healingMessage} <button class="suggestion-apply">Übernehmen</button>`;
+    suggestionEl.classList.remove("hidden");
+    
+    // Click-Handler für "Übernehmen"
+    const applyBtn = suggestionEl.querySelector(".suggestion-apply");
+    if (applyBtn) {
+      applyBtn.onclick = () => {
+        setMarkdown(text);
+        suggestionEl.classList.add("hidden");
+      };
+    }
+  } else if (suggestionEl) {
+    suggestionEl.classList.add("hidden");
+  }
+  
+  updatePreviewTitle();
+  updateHeadingMetrics();
+  renderMermaid();
+  const cursor = editorView?.getCursor("from");
+  if (cursor) highlightPreviewForLine(cursor.line);
+};
+
+const slugify = (text) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+
+const buildHeadingTree = (markdown) => {
+  const headings = [];
+  const regex = /^\s{0,3}(#{1,6})\s+(.+)$/gm;
+  let match;
+  const slugCounts = new Map();
+
+  while ((match = regex.exec(markdown)) !== null) {
+    const level = match[1].length;
+    const title = match[2].replace(/\s+#+\s*$/, "").trim();
+    const base = slugify(title) || "section";
+    const count = (slugCounts.get(base) || 0) + 1;
+    slugCounts.set(base, count);
+    const slug = count > 1 ? `${base}-${count}` : base;
+
+    headings.push({
+      level,
+      title,
+      slug,
+      start: match.index
+    });
+  }
+
+  const root = { id: "root", level: 0, title: "root", start: 0, children: [] };
+  const stack = [root];
+  let idCounter = 0;
+
+  headings.forEach((heading) => {
+    while (stack.length && heading.level <= stack[stack.length - 1].level) {
+      stack.pop();
+    }
+    idCounter += 1;
+    const node = {
+      ...heading,
+      id: `${stack[stack.length - 1].id}-${idCounter}`,
+      children: []
+    };
+    stack[stack.length - 1].children.push(node);
+    stack.push(node);
+  });
+
+  return { tree: root.children, headings };
+};
+
+const getLineHeight = (el) => {
+  const style = window.getComputedStyle(el);
+  const lineHeight = parseFloat(style.lineHeight);
+  if (!Number.isNaN(lineHeight)) return lineHeight;
+  const fontSize = parseFloat(style.fontSize) || 14;
+  return fontSize * 1.4;
+};
+
+const escapeCss = (value) => {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(value);
+  }
+  return value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
+};
+
+const updateHeadingMetrics = () => {
+  const markdown = getMarkdown();
+  const lineHeight = editorView ? getLineHeight(editorView.getWrapperElement()) : 20;
+  const headings = lastHeadings.map((heading) => {
+    const before = markdown.slice(0, heading.start);
+    const line = before.split("\n").length - 1;
+    return { ...heading, line };
+  });
+
+  const previewOffsets = {};
+  headings.forEach((heading) => {
+    const el = elements.preview.querySelector(`#${escapeCss(heading.slug)}`);
+    if (el) {
+      previewOffsets[heading.slug] = el.offsetTop;
+    }
+  });
+
+  headingMetrics = { headings, previewOffsets, lineHeight };
+};
+
+const refreshHeadingData = () => {
+  const { tree, headings } = buildHeadingTree(getMarkdown());
+  lastTree = tree;
+  lastHeadings = headings;
+};
+
+const buildOutline = (markdown) => {
+  const tokens = md.parse(markdown, {});
+  const headings = [];
+  const slugCounts = new Map();
+
+  for (let i = 0; i < tokens.length; i += 1) {
+    if (tokens[i].type === "heading_open") {
+      const level = Number(tokens[i].tag.replace("h", ""));
+      const inline = tokens[i + 1];
+      const title = inline?.content?.trim() || "(ohne Titel)";
+      const base = slugify(title) || "section";
+      const count = (slugCounts.get(base) || 0) + 1;
+      slugCounts.set(base, count);
+      const slug = count > 1 ? `${base}-${count}` : base;
+      const line = tokens[i].map?.[0] ?? 0;
+      headings.push({ level, title, slug, line });
+    }
+  }
+
+  return headings.filter((h) => h.level <= 2);
+};
+
+const saveHistoryOrder = () => {
+  localStorage.setItem("historyOrder", JSON.stringify(historyOrder));
+};
+
+const loadHistoryOrder = () => {
+  try {
+    const data = JSON.parse(localStorage.getItem("historyOrder") || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+};
+
+const applyHistoryOrder = (items) => {
+  if (!historyOrder.length) return items;
+  const map = new Map(items.map((item) => [item.id, item]));
+  const ordered = historyOrder.map((id) => map.get(id)).filter(Boolean);
+  const rest = items.filter((item) => !historyOrder.includes(item.id));
+  return [...ordered, ...rest];
+};
+
+const rotateHistory = (direction) => {
+  if (!historyCache.length) return;
+  const idx = historyCache.findIndex((item) => item.id === currentPasteId);
+  const nextIdx = idx === -1
+    ? 0
+    : (idx + direction + historyCache.length) % historyCache.length;
+  const next = historyCache[nextIdx];
+  if (next) loadPaste(next.id);
+};
+
+const jumpToSlug = (slug) => {
+  const heading = headingMetrics.headings.find((h) => h.slug === slug);
+  if (heading) {
+    scrollToHeading(heading);
+  }
+};
+
+const jumpToLine = (line) => {
+  const targetLine = Math.max(0, line || 0);
+  setEditorScrollTop(targetLine * headingMetrics.lineHeight);
+  const currentIndex = headingMetrics.headings.findIndex((h) => h.line > targetLine) - 1;
+  const idx = currentIndex >= 0 ? currentIndex : headingMetrics.headings.length - 1;
+  const current = headingMetrics.headings[idx];
+  const next = headingMetrics.headings[idx + 1] || null;
+  if (current) {
+    const start = current.line ?? 0;
+    const end = next?.line ?? start + 10;
+    const ratio = end > start ? (targetLine - start) / (end - start) : 0;
+    scrollToHeadingWithRatio(current, next, Math.max(0, Math.min(1, ratio)));
+  }
+};
+
+const setView = (view) => {
+  currentView = view;
+  treeVisible = view === "tree";
+  elements.treeInline?.classList.toggle("hidden", !treeVisible);
+  elements.treeResizer?.classList.toggle("hidden", !treeVisible);
+  elements.viewPreviewBtn?.classList.toggle("primary", !treeVisible);
+  elements.viewTreeBtn?.classList.toggle("primary", treeVisible);
+  elements.previewTreeToggle?.classList.toggle("primary", treeVisible);
+  refreshHeadingData();
+  if (treeVisible) {
+    renderTree();
+  } else {
+    renderPreview();
+  }
+};
+
+const findNodeById = (nodes, id) => {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const child = findNodeById(node.children, id);
+    if (child) return child;
+  }
+  return null;
+};
+
+const hyperbolicRadius = (r) => {
+  const k = 3.2;
+  return (Math.exp(k * r) - 1) / (Math.exp(k * r) + 1);
+};
+
+const truncateLabel = (text, max = 28) => {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+};
+
+const toMarkmapNode = (node) => ({
+  content: node.title,
+  id: node.id,
+  slug: node.slug,
+  level: node.level,
+  start: node.start,
+  children: node.children?.map(toMarkmapNode) || []
+});
+
+const getStats = (text) => {
+  const chars = text.length;
+  const words = (text.trim().match(/\S+/g) || []).length;
+  const headingMatches = text.match(/^#{1,6}\s+.+$/gm) || [];
+  const headings = headingMatches.length;
+  const depth = headingMatches.reduce((max, line) => Math.max(max, line.match(/^#+/)[0].length), 0);
+  return { chars, words, headings, depth };
+};
+
+const setFooterStats = (text) => {
+  if (elements.footerStats) {
+    elements.footerStats.textContent = text || "";
+  }
+};
+
+const parseSourcepos = (value) => {
+  if (!value) return null;
+  const match = value.match(/(\d+):\d+-(\d+):\d+/);
+  if (!match) return null;
+  return { start: Number(match[1]), end: Number(match[2]) };
+};
+
+const clearPreviewSelection = () => {
+  elements.preview?.querySelectorAll(".preview-selection").forEach((el) => {
+    el.classList.remove("preview-selection");
+  });
+};
+
+const highlightPreviewForLine = (line, shouldScroll = false) => {
+  if (!elements.preview) return;
+  const targetLine = Number.isFinite(line) ? line + 1 : null;
+  if (!targetLine) return;
+  const nodes = Array.from(elements.preview.querySelectorAll("[data-sourcepos]"));
+  let best = null;
+  let bestSpan = Infinity;
+  nodes.forEach((node) => {
+    const pos = parseSourcepos(node.getAttribute("data-sourcepos"));
+    if (!pos) return;
+    if (targetLine >= pos.start && targetLine <= pos.end) {
+      const span = pos.end - pos.start;
+      if (span < bestSpan) {
+        best = node;
+        bestSpan = span;
+      }
+    }
+  });
+  clearPreviewSelection();
+  if (best) {
+    best.classList.add("preview-selection");
+    if (shouldScroll || currentView === "preview") {
+      best.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }
+};
+
+const updatePreviewTitle = () => {
+  if (!elements.previewTitle) return;
+  const stats = getStats(getMarkdown());
+  const label = `${t("preview")} (${stats.words} ${t("statsWords")}, ${stats.chars} ${t("statsChars")})`;
+  elements.previewTitle.textContent = label;
+};
+
+const formatStatsText = (stats) =>
+  `${t("statsChars")} ${stats.chars} · ${t("statsWords")} ${stats.words} · ${t("statsHeadings")} ${stats.headings} · ${t("statsDepth")} ${stats.depth}`;
+
+const renderNodeContent = () => {
+  if (!elements.nodeContent) return;
+  if (!selectedNodeId) {
+    elements.nodeContent.innerHTML = "<div class=\"muted\">Kein Abschnitt ausgewählt.</div>";
+    elements.nodeStatsBtn?.setAttribute("title", t("statsEmpty"));
+    lastStatsText = t("statsEmpty");
+    setFooterStats(lastStatsText);
+    return;
+  }
+
+  const node = findNodeById(lastTree, selectedNodeId);
+  if (!node) {
+    elements.nodeContent.innerHTML = "<div class=\"muted\">Kein Abschnitt ausgewählt.</div>";
+    lastStatsText = t("statsEmpty");
+    setFooterStats(lastStatsText);
+    return;
+  }
+
+  const headings = lastHeadings;
+  const idx = headings.findIndex((h) => h.start === node.start && h.level === node.level);
+  if (idx === -1) {
+    elements.nodeContent.innerHTML = "<div class=\"muted\">Kein Abschnitt ausgewählt.</div>";
+    lastStatsText = t("statsEmpty");
+    setFooterStats(lastStatsText);
+    return;
+  }
+
+  const markdown = getMarkdown();
+  let end = markdown.length;
+  for (let i = idx + 1; i < headings.length; i += 1) {
+    if (headings[i].level <= node.level) {
+      end = headings[i].start;
+      break;
+    }
+  }
+
+  const chunk = markdown.slice(node.start, end).trim();
+  if (chunk) {
+    headingIdState.ids = [];
+    headingIdState.index = 0;
+    elements.nodeContent.innerHTML = md.render(chunk);
+    const stats = getStats(chunk);
+    lastStatsText = formatStatsText(stats);
+    elements.nodeStatsBtn?.setAttribute(
+      "title",
+      `${t("stats")}: ${lastStatsText}`
+    );
+    setFooterStats(lastStatsText);
+  } else {
+    elements.nodeContent.innerHTML = "<div class=\"muted\">Leerer Abschnitt.</div>";
+    elements.nodeStatsBtn?.setAttribute("title", t("statsEmpty"));
+    lastStatsText = t("statsEmpty");
+    setFooterStats(lastStatsText);
+  }
+};
+
+const renderTree = () => {
+  if (!treeVisible) {
+    elements.treeView.innerHTML = "";
+    return;
+  }
+
+  const tree = lastTree;
+  elements.treeView.innerHTML = "";
+
+  if (tree.length === 0) {
+    elements.treeView.innerHTML = "<div class=\"muted\">Keine Überschriften gefunden.</div>";
+    return;
+  }
+
+  const container = elements.treeView;
+  const root = { id: "root", title: "root", children: tree };
+  const focusNode = treeFocusId ? findNodeById(tree, treeFocusId) : null;
+  const dataRoot = focusNode ? focusNode : root;
+  const markmapData = {
+    content: dataRoot.title || "Root",
+    id: dataRoot.id || "root",
+    slug: dataRoot.slug || "root",
+    level: dataRoot.level || 0,
+    start: dataRoot.start || 0,
+    children: (dataRoot.children || []).map(toMarkmapNode)
+  };
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "tree-svg");
+  svg.style.width = "100%";
+  svg.style.height = "100%";
+  container.appendChild(svg);
+
+  const mm = Markmap.create(svg, {
+    duration: 200,
+    spacingHorizontal: 120,
+    spacingVertical: 10,
+    zoom: true,
+    pan: true
+  }, markmapData);
+
+  mm.fit();
+
+  svg.addEventListener("click", (event) => {
+    const nodeEl = event.target.closest(".markmap-node");
+    const data = nodeEl?.__data__?.data || nodeEl?.__data__ || null;
+    if (!data || !data.id || data.id === "root") {
+      return;
+    }
+    selectedNodeId = data.id;
+    jumpToHeading(data);
+  });
+
+  if (!selectedNodeId && tree.length > 0) {
+    selectedNodeId = tree[0].id;
+  }
+};
+
+const loadHistory = async () => {
+  const res = await fetch("/api/pastes");
+  historyCache = await res.json();
+  historyOrder = loadHistoryOrder();
+  historyCache = applyHistoryOrder(historyCache);
+  scheduleRenderHistory();
+};
+
+const renderHistory = () => {
+  const query = elements.historySearch.value.toLowerCase();
+  const items = historyCache.filter((item) =>
+    item.title.toLowerCase().includes(query)
+  );
+  elements.historyList.innerHTML = "";
+  if (items.length === 0) {
+    elements.historyList.innerHTML = "<div class=\"muted\">Keine Einträge.</div>";
+    return;
+  }
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "history-item" + (item.id === currentPasteId ? " active" : "");
+    row.setAttribute("draggable", "true");
+    row.dataset.id = item.id;
+    const expanded = outlineCache.get(item.id)?.expanded;
+    if (expanded) row.classList.add("expanded");
+    row.innerHTML = `
+      <button class=\"delete\" title=\"${t("delete")}\" aria-label=\"${t("delete")}\">
+        <i class=\"fa-solid fa-xmark\"></i>
+      </button>
+      <div class=\"history-content\">
+        <div class=\"title\">${escapeHtml(item.title)}</div>
+        <div class=\"meta\">${new Date(item.updated_at).toLocaleString()}</div>
+      </div>
+      <div class=\"history-outline\"></div>
+    `;
+    const contentEl = row.querySelector(".history-content");
+    contentEl.addEventListener("click", (event) => {
+      if (event.detail > 1) return;
+      clearTimeout(row._clickTimer);
+      row._clickTimer = setTimeout(() => {
+        loadPaste(item.id);
+      }, 220);
+    });
+    row.addEventListener("dblclick", async (event) => {
+      event.preventDefault();
+      clearTimeout(row._clickTimer);
+      const cache = outlineCache.get(item.id) || { expanded: false, outline: [] };
+      cache.expanded = !cache.expanded;
+      if (cache.expanded && cache.outline.length === 0) {
+        const data = await fetch(`/api/pastes/${item.id}`).then((r) => r.json());
+        cache.outline = buildOutline(data.markdown);
+      }
+      outlineCache.set(item.id, cache);
+      scheduleRenderHistory();
+    });
+    const deleteBtn = row.querySelector(".delete");
+    deleteBtn.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      await deletePaste(item.id);
+    });
+    if (expanded) {
+      const cache = outlineCache.get(item.id) || { expanded: false, outline: [] };
+      if (cache.outline.length === 0) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "outline-item";
+        placeholder.textContent = t("outlineEmpty");
+        outlineEl.appendChild(placeholder);
+      }
+    }
+
+    row.addEventListener("dragstart", (event) => {
+      row.classList.add("dragging");
+      event.dataTransfer.setData("text/plain", item.id);
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+    });
+    row.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const offset = event.clientY - rect.top;
+      row.classList.toggle("drop-before", offset < rect.height / 2);
+      row.classList.toggle("drop-after", offset >= rect.height / 2);
+    });
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drop-before", "drop-after");
+    });
+    row.addEventListener("drop", (event) => {
+      event.preventDefault();
+      row.classList.remove("drop-before", "drop-after");
+      const draggedId = event.dataTransfer.getData("text/plain");
+      if (!draggedId || draggedId === item.id) return;
+      const ids = historyCache.map((h) => h.id);
+      const from = ids.indexOf(draggedId);
+      const to = ids.indexOf(item.id);
+      if (from === -1 || to === -1) return;
+      const rect = row.getBoundingClientRect();
+      const before = event.clientY - rect.top < rect.height / 2;
+      const targetIndex = before ? to : to + 1;
+      ids.splice(targetIndex, 0, ids.splice(from, 1)[0]);
+      historyOrder = ids;
+      saveHistoryOrder();
+      historyCache = applyHistoryOrder(historyCache);
+      scheduleRenderHistory();
+    });
+
+    const outlineEl = row.querySelector(".history-outline");
+    if (expanded) {
+      const cache = outlineCache.get(item.id) || { expanded: false, outline: [] };
+      const outline = cache.outline || [];
+      if (outline.length === 0) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "outline-item";
+        placeholder.textContent = t("outlineEmpty");
+        outlineEl.appendChild(placeholder);
+      }
+      outline.forEach((heading) => {
+        const outlineItem = document.createElement("div");
+        outlineItem.className = `outline-item level-${heading.level}`;
+        outlineItem.textContent = heading.title;
+        outlineItem.addEventListener("click", async (event) => {
+          event.stopPropagation();
+          if (currentPasteId !== item.id) {
+            await loadPaste(item.id);
+          }
+          jumpToLine(heading.line);
+        });
+        outlineEl.appendChild(outlineItem);
+      });
+    }
+    elements.historyList.appendChild(row);
+  });
+  renderCollapsedOpenItems();
+};
+
+let historyRenderQueued = false;
+const scheduleRenderHistory = () => {
+  if (historyRenderQueued) return;
+  historyRenderQueued = true;
+  requestAnimationFrame(() => {
+    historyRenderQueued = false;
+    renderHistory();
+  });
+};
+
+const deletePaste = async (id) => {
+  await fetch(`/api/pastes/${id}`, { method: "DELETE" });
+  if (currentPasteId === id) {
+    currentPasteId = null;
+    lastSavedMarkdown = "";
+    setMarkdown("");
+  }
+  await loadHistory();
+};
+
+const loadPaste = async (id) => {
+  const res = await fetch(`/api/pastes/${id}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  currentPasteId = data.id;
+  lastSavedMarkdown = data.markdown;
+  outlineCache.set(id, {
+    expanded: outlineCache.get(id)?.expanded || false,
+    outline: buildOutline(data.markdown)
+  });
+  setMarkdown(data.markdown);
+  refreshHeadingData();
+  renderPreview();
+  renderTree();
+  scheduleRenderHistory();
+  setStatus(t("loaded"), "success");
+};
+
+const createOrUpdatePaste = async () => {
+  const markdown = getMarkdown();
+  if (!markdown.trim()) {
+    setStatus(t("emptySave"), "error");
+    return;
+  }
+  if (markdown === lastSavedMarkdown) return;
+  const payload = { markdown };
+  if (!currentPasteId) {
+    const res = await fetch("/api/pastes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    currentPasteId = data.id;
+  } else {
+    await fetch(`/api/pastes/${currentPasteId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
+  lastSavedMarkdown = markdown;
+  await loadHistory();
+};
+
+const exportFile = async (format) => {
+  const markdown = getMarkdown();
+  if (!markdown.trim()) {
+    setStatus(t("emptyExport"), "error");
+    return;
+  }
+  const html = await serializePreviewForExport();
+  const res = await fetch(`/api/export/${format}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markdown, html })
+  });
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    const fallbackRes = await fetch(`/api/export/${format}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markdown })
+    });
+    if (!fallbackRes.ok) {
+      const fallbackText = await fallbackRes.text().catch(() => "");
+      setStatus(`${t("exportFailed")}${fallbackText || errorText ? ": " : ""}${fallbackText || errorText}`, "error");
+      return;
+    }
+    const fallbackBlob = await fallbackRes.blob();
+    const fallbackUrl = URL.createObjectURL(fallbackBlob);
+    const fallbackLink = document.createElement("a");
+    fallbackLink.href = fallbackUrl;
+    fallbackLink.download = `export.${format}`;
+    document.body.appendChild(fallbackLink);
+    fallbackLink.click();
+    fallbackLink.remove();
+    URL.revokeObjectURL(fallbackUrl);
+    return;
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `export.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+const downloadMarkdown = () => {
+  const markdown = getMarkdown();
+  if (!markdown.trim()) {
+    setStatus(t("emptyExport"), "error");
+    return;
+  }
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "document.md";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+const copyToClipboard = async (text) => {
+  if (!text.trim()) {
+    setStatus(t("emptyCopy"), "error");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus(t("copied"), "success");
+  } catch {
+    setStatus(t("copyFailed"), "error");
+  }
+};
+
+const copyRichText = async (html, text) => {
+  const plain = text?.trim() ? text : html.replace(/<[^>]+>/g, " ").trim();
+  if (!plain) {
+    setStatus(t("emptyCopy"), "error");
+    return;
+  }
+  try {
+    if (window.ClipboardItem) {
+      const wrappedHtml = `<!doctype html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
+      const item = new ClipboardItem({
+        "text/html": new Blob([wrappedHtml], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" })
+      });
+      await navigator.clipboard.write([item]);
+    } else {
+      await navigator.clipboard.writeText(plain);
+    }
+    setStatus(t("copied"), "success");
+  } catch {
+    setStatus(t("copyFailed"), "error");
+  }
+};
+
+const svgToPngDataUrl = (svgEl) => new Promise((resolve) => {
+  const serializer = new XMLSerializer();
+  let svgText = serializer.serializeToString(svgEl);
+  
+  // Ensure xmlns attribute
+  if (!svgText.includes("xmlns=")) {
+    svgText = svgText.replace("<svg", "<svg xmlns=\"http://www.w3.org/2000/svg\"");
+  }
+  
+  // Remove any external references that might cause CORS issues
+  svgText = svgText.replace(/xlink:href="[^"]*"/g, '');
+  
+  // Embed styles inline to avoid CORS issues
+  const styles = Array.from(document.styleSheets)
+    .filter(sheet => {
+      try {
+        return sheet.cssRules;
+      } catch {
+        return false;
+      }
+    })
+    .flatMap(sheet => Array.from(sheet.cssRules))
+    .filter(rule => rule.selectorText && rule.selectorText.includes('mermaid'))
+    .map(rule => rule.cssText)
+    .join('\n');
+  
+  if (styles) {
+    svgText = svgText.replace('</svg>', `<style>${styles}</style></svg>`);
+  }
+  
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  // Don't use crossOrigin for blob URLs
+  // img.crossOrigin = "anonymous";
+  
+  img.onload = () => {
+    const rect = svgEl.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width || svgEl.viewBox?.baseVal?.width || 600));
+    const height = Math.max(1, Math.round(rect.height || svgEl.viewBox?.baseVal?.height || 400));
+    const canvas = document.createElement("canvas");
+    canvas.width = width * 2; // 2x for better quality
+    canvas.height = height * 2;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (ctx) {
+      // White background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, width * 2, height * 2);
+      try {
+        const dataUrl = canvas.toDataURL("image/png", 0.95);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl, width, height });
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      }
+    } else {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    }
+  };
+  img.onerror = (err) => {
+    URL.revokeObjectURL(url);
+    resolve(null);
+  };
+  img.src = url;
+});
+
+const serializePreviewForExport = async () => {
+  await renderMermaid();
+  const clone = elements.preview.cloneNode(true);
+  const svgs = Array.from(elements.preview.querySelectorAll("svg"));
+  const cloneSvgs = Array.from(clone.querySelectorAll("svg"));
+  for (let i = 0; i < svgs.length; i += 1) {
+    const result = await svgToPngDataUrl(svgs[i]);
+    if (result && cloneSvgs[i]) {
+      // Just ensure it has proper xmlns attribute
+      const svgEl = cloneSvgs[i];
+      if (!svgEl.getAttribute("xmlns")) {
+        svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      }
+      // Ensure SVG has width/height attributes
+      if (!svgEl.hasAttribute("width") || !svgEl.hasAttribute("height")) {
+        const rect = svgs[i].getBoundingClientRect();
+        const viewBox = svgs[i].getAttribute("viewBox");
+        if (viewBox) {
+          const [, , w, h] = viewBox.split(/\s+/).map(Number);
+          if (w && h) {
+            svgEl.setAttribute("width", Math.round(w));
+            svgEl.setAttribute("height", Math.round(h));
+          }
+        } else if (rect.width && rect.height) {
+          svgEl.setAttribute("width", Math.round(rect.width));
+          svgEl.setAttribute("height", Math.round(rect.height));
+        }
+      }
+    }
+  }
+  return clone.innerHTML;
+};
+
+const stripMarkdown = (markdown) => markdown
+  .replace(/```[\s\S]*?```/g, "")
+  .replace(/`([^`]+)`/g, "$1")
+  .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+  .replace(/\[[^\]]*\]\([^)]*\)/g, "$1")
+  .replace(/^#{1,6}\s+/gm, "")
+  .replace(/^>\s?/gm, "")
+  .replace(/[*_~`]+/g, "")
+  .replace(/\|/g, " ")
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
+
+const resetEditor = () => {
+  currentPasteId = null;
+  lastSavedMarkdown = "";
+  setMarkdown("");
+  selectedNodeId = null;
+  refreshHeadingData();
+  renderPreview();
+  renderTree();
+  scheduleRenderHistory();
+  setStatus(t("newDoc"), "success");
+};
+
+const debounce = (fn, delay) => {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+};
+
+const updateLive = debounce(() => {
+  refreshHeadingData();
+  renderPreview();
+  renderTree();
+}, 200);
+
+const autosave = debounce(() => {
+  createOrUpdatePaste();
+}, 800);
+
+const handleEditorChange = () => {
+  const text = getMarkdown();
+  if (!text.trim()) {
+    clearedForNew = true;
+  } else if (clearedForNew && currentPasteId) {
+    currentPasteId = null;
+    lastSavedMarkdown = "";
+    clearedForNew = false;
+    setStatus(t("newDoc"), "success");
+  }
+  updateLive();
+  autosave();
+};
+
+let isSyncingScroll = false;
+
+const getCurrentHeadingByEditorScroll = () => {
+  const line = Math.floor(getEditorScrollTop() / headingMetrics.lineHeight);
+  let current = headingMetrics.headings[0] || null;
+  headingMetrics.headings.forEach((heading) => {
+    if (heading.line <= line) current = heading;
+  });
+  const currentIndex = headingMetrics.headings.findIndex((h) => h.slug === current?.slug);
+  const next = headingMetrics.headings[currentIndex + 1] || null;
+  const sectionStart = current?.line ?? 0;
+  const sectionEnd = next?.line ?? sectionStart + 10;
+  const ratio = sectionEnd > sectionStart ? (line - sectionStart) / (sectionEnd - sectionStart) : 0;
+  return { current, next, ratio };
+};
+
+const getCurrentHeadingByPreviewScroll = () => {
+  const scrollTop = elements.preview.scrollTop + 8;
+  let current = headingMetrics.headings[0] || null;
+  headingMetrics.headings.forEach((heading) => {
+    const offset = headingMetrics.previewOffsets[heading.slug];
+    if (offset !== undefined && offset <= scrollTop) {
+      current = heading;
+    }
+  });
+  const currentIndex = headingMetrics.headings.findIndex((h) => h.slug === current?.slug);
+  const next = headingMetrics.headings[currentIndex + 1] || null;
+  const startOffset = headingMetrics.previewOffsets[current?.slug] ?? 0;
+  const endOffset = headingMetrics.previewOffsets[next?.slug] ?? startOffset + 200;
+  const ratio = endOffset > startOffset ? (scrollTop - startOffset) / (endOffset - startOffset) : 0;
+  return { current, next, ratio };
+};
+
+const syncScroll = (source, target, mode) => {
+  if (isSyncingScroll) return;
+  isSyncingScroll = true;
+  const info = mode === "editor" ? getCurrentHeadingByEditorScroll() : getCurrentHeadingByPreviewScroll();
+  if (info?.current) {
+    scrollToHeadingWithRatio(info.current, info.next, info.ratio);
+  }
+  requestAnimationFrame(() => {
+    isSyncingScroll = false;
+  });
+};
+
+const scrollToHeading = (heading) => {
+  if (!heading) return;
+  const line = heading.line ?? 0;
+  setEditorScrollTop(line * headingMetrics.lineHeight);
+
+  const offset = headingMetrics.previewOffsets[heading.slug];
+  if (offset !== undefined) {
+    elements.preview.scrollTop = offset;
+  }
+};
+
+const scrollToHeadingWithRatio = (heading, nextHeading, ratio) => {
+  if (!heading) return;
+  const startLine = heading.line ?? 0;
+  const endLine = nextHeading?.line ?? startLine + 10;
+  const targetLine = startLine + ratio * (endLine - startLine);
+  setEditorScrollTop(targetLine * headingMetrics.lineHeight);
+
+  const startOffset = headingMetrics.previewOffsets[heading.slug] ?? 0;
+  const endOffset = headingMetrics.previewOffsets[nextHeading?.slug] ?? startOffset + 200;
+  const targetOffset = startOffset + ratio * (endOffset - startOffset);
+  elements.preview.scrollTop = targetOffset;
+};
+
+const jumpToHeading = (node) => {
+  const heading = headingMetrics.headings.find((h) => h.slug === node.slug);
+  if (heading) {
+    scrollToHeading(heading);
+    if (elements.nodeContent) {
+      elements.nodeContent.scrollTop = 0;
+    }
+  }
+};
+
+const findParentId = (nodes, childId, parentId = null) => {
+  for (const node of nodes) {
+    if (node.id === childId) return parentId;
+    const found = findParentId(node.children, childId, node.id);
+    if (found) return found;
+  }
+  return null;
+};
+
+window.addEventListener("resize", () => {
+  renderTree();
+  initColumns();
+  if (editorView && typeof editorView.refresh === "function") {
+    editorView.refresh();
+  }
+});
+
+const setGridColumns = () => {
+  elements.content.style.gridTemplateColumns = `${startEditor}px 6px ${startPreview}px`;
+};
+
+const initColumns = () => {
+  if (!elements.content) return;
+  const editorWidth = elements.editorSection.offsetWidth;
+  const previewWidth = elements.previewSection.offsetWidth;
+
+  startEditor = Math.max(editorWidth, minCol);
+  startPreview = Math.max(previewWidth, minCol);
+
+  setGridColumns();
+  if (editorView && typeof editorView.setSize === "function") {
+    editorView.setSize(null, "100%");
+  }
+  if (editorView && typeof editorView.refresh === "function") {
+    editorView.refresh();
+  }
+};
+
+const onMouseMove = (event) => {
+  if (!isDragging) return;
+  const dx = event.clientX - startX;
+  const dy = event.clientY - startY;
+
+  if (dragMode === "editor-preview") {
+    const nextEditor = Math.max(minCol, startEditor + dx);
+    const nextPreview = Math.max(minCol, startPreview - dx);
+    if (nextEditor + nextPreview > minCol * 2) {
+      elements.content.style.gridTemplateColumns = `${nextEditor}px 6px ${nextPreview}px`;
+    }
+  }
+
+  if (dragMode === "tree-node") {
+    const editorSectionHeight = elements.editorSection?.getBoundingClientRect().height || 0;
+    const resizerHeight = elements.treeResizer?.getBoundingClientRect().height || 6;
+    const maxTree = Math.max(minTreeHeight, editorSectionHeight - minNodeHeight - resizerHeight);
+    const nextTree = Math.max(minTreeHeight, Math.min(maxTree, startTreeHeight + dy));
+    if (elements.treeInline) {
+      elements.treeInline.style.flex = `0 0 ${nextTree}px`;
+    }
+    if (elements.editorHost) {
+      elements.editorHost.style.flex = "1 1 auto";
+    }
+  }
+};
+
+const onMouseUp = (event) => {
+  if (!isDragging) return;
+  isDragging = false;
+  const dx = event.clientX - startX;
+  const dy = event.clientY - startY;
+
+  if (dragMode === "editor-preview") {
+    startEditor = Math.max(minCol, startEditor + dx);
+    startPreview = Math.max(minCol, startPreview - dx);
+  }
+
+  if (dragMode === "tree-node") {
+    startTreeHeight = Math.max(minTreeHeight, startTreeHeight + dy);
+  }
+
+  dragMode = null;
+  document.body.style.cursor = "";
+  document.removeEventListener("mousemove", onMouseMove);
+  document.removeEventListener("mouseup", onMouseUp);
+  setGridColumns();
+};
+
+const startDrag = (mode) => (event) => {
+  event.preventDefault();
+  isDragging = true;
+  dragMode = mode;
+  startX = event.clientX;
+  startY = event.clientY;
+  document.body.style.cursor = "col-resize";
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup", onMouseUp);
+};
+
+const startTreeDrag = (event) => {
+  event.preventDefault();
+  isDragging = true;
+  dragMode = "tree-node";
+  startY = event.clientY;
+  const treeRect = elements.treeInline?.getBoundingClientRect();
+  startTreeHeight = treeRect?.height || 0;
+  document.body.style.cursor = "row-resize";
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup", onMouseUp);
+};
+
+const mermaidKeywords = {
+  diagrams: ["flowchart", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey", "gitGraph", "mindmap", "timeline"],
+  flowchart: ["TD", "TB", "BT", "RL", "LR"],
+  arrows: ["-->", "---", "-.->", "==>", "~~>", "-.-", "==="],
+  shapes: ["[Rectangle]", "(Rounded)", "([Stadium])", "[[Subroutine]]", "[(Database)]", ">Asymmetric]", "{Diamond}", "{{Hexagon}}", "[/Parallelogram/]", "[\\Parallelogram\\]", "[/Trapezoid\\]", "[\\Trapezoid/]"],
+  participant: ["participant", "actor", "boundary", "control", "entity", "database", "collections", "queue"],
+  sequence: ["activate", "deactivate", "Note", "loop", "alt", "opt", "par", "and", "rect", "end"],
+  class: ["class", "<<interface>>", "<<abstract>>", "<<enumeration>>"],
+  state: ["state", "[*]", "-->", "note"],
+  er: ["||--o{", "}o--||", "||--|{", "}|--||", "o{--||", "||--{o", "|{--||", "||--{|"],
+  common: ["title", "style", "class", "click", "callback", "link", "classDef", "direction"]
+};
+
+const customHint = (editor) => {
+  if (!activeSettings.mermaidCompletion) {
+    return null;
+  }
+
+  const cursor = editor.getCursor();
+  const line = editor.getLine(cursor.line);
+  const token = editor.getTokenAt(cursor);
+  
+  // Prüfe ob wir in einem Mermaid-Block sind
+  let inMermaid = false;
+  let mermaidType = null;
+  
+  for (let i = cursor.line; i >= 0; i--) {
+    const checkLine = editor.getLine(i);
+    if (checkLine.trim().startsWith("```mermaid")) {
+      inMermaid = true;
+      break;
+    }
+    if (checkLine.trim() === "```") {
+      break;
+    }
+  }
+  
+  if (!inMermaid) {
+    return null;
+  }
+  
+  // Finde Mermaid-Typ
+  for (let i = cursor.line; i >= 0; i--) {
+    const checkLine = editor.getLine(i).trim();
+    if (checkLine.startsWith("```mermaid")) continue;
+    if (checkLine.startsWith("```")) break;
+    
+    for (const type of mermaidKeywords.diagrams) {
+      if (checkLine.includes(type)) {
+        mermaidType = type;
+        break;
+      }
+    }
+    if (mermaidType) break;
+  }
+  
+  const word = token.string.trim();
+  const start = token.start;
+  const end = token.end;
+  
+  let suggestions = [];
+  
+  // Wenn am Anfang einer Zeile, schlage Diagramm-Typen vor
+  if (line.trim() === word || line.trimStart() === word) {
+    suggestions = mermaidKeywords.diagrams.filter(k => k.toLowerCase().startsWith(word.toLowerCase()));
+  } else {
+    // Sonst kontext-abhängige Vorschläge
+    if (mermaidType === "flowchart") {
+      suggestions = [...mermaidKeywords.flowchart, ...mermaidKeywords.arrows, ...mermaidKeywords.common];
+    } else if (mermaidType === "sequenceDiagram") {
+      suggestions = [...mermaidKeywords.participant, ...mermaidKeywords.sequence, ...mermaidKeywords.common];
+    } else if (mermaidType === "classDiagram") {
+      suggestions = [...mermaidKeywords.class, ...mermaidKeywords.common];
+    } else if (mermaidType === "stateDiagram") {
+      suggestions = [...mermaidKeywords.state, ...mermaidKeywords.common];
+    } else if (mermaidType === "erDiagram") {
+      suggestions = [...mermaidKeywords.er, ...mermaidKeywords.common];
+    } else {
+      suggestions = [...mermaidKeywords.common];
+    }
+    
+    // Filtere basierend auf aktuellem Wort
+    suggestions = suggestions.filter(k => k.toLowerCase().startsWith(word.toLowerCase()));
+  }
+  
+  if (suggestions.length === 0) {
+    return null;
+  }
+  
+  return {
+    list: suggestions.map(text => ({
+      text: text,
+      displayText: text,
+      className: "mermaid-hint"
+    })),
+    from: window.CodeMirror.Pos(cursor.line, start),
+    to: window.CodeMirror.Pos(cursor.line, end)
+  };
+};
+
+const initEditor = () => {
+  const textarea = document.createElement("textarea");
+  elements.editorHost.appendChild(textarea);
+  editorView = window.CodeMirror.fromTextArea(textarea, {
+    mode: activeSettings.syntaxHighlight ? "markdown" : null,
+    lineWrapping: true,
+    lineNumbers: activeSettings.lineNumbers,
+    extraKeys: {
+      "Ctrl-Space": "autocomplete"
+    },
+    hintOptions: {
+      hint: customHint
+    }
+  });
+
+  editorView.setSize(null, "100%");
+
+  editorView.on("change", () => {
+    handleEditorChange();
+  });
+
+  editorView.on("scroll", () => {
+    if (currentView === "preview" && activeSettings.syncScroll) {
+      syncScroll(editorView.getScrollerElement(), elements.preview, "editor");
+    }
+  });
+
+  editorView.on("cursorActivity", () => {
+    const cursor = editorView.getCursor("from");
+    highlightPreviewForLine(cursor.line, true);
+  });
+};
+
+elements.preview.addEventListener("scroll", () => {
+  if (currentView === "preview" && activeSettings.syncScroll) {
+    syncScroll(elements.preview, editorView?.getScrollerElement(), "preview");
+  }
+});
+
+// Actions
+
+elements.newPasteBtn.addEventListener("click", resetEditor);
+elements.historySearch.addEventListener("input", renderHistory);
+elements.previewDocxBtn.addEventListener("click", () => exportFile("docx"));
+elements.previewPdfBtn.addEventListener("click", () => exportFile("pdf"));
+elements.previewTreeToggle.addEventListener("click", () => {
+  setView(treeVisible ? "preview" : "tree");
+});
+elements.previewPresetTrigger?.addEventListener("click", () => {
+  elements.previewPresetMenu?.classList.toggle("hidden");
+});
+elements.previewPresetItems?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    applyPreviewPreset(btn.dataset.preset);
+    elements.previewPresetMenu?.classList.add("hidden");
+  });
+});
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!elements.previewPresetMenu || !elements.previewPresetTrigger) return;
+  if (elements.previewPresetMenu.contains(target) || elements.previewPresetTrigger.contains(target)) return;
+  elements.previewPresetMenu.classList.add("hidden");
+});
+
+elements.permalinkBtn?.addEventListener("click", () => {
+  if (!currentPasteId) {
+    setStatus(t("saveFirst"), "error");
+    return;
+  }
+  const url = `${window.location.origin}/${currentPasteId}`;
+  copyToClipboard(url);
+  setStatus(t("permalinkCopied"), "success");
+});
+
+elements.copyMdBtn.addEventListener("click", () => copyToClipboard(getMarkdown()));
+elements.copyTextBtn.addEventListener("click", async () => {
+  const html = await serializePreviewForExport();
+  copyRichText(html, elements.preview.innerText);
+});
+elements.settingsBtn?.addEventListener("click", openSettings);
+elements.settingsClose?.addEventListener("click", closeSettings);
+elements.settingsOverlay?.addEventListener("click", closeSettings);
+elements.tipsClose?.addEventListener("click", closeTipsModal);
+elements.tipsOverlay?.addEventListener("click", closeTipsModal);
+elements.themeSelect?.addEventListener("change", () => {
+  applyTheme(elements.themeSelect.value);
+});
+elements.languageSelect?.addEventListener("change", async () => {
+  const value = elements.languageSelect.value;
+  if (value === "auto") {
+    localStorage.removeItem(localeKey);
+    currentLocale = getLocale();
+  } else {
+    localStorage.setItem(localeKey, value);
+    currentLocale = value;
+  }
+  await applyTranslations();
+  setStatus(t("loaded"), "success");
+});
+elements.customCssInput?.addEventListener("input", () => {
+  applyCustomCss(elements.customCssInput.value);
+});
+elements.pinToggle?.addEventListener("click", () => {
+  if (sidebarPinMode === "unpinned") {
+    setSidebarCollapsed(false);
+    setSidebarPinMode("pinned-expanded");
+  } else if (sidebarPinMode === "pinned-expanded") {
+    setSidebarCollapsed(true);
+    setSidebarPinMode("pinned-collapsed");
+  } else {
+    setSidebarPinMode("unpinned");
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSettings();
+  }
+  if (event.key === "F1") {
+    event.preventDefault();
+    window.open("/help.html", "_blank", "noopener");
+  }
+  if (event.ctrlKey && !event.shiftKey && !event.altKey) {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      rotateHistory(1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      rotateHistory(-1);
+    }
+  }
+});
+
+document.querySelectorAll(".modal-tabs .tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const target = tab.dataset.tab;
+    document.querySelectorAll(".modal-tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
+    document.querySelectorAll(".tab-panel").forEach((panel) => {
+      panel.classList.toggle("active", panel.dataset.tabPanel === target);
+    });
+  });
+});
+
+document.querySelectorAll("[data-setting]").forEach((input) => {
+  input.addEventListener("change", () => {
+    const key = input.dataset.setting;
+    applySettings({ [key]: input.checked });
+  });
+});
+elements.copyNodeMdBtn?.addEventListener("click", () => {
+  const node = selectedNodeId ? findNodeById(lastTree, selectedNodeId) : null;
+  if (!node) return copyToClipboard("");
+  const markdown = getMarkdown();
+  const idx = lastHeadings.findIndex((h) => h.start === node.start && h.level === node.level);
+  if (idx === -1) return copyToClipboard("");
+  let end = markdown.length;
+  for (let i = idx + 1; i < lastHeadings.length; i += 1) {
+    if (lastHeadings[i].level <= node.level) {
+      end = lastHeadings[i].start;
+      break;
+    }
+  }
+  copyToClipboard(markdown.slice(node.start, end).trim());
+});
+elements.copyNodeTextBtn?.addEventListener("click", () => {
+  const node = selectedNodeId ? findNodeById(lastTree, selectedNodeId) : null;
+  if (!node) return copyToClipboard("");
+  copyRichText(elements.nodeContent.innerHTML, elements.nodeContent.innerText);
+});
+elements.nodeStatsBtn?.addEventListener("mouseenter", () => {
+  setFooterStats(lastStatsText);
+});
+elements.viewPreviewBtn?.addEventListener("click", () => {
+  setView("preview");
+});
+
+elements.viewTreeBtn?.addEventListener("click", () => {
+  setView("tree");
+});
+
+elements.treeUpBtn?.addEventListener("click", () => {
+  if (!selectedNodeId) return;
+  const parentId = findParentId(lastTree, selectedNodeId);
+  treeFocusId = parentId || null;
+  renderTree();
+});
+
+elements.treeRootBtn?.addEventListener("click", () => {
+  treeFocusId = null;
+  renderTree();
+});
+
+elements.treeMaxBtn?.addEventListener("click", () => {
+  elements.treeView.classList.toggle("maximized");
+  renderTree();
+});
+
+elements.nodeStatsBtn?.addEventListener("click", () => {
+  elements.nodeStatsBtn.classList.toggle("active");
+});
+
+elements.editorResizer.addEventListener("mousedown", startDrag("editor-preview"));
+elements.treeResizer?.addEventListener("mousedown", startTreeDrag);
+
+// Init
+
+elements.sidebar.addEventListener("mouseenter", () => {
+  if (sidebarPinMode !== "unpinned") return;
+  setSidebarCollapsed(false);
+});
+
+elements.sidebar.addEventListener("mouseleave", () => {
+  if (sidebarPinMode !== "unpinned") return;
+  setSidebarCollapsed(true);
+});
+
+(async () => {
+  await applyTranslations();
+})();
+applyTheme(uiTheme);
+applyPreviewPreset(previewPreset);
+applyCustomCss(customCss);
+syncSettingsUI();
+setFooterStats(t("statsEmpty"));
+updateSidebarState();
+initEditor();
+refreshHeadingData();
+renderPreview();
+renderTree();
+
+// Check if there's a paste ID in the URL path (for permalinks)
+const urlPath = window.location.pathname;
+const urlPasteId = urlPath.length > 1 ? urlPath.slice(1) : null;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+if (urlPasteId && uuidPattern.test(urlPasteId)) {
+  // Load the paste from the URL
+  loadPaste(urlPasteId).then(() => {
+    // After loading the permalink, load the full history
+    loadHistory();
+  });
+} else {
+  // Normal startup - load history and most recent paste
+  loadHistory().then(() => {
+    if (historyCache.length > 0) {
+      loadPaste(historyCache[0].id);
+    } else {
+      resetEditor();
+    }
+    
+    // Show startup tips if enabled
+    if (activeSettings.showStartupTips) {
+      showTipsModal();
+    }
+  });
+}
+
+initColumns();
