@@ -499,5 +499,21 @@
   "layoutListUpperAlpha": "A, B, C...",
   "layoutListLowerRoman": "i, ii, iii...",
   "layoutListUpperRoman": "I, II, III...",
-  "settingHideLayoutBlock": "Layout-Block im Editor ausblenden"
+  "settingHideLayoutBlock": "Layout-Block im Editor ausblenden",
+  "collabChat": "Team-Chat",
+  "collabChatPlaceholder": "Nachricht an das Team...",
+  "passwordDialogTitle": "Passwortschutz",
+  "passwordProtectionActive": "Passwortschutz aktivieren",
+  "passwordProtectionDesc": "Nutzer müssen das Passwort eingeben, um das Dokument zu öffnen",
+  "passwordInputLabel": "Passwort",
+  "passwordMismatch": "Passwörter stimmen nicht überein",
+  "passwordRequired": "Passwort erforderlich",
+  "userPermissions": "Nutzer mit Link dürfen:",
+  "permissionRead": "Lesen",
+  "permissionWrite": "Schreiben",
+  "save": "Speichern",
+  "removePassword": "Passwort entfernen",
+  "removePasswordConfirm": "Passwortschutz wirklich entfernen?",
+  "removeFailed": "Entfernen fehlgeschlagen",
+  "error": "Fehler"
 }

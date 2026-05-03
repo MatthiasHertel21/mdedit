@@ -9,8 +9,10 @@ import fastifyStatic from "@fastify/static";
 import fastifyCookie from "@fastify/cookie";
 import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyWebsocket from "@fastify/websocket";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import puppeteer from "puppeteer-core";
+import bcryptjs from "bcryptjs";
 import db from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -132,6 +134,9 @@ app.register(fastifyStatic, {
   prefix: "/static/",
   decorateReply: true
 });
+
+// Register WebSocket support
+app.register(fastifyWebsocket);
 
 const nowIso = () => new Date().toISOString();
 
@@ -850,7 +855,7 @@ ${bodyHtml}
 };
 
 const exportWithPandoc = async (req, reply, format) => {
-  const { markdown, title, html, paged } = req.body || {};
+  const { markdown, title, html, paged, requireChromiumPaged } = req.body || {};
   const hasHtml = typeof html === "string" && html.trim();
   if (!hasHtml && (!markdown || typeof markdown !== "string")) {
     reply.code(400);
@@ -890,13 +895,22 @@ const exportWithPandoc = async (req, reply, format) => {
           tmpDir
         });
         if (chromiumResult.ok) {
+          reply.header("X-Export-Engine", "chromium");
           const stream = fs.createReadStream(outputPath);
           reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
           reply.type("application/pdf");
           return reply.send(stream);
         }
+        if (requireChromiumPaged) {
+          reply.code(503);
+          return { error: chromiumResult.reason || "Chromium paged export unavailable" };
+        }
         app.log.info({ reason: chromiumResult.reason }, "Chromium paged export unavailable, using fallback");
       } catch (err) {
+        if (requireChromiumPaged) {
+          reply.code(503);
+          return { error: err?.message || String(err) };
+        }
         app.log.warn({ err: err?.message || String(err) }, "Chromium paged export failed, using fallback");
       }
     }
@@ -1084,6 +1098,7 @@ ${html}
         });
 
         if (wkCode === 0) {
+          reply.header("X-Export-Engine", "wkhtmltopdf");
           const stream = fs.createReadStream(outputPath);
           reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
           reply.type("application/pdf");
@@ -1154,6 +1169,9 @@ ${html}
     }
 
     const stream = fs.createReadStream(outputPath);
+    if (format === "pdf") {
+      reply.header("X-Export-Engine", pdfEngine || "unknown");
+    }
     reply.header("Content-Disposition", `attachment; filename=\"${outputName}\"`);
     reply.type(format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     return reply.send(stream);
@@ -1418,6 +1436,381 @@ const pruneDatabase = async () => {
     app.log.error({ err: err.message }, "DB cleanup failed");
   }
 };
+
+// ── Collaborative Editing ──────────────────────────────────────────────────
+
+// Helper: Fantasy Names
+const FANTASY_NAMES = [
+  "Kreativer Phönix", "Schreibender Drache", "Mutige Ameise", "Sanfte Giraffe",
+  "Schneller Fuchs", "Weiser Eule", "Frecher Rabe", "Stolzer Adler",
+  "Vorsichtiger Igel", "Fauler Koala", "Munterer Otter", "Starker Bär",
+  "Zierliche Schmetteling", "Neugieriges Eichhörnchen", "Graziöser Schwan"
+];
+
+const getRandomFantasyName = () => 
+  FANTASY_NAMES[Math.floor(Math.random() * FANTASY_NAMES.length)];
+
+const getAvatarColor = (id) => {
+  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"];
+  const charSum = id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return colors[charSum % colors.length];
+};
+
+// Password API: Set/Update/Remove password
+app.post("/api/pastes/:id/collab/password", async (req, reply) => {
+  const { password } = req.body || {};
+  
+  const paste = db.prepare(
+    "SELECT session_id FROM pastes WHERE id = ? AND session_id = ?"
+  ).get(req.params.id, req.sessionId);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const ts = nowIso();
+  const passwordHash = password ? await bcryptjs.hash(password, 10) : null;
+  
+  const existing = db.prepare("SELECT paste_id FROM collab_settings WHERE paste_id = ?").get(req.params.id);
+  
+  if (existing) {
+    db.prepare("UPDATE collab_settings SET password_hash = ?, updated_at = ? WHERE paste_id = ?")
+      .run(passwordHash, ts, req.params.id);
+  } else {
+    db.prepare(
+      "INSERT INTO collab_settings (paste_id, password_hash, can_read, can_write, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)"
+    ).run(req.params.id, passwordHash, ts, ts);
+  }
+  
+  return { ok: true };
+});
+
+// Get collab settings (for password check)
+app.get("/api/pastes/:id/collab/settings", async (req, reply) => {
+  const paste = db.prepare("SELECT id, shared FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste || !paste.shared) {
+    reply.code(404);
+    return { error: "Paste not found or not shared" };
+  }
+
+  const settings = db.prepare(
+    "SELECT password_hash, can_read, can_write FROM collab_settings WHERE paste_id = ?"
+  ).get(req.params.id);
+  
+  return {
+    hasPassword: !!settings?.password_hash,
+    canRead: settings?.can_read ?? 1,
+    canWrite: settings?.can_write ?? 1
+  };
+});
+
+// Verify password for accessing shared paste
+app.post("/api/pastes/:id/collab/verify-password", async (req, reply) => {
+  const { password } = req.body || {};
+  
+  const paste = db.prepare("SELECT id, shared FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste || !paste.shared) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const settings = db.prepare("SELECT password_hash FROM collab_settings WHERE paste_id = ?").get(req.params.id);
+  
+  if (!settings?.password_hash) {
+    return { ok: true };
+  }
+
+  if (!password) {
+    reply.code(401);
+    return { error: "Password required" };
+  }
+
+  const isValid = await bcryptjs.compare(password, settings.password_hash);
+  
+  if (!isValid) {
+    reply.code(401);
+    return { error: "Invalid password" };
+  }
+
+  return { ok: true };
+});
+
+// Collab members: Register member when joining
+app.post("/api/pastes/:id/collab/join", async (req, reply) => {
+  const paste = db.prepare("SELECT id, shared FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  if (!paste.shared) {
+    // Private paste - allow only owner
+    const owner = db.prepare("SELECT session_id FROM pastes WHERE id = ?").get(req.params.id);
+    if (owner.session_id !== req.sessionId) {
+      reply.code(403);
+      return { error: "Not authorized" };
+    }
+  }
+
+  const memberId = crypto.randomUUID();
+  const fantasyName = getRandomFantasyName();
+  const avatarColor = getAvatarColor(memberId);
+  const ts = nowIso();
+
+  db.prepare(
+    "INSERT INTO collab_members (id, paste_id, session_id, fantasy_name, avatar_color, last_seen, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(memberId, req.params.id, req.sessionId, fantasyName, avatarColor, ts, ts);
+
+  return {
+    memberId,
+    fantasyName,
+    avatarColor
+  };
+});
+
+// Get current members (presence)
+app.get("/api/pastes/:id/collab/members", async (req, reply) => {
+  const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  
+  const members = db.prepare(
+    "SELECT id, fantasy_name, avatar_color FROM collab_members WHERE paste_id = ? AND last_seen > ? ORDER BY created_at DESC"
+  ).all(req.params.id, fiveMinutesAgo);
+
+  return { members };
+});
+
+// Snapshots: Get recent snapshots
+app.get("/api/pastes/:id/collab/snapshots", async (req, reply) => {
+  const paste = db.prepare("SELECT session_id FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  const snapshots = db.prepare(
+    "SELECT id, created_at FROM collab_snapshots WHERE paste_id = ? AND created_at > ? ORDER BY created_at DESC LIMIT 50"
+  ).all(req.params.id, sevenDaysAgo);
+
+  return { snapshots };
+});
+
+// Restore from snapshot
+app.post("/api/pastes/:id/collab/restore", async (req, reply) => {
+  const { snapshotId } = req.body || {};
+  
+  const paste = db.prepare(
+    "SELECT id, session_id FROM pastes WHERE id = ?"
+  ).get(req.params.id);
+  
+  if (!paste || paste.session_id !== req.sessionId) {
+    reply.code(403);
+    return { error: "Not authorized" };
+  }
+
+  const snapshot = db.prepare(
+    "SELECT markdown FROM collab_snapshots WHERE id = ? AND paste_id = ?"
+  ).get(snapshotId, req.params.id);
+  
+  if (!snapshot) {
+    reply.code(404);
+    return { error: "Snapshot not found" };
+  }
+
+  const ts = nowIso();
+  db.prepare("UPDATE pastes SET markdown = ?, updated_at = ? WHERE id = ?")
+    .run(snapshot.markdown, ts, req.params.id);
+
+  return { ok: true };
+});
+
+// WebSocket: Collaborative editing
+const connectedClients = new Map(); // Map<pasteId, Map<memberId, socket>>
+
+app.register(async (fastify) => {
+  fastify.get("/api/pastes/:id/collab/ws", { websocket: true }, (socket, req) => {
+    const pasteId = req.params.id;
+    const memberId = req.body?.memberId || crypto.randomUUID();
+
+    if (!connectedClients.has(pasteId)) {
+      connectedClients.set(pasteId, new Map());
+    }
+    
+    const clients = connectedClients.get(pasteId);
+    clients.set(memberId, socket);
+
+    // Announce join
+    broadcastToClients(pasteId, {
+      type: "member-joined",
+      memberId,
+      fantasyName: req.body?.fantasyName || "Anonymous"
+    }, memberId);
+
+    socket.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data);
+        handleCollabMessage(pasteId, memberId, msg);
+      } catch (e) {
+        app.log.warn({ err: e.message }, "WebSocket message parse error");
+      }
+    });
+
+    socket.on("close", () => {
+      clients.delete(memberId);
+      broadcastToClients(pasteId, {
+        type: "member-left",
+        memberId
+      });
+    });
+  });
+});
+
+const broadcastToClients = (pasteId, message, excludeMemberId = null) => {
+  const clients = connectedClients.get(pasteId);
+  if (!clients) return;
+
+  const data = JSON.stringify(message);
+  for (const [memberId, socket] of clients) {
+    if (memberId !== excludeMemberId && socket.readyState === 1) {
+      socket.send(data);
+    }
+  }
+};
+
+const handleCollabMessage = (pasteId, memberId, message) => {
+  const { type, content } = message;
+
+  if (type === "edit") {
+    // Save snapshot every 30 seconds (simplified - not per-message)
+    const lastSnapshot = db.prepare(
+      "SELECT created_at FROM collab_snapshots WHERE paste_id = ? ORDER BY created_at DESC LIMIT 1"
+    ).get(pasteId);
+
+    const now = Date.now();
+    const lastSnapshotTime = lastSnapshot ? new Date(lastSnapshot.created_at).getTime() : 0;
+    
+    if (now - lastSnapshotTime > 30000) {
+      const ts = nowIso();
+      db.prepare(
+        "INSERT INTO collab_snapshots (id, paste_id, markdown, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
+      ).run(crypto.randomUUID(), pasteId, content, ts, memberId);
+    }
+
+    // Broadcast edit
+    broadcastToClients(pasteId, {
+      type: "edit",
+      content,
+      memberId
+    }, memberId);
+  } else if (type === "cursor") {
+    // Broadcast cursor position
+    broadcastToClients(pasteId, {
+      type: "cursor",
+      position: message.position,
+      memberId
+    }, memberId);
+  } else if (type === "chat") {
+    // Save chat message
+    const threadId = message.threadId;
+    const ts = nowIso();
+    const msgId = crypto.randomUUID();
+    
+    db.prepare(
+      "INSERT INTO collab_chat_messages (id, thread_id, member_id, message, created_at) VALUES (?, ?, ?, ?, ?)"
+    ).run(msgId, threadId, memberId, content, ts);
+
+    broadcastToClients(pasteId, {
+      type: "chat",
+      threadId,
+      messageId: msgId,
+      memberId,
+      content,
+      timestamp: ts
+    });
+  }
+};
+
+// Chat threads
+app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
+  const { title } = req.body || {};
+  
+  const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  if (!title || typeof title !== "string" || title.length === 0 || title.length > 200) {
+    reply.code(400);
+    return { error: "Invalid title" };
+  }
+
+  const threadId = crypto.randomUUID();
+  const ts = nowIso();
+  
+  // For now, assume default member for paste owner
+  const memberId = null; // This would need proper association
+
+  db.prepare(
+    "INSERT INTO collab_chat_threads (id, paste_id, title, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
+  ).run(threadId, req.params.id, title, ts, memberId);
+
+  return { threadId, title };
+});
+
+// Get chat threads
+app.get("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
+  const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
+  
+  if (!paste) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  const threads = db.prepare(
+    "SELECT id, title, created_at FROM collab_chat_threads WHERE paste_id = ? ORDER BY created_at DESC"
+  ).all(req.params.id);
+
+  return { threads };
+});
+
+// Get chat messages for thread
+app.get("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, reply) => {
+  const { threadId } = req.params;
+  
+  const thread = db.prepare(
+    "SELECT paste_id FROM collab_chat_threads WHERE id = ?"
+  ).get(threadId);
+  
+  if (!thread || thread.paste_id !== req.params.id) {
+    reply.code(404);
+    return { error: "Thread not found" };
+  }
+
+  const messages = db.prepare(`
+    SELECT m.id, m.member_id, m.message, m.created_at, mb.fantasy_name, mb.avatar_color
+    FROM collab_chat_messages m
+    LEFT JOIN collab_members mb ON m.member_id = mb.id
+    WHERE m.thread_id = ?
+    ORDER BY m.created_at ASC
+  `).all(threadId);
+
+  return { messages };
+});
 
 const start = async () => {
   try {

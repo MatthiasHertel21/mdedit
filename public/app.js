@@ -21,6 +21,9 @@ import { AIChat } from "./modules/ai-chat.js";
 import { documentLayout } from "./modules/document-layout.js";
 import { layoutCSSGenerator } from "./modules/layout-css-generator.js";
 import { ImageManager } from "./modules/image-manager.js";
+import { CollabManager } from "./modules/collab.js";
+import { PresenceManager } from "./modules/presence.js";
+import { PasswordDialog } from "./modules/password-dialog.js";
 
 const defaultSettings = {
   gfm: true,
@@ -3876,6 +3879,20 @@ const loadPaste = async (id) => {
   renderTree();
   renderHistory();
   setStatus(t("loaded"), "success");
+
+  // Initialize collaborative editing if paste is shared
+  if (data.shared && window.initCollabSupport) {
+    try {
+      const collabSupport = window.collabSupport || 
+        (window.collabSupport = (await import("./modules/collab-integration.js")).initCollabSupport({
+          sessionId: currentSessionId || ""
+        }, elements));
+      
+      await collabSupport.initCollab(id, data.shared);
+    } catch (error) {
+      console.warn("Failed to initialize collab:", error);
+    }
+  }
 };
 
 const createOrUpdatePaste = async () => {
@@ -5445,11 +5462,32 @@ document.addEventListener("click", (event) => {
   elements.shareMenu.classList.add("hidden");
 });
 
-elements.permalinkBtn?.addEventListener("click", () => {
+elements.permalinkBtn?.addEventListener("click", async () => {
   if (!currentPasteId) {
     setStatus(t("saveFirst"), "error");
     return;
   }
+
+  // Make paste shared if not already
+  if (!currentPasteIsShared) {
+    try {
+      const res = await fetch(`/api/pastes/${currentPasteId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shared: true })
+      });
+      if (res.ok) {
+        currentPasteIsShared = true;
+        // Show password button
+        if (elements.collabPasswordBtn) {
+          elements.collabPasswordBtn.style.display = "inline-block";
+        }
+      }
+    } catch (err) {
+      console.error("Failed to share paste:", err);
+    }
+  }
+
   const url = `${window.location.origin}/${currentPasteId}`;
   copyToClipboard(url);
   setStatus(t("permalinkCopied"), "success");

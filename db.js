@@ -74,6 +74,73 @@ if (!hasImages) {
   console.log("✅ Migration: Created images table");
 }
 
+// Migration: Create collab tables
+const checkCollabSettings = db.prepare("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='collab_settings'");
+const hasCollabSettings = checkCollabSettings.get().count > 0;
+
+if (!hasCollabSettings) {
+  db.exec(`
+    CREATE TABLE collab_settings (
+      paste_id TEXT PRIMARY KEY,
+      password_hash TEXT,
+      can_read INTEGER NOT NULL DEFAULT 1,
+      can_write INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (paste_id) REFERENCES pastes(id)
+    );
+
+    CREATE TABLE collab_members (
+      id TEXT PRIMARY KEY,
+      paste_id TEXT NOT NULL,
+      session_id TEXT,
+      fantasy_name TEXT NOT NULL,
+      avatar_color TEXT NOT NULL,
+      last_seen TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (paste_id) REFERENCES pastes(id),
+      FOREIGN KEY (session_id) REFERENCES sessions(id)
+    );
+
+    CREATE TABLE collab_snapshots (
+      id TEXT PRIMARY KEY,
+      paste_id TEXT NOT NULL,
+      markdown TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      created_by_member_id TEXT,
+      FOREIGN KEY (paste_id) REFERENCES pastes(id),
+      FOREIGN KEY (created_by_member_id) REFERENCES collab_members(id)
+    );
+
+    CREATE TABLE collab_chat_threads (
+      id TEXT PRIMARY KEY,
+      paste_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      created_by_member_id TEXT,
+      FOREIGN KEY (paste_id) REFERENCES pastes(id),
+      FOREIGN KEY (created_by_member_id) REFERENCES collab_members(id)
+    );
+
+    CREATE TABLE collab_chat_messages (
+      id TEXT PRIMARY KEY,
+      thread_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (thread_id) REFERENCES collab_chat_threads(id),
+      FOREIGN KEY (member_id) REFERENCES collab_members(id)
+    );
+
+    CREATE INDEX idx_collab_members_paste ON collab_members(paste_id);
+    CREATE INDEX idx_collab_members_session ON collab_members(session_id);
+    CREATE INDEX idx_collab_snapshots_paste ON collab_snapshots(paste_id, created_at DESC);
+    CREATE INDEX idx_collab_chat_threads_paste ON collab_chat_threads(paste_id, created_at DESC);
+    CREATE INDEX idx_collab_chat_messages_thread ON collab_chat_messages(thread_id, created_at ASC);
+  `);
+  console.log("✅ Migration: Created collab tables");
+}
+
 // Create indexes (now safe because 'shared' column exists)
 db.exec(`
 CREATE INDEX IF NOT EXISTS idx_pastes_session_id ON pastes(session_id);

@@ -115,8 +115,12 @@
                     </div>
                   </div>
                 </div>
+                <button id="collabPasswordBtn" class="header-icon hidden" title="Passwort" aria-label="Passwort" style="display: none;">
+                  <i class="fa-solid fa-key"></i>
+                </button>
               </div>
             </div>
+            <div id="collabPresenceContainer" class="collab-presence-container hidden"></div>
             <div id="markdownEditor" class="editor-host"></div>
             <div id="editorSuggestion" class="editor-suggestion hidden"></div>
           </section>
@@ -242,6 +246,30 @@
                   <div class="ai-chat-input-area">
                     <textarea id="aiChatInput" class="ai-chat-input" placeholder="Frage den KI-Assistenten..." rows="3" data-i18n-placeholder="aiChatPlaceholder"></textarea>
                     <button id="aiChatSendBtn" class="primary-btn" title="Senden" aria-label="Nachricht senden" data-i18n-title="send">
+                      <i class="fa-solid fa-paper-plane"></i>
+                      <span data-i18n="send">Senden</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Collab Chat Panel -->
+              <div id="collabChatPanel" class="panel hidden">
+                <div class="section-header header-actions">
+                  <div class="collab-chat-title-row">
+                    <span data-i18n="collabChat">Team-Chat</span>
+                  </div>
+                  <div class="header-icons">
+                    <button id="newCollabThreadBtn" class="header-icon" title="Neuer Thread" aria-label="Neuer Thread">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <select id="collabThreadSelect" class="collab-thread-select" aria-label="Thread auswählen"></select>
+                  </div>
+                </div>
+                <div id="collabChatBody" class="collab-chat-body">
+                  <div id="collabChatMessages" class="collab-chat-messages"></div>
+                  <div class="collab-chat-input-area">
+                    <textarea id="collabChatInput" class="collab-chat-input" placeholder="Nachricht eingeben..." rows="3" data-i18n-placeholder="collabChatPlaceholder"></textarea>
+                    <button id="collabChatSendBtn" class="primary-btn" title="Senden" aria-label="Nachricht senden" data-i18n-title="send">
                       <i class="fa-solid fa-paper-plane"></i>
                       <span data-i18n="send">Senden</span>
                     </button>
