@@ -1682,10 +1682,11 @@ app.post("/api/pastes/:id/collab/restore", async (req, reply) => {
 });
 
 // WebSocket: Collaborative editing
-const connectedClients = new Map(); // Map<pasteId, Map<memberId, socket>>
+const connectedClients = new Map(); // Map<pasteId, Map<memberId, rawWebSocket>>
 
 app.register(async (fastify) => {
-  fastify.get("/api/pastes/:id/collab/ws", { websocket: true }, (socket, req) => {
+  fastify.get("/api/pastes/:id/collab/ws", { websocket: true }, (connection, req) => {
+    const ws = connection.socket; // raw WebSocket – has readyState and send()
     const pasteId = req.params.id;
     const memberId = req.query?.memberId || crypto.randomUUID();
     const member = db.prepare(
@@ -1697,7 +1698,7 @@ app.register(async (fastify) => {
     }
     
     const clients = connectedClients.get(pasteId);
-    clients.set(memberId, socket);
+    clients.set(memberId, ws);
 
     // Announce join
     broadcastToClients(pasteId, {
@@ -1707,16 +1708,16 @@ app.register(async (fastify) => {
       avatarColor: member?.avatar_color || getAvatarColor(memberId)
     }, memberId);
 
-    socket.on("message", (data) => {
+    ws.on("message", (data) => {
       try {
-        const msg = JSON.parse(data);
+        const msg = JSON.parse(data.toString());
         handleCollabMessage(pasteId, memberId, msg);
       } catch (e) {
         app.log.warn({ err: e.message }, "WebSocket message parse error");
       }
     });
 
-    socket.on("close", () => {
+    ws.on("close", () => {
       clients.delete(memberId);
       if (clients.size === 0) {
         connectedClients.delete(pasteId);
