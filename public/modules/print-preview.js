@@ -185,7 +185,9 @@ export class PrintPreview {
       
       // Load layout configuration from document
       const markdown = window.editor ? window.editor.getValue() : '';
-      const layout = documentLayout.parseFromMarkdown(markdown);
+      const layout = window.getEffectiveDocumentLayout
+        ? window.getEffectiveDocumentLayout(markdown, { usePreviewPreset: true })
+        : documentLayout.parseFromMarkdown(markdown);
       
       // Generate CSS from layout
       const layoutCSS = layoutCSSGenerator.generate(layout);
@@ -538,7 +540,9 @@ export class PrintPreview {
     
     // Get current layout to determine if headers/footers should be shown
     const markdown = window.editor ? window.editor.getValue() : '';
-    const layout = documentLayout.parseFromMarkdown(markdown);
+    const layout = window.getEffectiveDocumentLayout
+      ? window.getEffectiveDocumentLayout(markdown, { usePreviewPreset: true })
+      : documentLayout.parseFromMarkdown(markdown);
     
     // Create a new window for printing
     const printWindow = window.open('', '_blank', 'width=800,height=600');

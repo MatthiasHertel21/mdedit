@@ -17,11 +17,11 @@ export class DocumentLayout {
         size: 'A4',
         orientation: 'portrait',
         margins: {
-          top: '2.5cm',
-          right: '2cm',
-          bottom: '2cm',
-          left: '2.5cm',
-          firstPageTop: '4cm'
+          top: '2.1cm',
+          right: '1.7cm',
+          bottom: '1.7cm',
+          left: '2.1cm',
+          firstPageTop: '2.7cm'
         },
         bindingOffset: '0',
         mirrorMargins: false
@@ -114,25 +114,25 @@ export class DocumentLayout {
       typography: {
         body: {
           fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: '11pt',
-          lineHeight: 1.6,
+          fontSize: '10.5pt',
+          lineHeight: 1.42,
           textAlign: 'justify',
           color: '#1a1a1a',
           hyphenation: true,
           paragraph: {
             firstLineIndent: '0',
-            spacing: '12pt'
+            spacing: '8pt'
           }
         },
         headings: {
           fontFamily: 'Georgia, "Times New Roman", serif',
           color: '#000000',
-          h1: { size: '24pt', marginTop: '0', marginBottom: '18pt', weight: 700 },
-          h2: { size: '18pt', marginTop: '24pt', marginBottom: '12pt', weight: 600 },
-          h3: { size: '14pt', marginTop: '18pt', marginBottom: '9pt', weight: 600 },
-          h4: { size: '12pt', marginTop: '14pt', marginBottom: '7pt', weight: 600 },
-          h5: { size: '11pt', marginTop: '12pt', marginBottom: '6pt', weight: 600 },
-          h6: { size: '11pt', marginTop: '12pt', marginBottom: '6pt', weight: 600 }
+          h1: { size: '21pt', marginTop: '0', marginBottom: '12pt', weight: 700 },
+          h2: { size: '16pt', marginTop: '16pt', marginBottom: '8pt', weight: 600 },
+          h3: { size: '13pt', marginTop: '12pt', marginBottom: '6pt', weight: 600 },
+          h4: { size: '11.5pt', marginTop: '10pt', marginBottom: '5pt', weight: 600 },
+          h5: { size: '10.5pt', marginTop: '8pt', marginBottom: '4pt', weight: 600 },
+          h6: { size: '10.5pt', marginTop: '8pt', marginBottom: '4pt', weight: 600 }
         },
         code: {
           inline: '9.5pt',
@@ -193,7 +193,7 @@ export class DocumentLayout {
           }
         },
         compact: {
-          fontSize: '9pt',
+          fontSize: '10pt',
           cellPadding: '4pt',
           border: {
             width: '0.5pt',

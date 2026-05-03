@@ -45,7 +45,11 @@ const defaultSettings = {
   hideMermaidBlocks: false,
   showStartupTips: true,
   showToasts: true,
-  syncScroll: true
+  autoSync: false,
+  syncScroll: true,
+  hideLayoutBlock: false,
+  allowDocumentLayouts: true,
+  documentLayoutDefaultPreset: "scientific"
 };
 
 const settingsKey = "md-settings";
@@ -94,6 +98,7 @@ let md = null;
 let mermaidReady = false;
 let previewPreset = localStorage.getItem(previewPresetKey) || "scientific";
 let uiTheme = "twentyone"; // Fixed to twentyone style only
+const previewPresetValues = ["scientific", "compact", "literary", "document"];
 const layoutPresetCssTemplate = `/* Layout Presets (preview styles) */
 .preview-content.preset-compact {
   font-size: 13px;
@@ -112,6 +117,107 @@ const layoutPresetCssTemplate = `/* Layout Presets (preview styles) */
   font-size: 16px;
 }
 `;
+const scientificPresetCss = `
+.preset-scientific h1, .preset-scientific h2, .preset-scientific h3,
+.preset-scientific h4, .preset-scientific h5, .preset-scientific h6 {
+  color: #000000 !important;
+}
+
+.preset-scientific .mermaid {
+  filter: grayscale(100%) contrast(1.2);
+}
+`;
+
+const getBaseDocumentLayoutForPreset = (preset = "scientific") => {
+  const layout = documentLayout.getDefaultLayout();
+  const selected = (preset || "scientific").toLowerCase();
+
+  if (selected === "compact") {
+    layout.page.margins = {
+      ...layout.page.margins,
+      top: "1.3cm",
+      right: "1.2cm",
+      bottom: "1.2cm",
+      left: "1.3cm",
+      firstPageTop: "1.6cm"
+    };
+    layout.typography.body = {
+      ...layout.typography.body,
+      fontFamily: 'Arial, Helvetica, sans-serif',
+      fontSize: '11pt',
+      lineHeight: 1.1,
+      textAlign: 'left',
+      paragraph: {
+        ...layout.typography.body.paragraph,
+        firstLineIndent: '0',
+        spacing: '3pt'
+      }
+    };
+    layout.typography.headings = {
+      ...layout.typography.headings,
+      fontFamily: 'Arial, Helvetica, sans-serif',
+      h1: { ...layout.typography.headings.h1, size: '16pt', marginTop: '0', marginBottom: '7pt', weight: 700 },
+      h2: { ...layout.typography.headings.h2, size: '12.5pt', marginTop: '9pt', marginBottom: '4pt', weight: 700 },
+      h3: { ...layout.typography.headings.h3, size: '10.5pt', marginTop: '6pt', marginBottom: '3pt', weight: 700 },
+      h4: { ...layout.typography.headings.h4, size: '10pt', marginTop: '5pt', marginBottom: '3pt', weight: 700 }
+    };
+    layout.spacing = {
+      ...layout.spacing,
+      paragraph: '3pt',
+      list: '2pt',
+      listIndent: '1.25em',
+      blockquote: '5pt',
+      codeBlock: '5pt',
+      horizontalRule: '8pt',
+      formula: '5pt',
+      admonition: '5pt'
+    };
+    layout.footer = {
+      ...layout.footer,
+      enabled: true,
+      center: '{page}/{pages}'
+    };
+    layout.tableLayouts.compact = {
+      ...layout.tableLayouts.compact,
+      fontSize: '10pt'
+    };
+    layout.tableLayouts.default = layout.tableLayouts.compact;
+    return layout;
+  }
+
+  if (selected === "literary") {
+    layout.typography.body = {
+      ...layout.typography.body,
+      fontFamily: 'Georgia, "Times New Roman", serif',
+      fontSize: '12pt',
+      lineHeight: 1.7,
+      textAlign: 'justify',
+      paragraph: {
+        ...layout.typography.body.paragraph,
+        firstLineIndent: '12pt',
+        spacing: '0pt'
+      }
+    };
+    layout.typography.headings = {
+      ...layout.typography.headings,
+      fontFamily: 'Georgia, "Times New Roman", serif',
+      h1: { ...layout.typography.headings.h1, size: '26pt', marginBottom: '20pt' },
+      h2: { ...layout.typography.headings.h2, size: '18pt', marginTop: '22pt', marginBottom: '10pt' }
+    };
+    layout.page.margins = {
+      ...layout.page.margins,
+      top: '2.8cm',
+      right: '2.4cm',
+      bottom: '2.4cm',
+      left: '2.8cm',
+      firstPageTop: '4cm'
+    };
+    return layout;
+  }
+
+  layout.tableLayouts.default = layout.tableLayouts.scientific || layout.tableLayouts.default;
+  return layout;
+};
 
 let customCss = localStorage.getItem(customCssKey) || "";
 if (!customCss.trim()) {
@@ -202,6 +308,7 @@ const saveLayoutEditorState = () => {
 
 let layoutEditorState = loadLayoutEditorState();
 let layoutEditorCss = "";
+let documentPresetCss = "";
 let shouldFocusTableLayoutName = false;
 
 const scopedSelector = (selector) => {
@@ -466,11 +573,52 @@ const buildLayoutEditorCss = () => {
   return rules.join("\n");
 };
 
+const getDocumentLayoutFromMarkdown = (markdown = getMarkdown()) => {
+  return documentLayout.parseFromMarkdown(markdown || "");
+};
+
+const getEffectiveDocumentLayout = (markdown = getMarkdown(), options = {}) => {
+  const fallbackPreset = options.usePreviewPreset && previewPreset && previewPreset !== "document"
+    ? previewPreset
+    : (activeSettings.documentLayoutDefaultPreset || "scientific");
+  const baseLayout = getBaseDocumentLayoutForPreset(fallbackPreset);
+  const allowLocal = options.ignorePermission ? true : activeSettings.allowDocumentLayouts !== false;
+
+  if (!allowLocal) {
+    return baseLayout;
+  }
+
+  const parsedLayout = getDocumentLayoutFromMarkdown(markdown);
+  const hasLocalLayout = layoutBlockRegex.test(markdown || "");
+  layoutBlockRegex.lastIndex = 0;
+  if (!hasLocalLayout) {
+    return baseLayout;
+  }
+
+  return documentLayout.deepMerge(baseLayout, parsedLayout);
+};
+
+const buildDocumentPresetCss = (markdown = getMarkdown()) => {
+  const layout = getEffectiveDocumentLayout(markdown, { ignorePermission: false });
+  const generatedCss = layoutCSSGenerator.generate(layout);
+  return generatedCss.replace(/\.print-content/g, ".preview-content.preset-document");
+};
+
+const refreshDynamicStyles = (markdown = getMarkdown()) => {
+  ensureCustomStyle();
+  documentPresetCss = previewPreset === "document" ? buildDocumentPresetCss(markdown) : "";
+  const chunks = [
+    previewPreset === "scientific" ? scientificPresetCss : "",
+    customCss,
+    layoutEditorCss,
+    documentPresetCss
+  ].filter(Boolean);
+  customStyleEl.textContent = chunks.join("\n\n");
+};
+
 const applyLayoutEditorCss = () => {
   layoutEditorCss = buildLayoutEditorCss();
-  ensureCustomStyle();
-  const chunks = [customCss, layoutEditorCss].filter(Boolean);
-  customStyleEl.textContent = chunks.join("\n\n");
+  refreshDynamicStyles();
 };
 
 const defaultCustomCssTemplate = `/* Example: customize preview styles */
@@ -871,6 +1019,13 @@ const renderMermaid = async () => {
 
 const applySettings = (nextSettings) => {
   activeSettings = { ...activeSettings, ...nextSettings };
+  if (!activeSettings.allowDocumentLayouts) {
+    activeSettings.hideLayoutBlock = false;
+    if (previewPreset === "document") {
+      previewPreset = activeSettings.documentLayoutDefaultPreset || "scientific";
+      localStorage.setItem(previewPresetKey, previewPreset);
+    }
+  }
   saveSettings(activeSettings);
   md = buildMarkdownIt(activeSettings);
   
@@ -886,11 +1041,12 @@ const applySettings = (nextSettings) => {
       editorView.setOption('lineWrapping', Boolean(nextSettings.lineWrapping));
     }
   }
-  if ('hideLayoutBlock' in nextSettings) {
+  if ('hideLayoutBlock' in nextSettings || 'allowDocumentLayouts' in nextSettings) {
     updateLayoutBlockVisibility();
   }
-  
-  renderPreview();
+
+  syncSettingsUI();
+  applyPreviewPreset(previewPreset);
 };
 
 md = buildMarkdownIt(activeSettings);
@@ -924,6 +1080,7 @@ const elements = {
   copyMdBtn: document.getElementById("copyMdBtn"),
   downloadMdBtn: document.getElementById("downloadMdBtn"),
   copyTextBtn: document.getElementById("copyTextBtn"),
+  sharePdfBtn: document.getElementById("sharePdfBtn"),
   copyNodeMdBtn: document.getElementById("copyNodeMdBtn"),
   copyNodeTextBtn: document.getElementById("copyNodeTextBtn"),
   shareBtn: document.getElementById("shareBtn"),
@@ -971,6 +1128,7 @@ const elements = {
   deleteWorkspaceBtn: document.getElementById("deleteWorkspaceBtn"),
   workspaceInfo: document.getElementById("workspaceInfo"),
   exportAllBtn: document.getElementById("exportAllBtn"),
+  backupZipBtn: document.getElementById("backupZipBtn"),
   syncNowBtn: document.getElementById("syncNowBtn"),
   clearSyncBtn: document.getElementById("clearSyncBtn"),
   syncStatus: document.getElementById("syncStatus"),
@@ -1154,7 +1312,7 @@ const updateLayoutBlockVisibility = () => {
     layoutBlockMarker.clear();
     layoutBlockMarker = null;
   }
-  if (!activeSettings.hideLayoutBlock) return;
+  if (!activeSettings.allowDocumentLayouts || !activeSettings.hideLayoutBlock) return;
 
   const text = editorView.getValue();
   const matches = Array.from(text.matchAll(layoutBlockRegex));
@@ -1284,11 +1442,13 @@ const applyTheme = (theme) => {
 };
 
 const applyPreviewPreset = (preset) => {
-  const requested = preset || "scientific";
-  const allowedPresets = ["scientific", "compact", "literary"];
-  previewPreset = allowedPresets.includes(requested) ? requested : "scientific";
+  let requested = preset || "scientific";
+  if (requested === "document" && activeSettings.allowDocumentLayouts === false) {
+    requested = activeSettings.documentLayoutDefaultPreset || "scientific";
+  }
+  previewPreset = previewPresetValues.includes(requested) ? requested : "scientific";
   localStorage.setItem(previewPresetKey, previewPreset);
-  const presets = ["preset-compact", "preset-scientific", "preset-literary"];
+  const presets = ["preset-compact", "preset-scientific", "preset-literary", "preset-document"];
   [elements.preview, elements.nodeContent].forEach((el) => {
     if (!el) return;
     presets.forEach((p) => el.classList.remove(p));
@@ -1298,24 +1458,7 @@ const applyPreviewPreset = (preset) => {
     const key = `preset${previewPreset[0].toUpperCase()}${previewPreset.slice(1)}`;
     elements.previewPresetLabel.textContent = t(key);
   }
-  
-  // Scientific: Schwarz-Weiß für Druck
-  if (previewPreset === "scientific") {
-    ensureCustomStyle();
-    const scientificStyles = `
-.preset-scientific h1, .preset-scientific h2, .preset-scientific h3, 
-.preset-scientific h4, .preset-scientific h5, .preset-scientific h6 {
-  color: #000000 !important;
-}
-.preset-scientific .mermaid {
-  filter: grayscale(100%) contrast(1.2);
-}
-    `;
-    if (customStyleEl) {
-      const chunks = [scientificStyles, customCss, layoutEditorCss].filter(Boolean);
-      customStyleEl.textContent = chunks.join("\n\n");
-    }
-  }
+  refreshDynamicStyles();
   
   mermaidReady = false;
   renderPreview();
@@ -1332,9 +1475,7 @@ const ensureCustomStyle = () => {
 const applyCustomCss = (css) => {
   customCss = buildLayoutCssTemplate(css || "");
   localStorage.setItem(customCssKey, customCss);
-  ensureCustomStyle();
-  const chunks = [customCss, layoutEditorCss].filter(Boolean);
-  customStyleEl.textContent = chunks.join("\n\n");
+  refreshDynamicStyles();
 };
 
 const syncSettingsUI = () => {
@@ -1351,6 +1492,22 @@ const syncSettingsUI = () => {
   if (elements.customCssInput) {
     elements.customCssInput.value = customCss || defaultCustomCssTemplate;
   }
+  const documentLayoutDefaultPreset = document.getElementById("documentLayoutDefaultPreset");
+  if (documentLayoutDefaultPreset) {
+    documentLayoutDefaultPreset.value = activeSettings.documentLayoutDefaultPreset || "scientific";
+  }
+  const allowDocumentLayouts = activeSettings.allowDocumentLayouts !== false;
+  const hideLayoutInput = document.querySelector('[data-setting="hideLayoutBlock"]');
+  if (hideLayoutInput) {
+    hideLayoutInput.disabled = !allowDocumentLayouts;
+    hideLayoutInput.closest('.setting')?.classList.toggle('setting-disabled', !allowDocumentLayouts);
+  }
+  document.querySelectorAll('[data-document-layout-dependent="true"]').forEach((el) => {
+    el.hidden = !allowDocumentLayouts;
+  });
+  document.querySelectorAll('[data-document-layout-option="true"]').forEach((el) => {
+    el.hidden = !allowDocumentLayouts;
+  });
 };
 
 const openSettings = () => {
@@ -1376,6 +1533,9 @@ const openLayoutEditor = () => {
     elements.layoutCustomCssInput.value = buildLayoutCssTemplate(sourceCss);
   }
   // Load current layout values
+  if (elements.layoutEditorSelect?.value === "document") {
+    syncDocumentPresetState();
+  }
   loadLayoutEditorValues();
 };
 
@@ -1419,6 +1579,66 @@ const setAlignGroupValue = (groupId, align) => {
 
 const getCurrentLayoutPreset = () => elements.layoutEditorSelect?.value || previewPreset || "scientific";
 const NEW_TABLE_LAYOUT_VALUE = "__new__";
+
+const buildDocumentPresetState = (layout = getEffectiveDocumentLayout(getMarkdown(), { ignorePermission: true })) => {
+  const documentTableLayouts = {};
+  Object.entries(layout.tableLayouts || {}).forEach(([name, table]) => {
+    documentTableLayouts[name] = normalizeTableState(table);
+  });
+
+  if (!Object.keys(documentTableLayouts).length) {
+    documentTableLayouts.default = normalizeTableState(getTablePresetForLayout("scientific", {}));
+  }
+
+  const activeLayout = documentTableLayouts.default ? "default" : Object.keys(documentTableLayouts)[0];
+
+  return {
+    page: {
+      size: layout.page?.size || "A4",
+      orientation: layout.page?.orientation || "portrait",
+      margins: {
+        top: layout.page?.margins?.top || "2.5cm",
+        right: layout.page?.margins?.right || "2cm",
+        bottom: layout.page?.margins?.bottom || "2cm",
+        left: layout.page?.margins?.left || "2.5cm"
+      },
+      mirrorMargins: layout.page?.mirrorMargins || false,
+      bindingOffset: layout.page?.bindingOffset || "0",
+      headerHeight: layout.header?.offset || "6mm",
+      footerHeight: layout.footer?.offset || "6mm",
+      headerFirst: !layout.header?.hideOnFirstPage,
+      footerFirst: !layout.footer?.hideOnFirstPage,
+      headerContent: {
+        left: layout.header?.left || "",
+        center: layout.header?.center || "",
+        right: layout.header?.right || ""
+      },
+      footerContent: {
+        left: layout.footer?.left || "",
+        center: layout.footer?.center || "",
+        right: layout.footer?.right || ""
+      },
+      columns: {
+        count: String(layout.columns?.enabled ? (layout.columns?.count || 1) : 1),
+        gap: layout.columns?.gap || "20pt"
+      }
+    },
+    table: normalizeTableState(documentTableLayouts[activeLayout]),
+    tableBundle: {
+      activeLayout,
+      pendingNewLayout: null,
+      layouts: documentTableLayouts
+    }
+  };
+};
+
+const syncDocumentPresetState = () => {
+  const documentState = buildDocumentPresetState();
+  layoutEditorState.tablesByPreset = layoutEditorState.tablesByPreset || {};
+  layoutEditorState.page = documentState.page;
+  layoutEditorState.table = documentState.table;
+  layoutEditorState.tablesByPreset.document = documentState.tableBundle;
+};
 
 const sanitizeTableLayoutName = (value) => (value || "")
   .trim()
@@ -1812,7 +2032,11 @@ const updateTableDedicatedVisibility = () => {
 };
 
 const loadLayoutEditorValues = () => {
-  layoutEditorState = loadLayoutEditorState();
+  if (getCurrentLayoutPreset() === "document") {
+    syncDocumentPresetState();
+  } else {
+    layoutEditorState = loadLayoutEditorState();
+  }
 
   // Apply page settings
   const page = layoutEditorState.page || {};
@@ -1971,6 +2195,72 @@ const loadLayoutEditorValues = () => {
 };
 
 const saveLayoutEditorValues = () => {
+  if (getCurrentLayoutPreset() === "document") {
+    layoutEditorState.page = readPageSettings();
+    saveCurrentTableSettingsToState();
+
+    const markdown = getMarkdown();
+    const layout = getEffectiveDocumentLayout(markdown, { ignorePermission: true });
+    const pageSettings = layoutEditorState.page;
+    const tableBundle = getCurrentTableBundle();
+
+    layout.page = {
+      ...(layout.page || {}),
+      size: pageSettings.size,
+      orientation: pageSettings.orientation,
+      margins: {
+        ...(layout.page?.margins || {}),
+        top: pageSettings.margins?.top,
+        right: pageSettings.margins?.right,
+        bottom: pageSettings.margins?.bottom,
+        left: pageSettings.margins?.left
+      },
+      mirrorMargins: pageSettings.mirrorMargins,
+      bindingOffset: pageSettings.bindingOffset
+    };
+
+    layout.header = {
+      ...(layout.header || {}),
+      enabled: Boolean(pageSettings.headerContent?.left || pageSettings.headerContent?.center || pageSettings.headerContent?.right),
+      hideOnFirstPage: !pageSettings.headerFirst,
+      left: pageSettings.headerContent?.left || "",
+      center: pageSettings.headerContent?.center || "",
+      right: pageSettings.headerContent?.right || "",
+      offset: pageSettings.headerHeight || layout.header?.offset || "6mm"
+    };
+
+    layout.footer = {
+      ...(layout.footer || {}),
+      enabled: Boolean(pageSettings.footerContent?.left || pageSettings.footerContent?.center || pageSettings.footerContent?.right),
+      hideOnFirstPage: !pageSettings.footerFirst,
+      left: pageSettings.footerContent?.left || "",
+      center: pageSettings.footerContent?.center || "",
+      right: pageSettings.footerContent?.right || "",
+      offset: pageSettings.footerHeight || layout.footer?.offset || "6mm"
+    };
+
+    const columnCount = Number(pageSettings.columns?.count || "1");
+    layout.columns = {
+      ...(layout.columns || {}),
+      enabled: columnCount > 1,
+      count: columnCount,
+      gap: pageSettings.columns?.gap || layout.columns?.gap || "20pt"
+    };
+
+    layout.tableLayouts = {};
+    Object.entries(tableBundle.layouts || {}).forEach(([name, table]) => {
+      layout.tableLayouts[name] = normalizeTableState(table);
+    });
+
+    const updatedMarkdown = documentLayout.updateInMarkdown(markdown, layout);
+    setMarkdown(updatedMarkdown);
+    refreshDynamicStyles(updatedMarkdown);
+    renderPreview();
+    closeLayoutEditor();
+    setStatus(t("saved"), "success");
+    return;
+  }
+
   layoutEditorState.page = readPageSettings();
   saveCurrentTableSettingsToState();
   saveLayoutEditorState();
@@ -2243,6 +2533,51 @@ const closeSpacesOverview = () => {
   elements.spacesOverlay?.classList.add("hidden");
 };
 
+const triggerBlobDownload = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const fetchAllPastes = async () => {
+  const response = await fetch("/api/pastes");
+  if (!response.ok) {
+    throw new Error(`Failed to load pastes: ${response.status}`);
+  }
+  return response.json();
+};
+
+const fetchPasteDetails = async (pasteId) => {
+  const response = await fetch(`/api/pastes/${pasteId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load paste ${pasteId}: ${response.status}`);
+  }
+  return response.json();
+};
+
+const extractAssetUrls = (markdown = "") => {
+  const matches = markdown.match(/\/assets\/[^\s)"']+/g) || [];
+  return Array.from(new Set(matches));
+};
+
+const addAssetsToZip = async (zip, assetUrls) => {
+  await Promise.all(assetUrls.map(async (assetUrl) => {
+    try {
+      const response = await fetch(assetUrl);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      zip.file(assetUrl.replace(/^\//, ""), blob);
+    } catch (error) {
+      console.warn("Failed to add asset to ZIP:", assetUrl, error);
+    }
+  }));
+};
+
 const downloadSpaceZip = async (workspaceId) => {
   const workspaces = getWorkspaces();
   const workspace = workspaces[workspaceId];
@@ -2254,50 +2589,99 @@ const downloadSpaceZip = async (workspaceId) => {
     return;
   }
 
-  let allPastes = [];
   try {
-    const res = await fetch("/api/pastes");
-    if (!res.ok) return;
-    allPastes = await res.json();
+    const allPastes = await fetchAllPastes();
+    const selected = allPastes.filter((paste) => workspacePasteIds.has(normalizePasteId(paste.id)));
+    if (!selected.length) {
+      setStatus(t("emptyExport"), "error");
+      return false;
+    }
+
+    const zip = new JSZip();
+    const nameCounts = new Map();
+
+    await Promise.all(selected.map(async (paste, index) => {
+      try {
+        const data = await fetchPasteDetails(paste.id);
+        const base = toSafeFilename(data.title, `document-${index + 1}`);
+        const count = (nameCounts.get(base) || 0) + 1;
+        nameCounts.set(base, count);
+        const filename = count > 1 ? `${base}-${count}.md` : `${base}.md`;
+        zip.file(filename, data.markdown || "");
+      } catch (error) {
+        console.warn("Failed to add paste to ZIP:", error);
+      }
+    }));
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const safeSpaceName = toSafeFilename(workspace.name, "space");
+    triggerBlobDownload(blob, `${safeSpaceName}.zip`);
+    return true;
   } catch (error) {
     console.error("Failed to load pastes for ZIP:", error);
-    return;
+    setStatus(t("syncFailed"), "error");
+    return false;
   }
+};
 
-  const selected = allPastes.filter((paste) => workspacePasteIds.has(normalizePasteId(paste.id)));
-  if (!selected.length) {
-    setStatus(t("emptyExport"), "error");
-    return;
-  }
+const downloadBackupZip = async () => {
+  const workspaces = getWorkspaces();
+  setStatus(t("syncExporting"), "info");
 
-  const zip = new JSZip();
-  const nameCounts = new Map();
+  try {
+    const allPastes = await fetchAllPastes();
+    const pasteMap = new Map(allPastes.map((paste) => [normalizePasteId(paste.id), paste]));
+    const pasteDetailsCache = new Map();
+    const zip = new JSZip();
+    const manifest = {
+      exportedAt: new Date().toISOString(),
+      currentWorkspace,
+      workspaces,
+      pasteCount: allPastes.length
+    };
+    const assetUrls = new Set();
+    const assignedPasteIds = new Set();
 
-  await Promise.all(selected.map(async (paste, index) => {
-    try {
-      const res = await fetch(`/api/pastes/${paste.id}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const base = toSafeFilename(data.title, `document-${index + 1}`);
-      const count = (nameCounts.get(base) || 0) + 1;
-      nameCounts.set(base, count);
-      const filename = count > 1 ? `${base}-${count}.md` : `${base}.md`;
-      zip.file(filename, data.markdown || "");
-    } catch (error) {
-      console.warn("Failed to add paste to ZIP:", error);
+    const addPasteToFolder = async (folder, pasteId, index) => {
+      const normalizedPasteId = normalizePasteId(pasteId);
+      if (!pasteMap.has(normalizedPasteId)) return;
+      let details = pasteDetailsCache.get(normalizedPasteId);
+      if (!details) {
+        details = await fetchPasteDetails(normalizedPasteId);
+        pasteDetailsCache.set(normalizedPasteId, details);
+      }
+      const filename = `${toSafeFilename(details.title, `document-${index + 1}`)}.md`;
+      folder.file(filename, details.markdown || "");
+      extractAssetUrls(details.markdown).forEach((url) => assetUrls.add(url));
+      assignedPasteIds.add(normalizedPasteId);
+    };
+
+    for (const [workspaceId, workspace] of Object.entries(workspaces)) {
+      const folder = zip.folder(`spaces/${toSafeFilename(workspace.name, workspaceId)}`);
+      const pasteIds = (workspace.pastes || []).map(normalizePasteId);
+      for (let index = 0; index < pasteIds.length; index += 1) {
+        await addPasteToFolder(folder, pasteIds[index], index);
+      }
     }
-  }));
 
-  const blob = await zip.generateAsync({ type: "blob" });
-  const safeSpaceName = toSafeFilename(workspace.name, "space");
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${safeSpaceName}.zip`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+    const unassigned = allPastes.filter((paste) => !assignedPasteIds.has(normalizePasteId(paste.id)));
+    if (unassigned.length) {
+      const folder = zip.folder("spaces/unassigned");
+      for (let index = 0; index < unassigned.length; index += 1) {
+        await addPasteToFolder(folder, unassigned[index].id, index);
+      }
+    }
+
+    zip.file("backup-manifest.json", JSON.stringify(manifest, null, 2));
+    await addAssetsToZip(zip, Array.from(assetUrls));
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    triggerBlobDownload(blob, `md-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+    setStatus(t("syncExportSuccess"), "success");
+  } catch (error) {
+    console.error("Backup ZIP failed:", error);
+    setStatus(t("syncFailed"), "error");
+  }
 };
 
 const renderSpacesGrid = async () => {
@@ -2649,6 +3033,9 @@ const renderPreview = () => {
   }
   
   const previewText = stripLayoutBlock(text);
+  if (previewPreset === "document") {
+    refreshDynamicStyles(text);
+  }
   elements.preview.innerHTML = md.render(previewText);
   
   // Zeige Korrekturvorschlag im Editor
@@ -3808,7 +4195,7 @@ const serializePreviewForExport = async () => {
 
   if (printPreview?.isActive) {
     const markdown = getMarkdown();
-    const layout = documentLayout.parseFromMarkdown(markdown);
+    const layout = getEffectiveDocumentLayout(markdown, { usePreviewPreset: true });
     const layoutCss = layoutCSSGenerator.generate(layout);
     const pagedStyles = [layoutCss, collectPagedExportStyles()]
       .filter(Boolean)
@@ -5033,9 +5420,6 @@ elements.previewPresetTrigger?.addEventListener("click", () => {
 elements.previewPresetItems?.forEach((btn) => {
   btn.addEventListener("click", () => {
     if (btn.dataset.preset) {
-      if (printPreview?.isActive) {
-        togglePrintView();
-      }
       applyPreviewPreset(btn.dataset.preset);
     }
     elements.previewPresetMenu?.classList.add("hidden");
@@ -5077,6 +5461,7 @@ elements.copyTextBtn.addEventListener("click", async () => {
   const html = await serializePreviewForExport();
   copyRichText(html, elements.preview.innerText);
 });
+elements.sharePdfBtn?.addEventListener("click", () => exportFile("pdf"));
 elements.settingsBtn?.addEventListener("click", openSettings);
 elements.layoutEditorBtn?.addEventListener("click", openLayoutEditor);
 elements.tipsBtn?.addEventListener("click", showTipsModal);
@@ -5110,6 +5495,11 @@ elements.layoutEditorTabs?.forEach((tab) => {
 // Layout Selection Change
 elements.layoutEditorSelect?.addEventListener("change", () => {
   const selectedPreset = elements.layoutEditorSelect?.value || "scientific";
+  if (selectedPreset === "document") {
+    syncDocumentPresetState();
+    loadLayoutEditorValues();
+    return;
+  }
   layoutEditorState = loadLayoutEditorState();
   const bundle = ensureTableBundleForPreset(layoutEditorState, selectedPreset, layoutEditorState.table);
   if (!bundle.layouts.default || !Object.keys(bundle.layouts.default).length) {
@@ -5858,12 +6248,14 @@ elements.deleteWorkspaceBtn?.addEventListener("click", deleteWorkspace);
 
 // Sync action event listeners
 elements.exportAllBtn?.addEventListener("click", async () => {
-  // TODO: Implement export all as ZIP
   setStatus(t("syncExporting"), "info");
-  setTimeout(() => {
+  const success = await downloadSpaceZip(currentWorkspace);
+  if (success) {
     setStatus(t("syncExportSuccess"), "success");
-  }, 500);
+  }
 });
+
+elements.backupZipBtn?.addEventListener("click", downloadBackupZip);
 
 elements.syncNowBtn?.addEventListener("click", async () => {
   setStatus(t("syncInProgress"), "info");
@@ -5876,9 +6268,10 @@ elements.clearSyncBtn?.addEventListener("click", async () => {
   if (confirm(t("syncClearConfirm"))) {
     try {
       localStorage.clear();
-      historyCache = [];
-      renderHistory();
       setStatus(t("syncClearSuccess"), "success");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 600);
     } catch (error) {
       console.error("Error clearing sync:", error);
       setStatus(t("syncClearFailed"), "error");
@@ -6078,6 +6471,10 @@ document.querySelectorAll("[data-setting]").forEach((input) => {
     applySettings({ [key]: input.checked });
   });
 });
+
+document.getElementById("documentLayoutDefaultPreset")?.addEventListener("change", (event) => {
+  applySettings({ documentLayoutDefaultPreset: event.target.value || "scientific" });
+});
 elements.copyNodeMdBtn?.addEventListener("click", () => {
   const node = selectedNodeId ? findNodeById(lastTree, selectedNodeId) : null;
   if (!node) return copyToClipboard("");
@@ -6154,6 +6551,7 @@ window.triggerSave = handleEditorChange;
 window.exportFile = exportFile;
 window.printPreview = printPreview;
 window.showStatus = setStatus;  // For modules like ImageManager
+window.getEffectiveDocumentLayout = getEffectiveDocumentLayout;
 window.renderMarkdownToHtml = (text) => md.render(String(text || ""));
 
 // Restore toggle states

@@ -31,7 +31,7 @@
     "id": 4,
     "category": "features",
     "title": "Preview presets",
-    "text": "Switch between Scientific, Compact, and Literary for different reading layouts.",
+    "text": "Switch between Scientific, Compact, Literary, and Document. The Document preset uses layout rules from the Markdown file or the default document layout selected in settings.",
     "example": null
   },
   {
@@ -101,7 +101,7 @@
     "id": 14,
     "category": "features",
     "title": "Page view",
-    "text": "Enable page view for a print/PDF-like preview with page breaks.",
+    "text": "Enable page view for a print/PDF-like preview with page breaks. It uses document layout rules instead of the normal screen presets.",
     "example": null
   },
   {
@@ -382,6 +382,34 @@
     "category": "shortcuts",
     "title": "Quick open AI assistant",
     "text": "Press Alt+Space to open or close the AI assistant.",
+    "example": null
+  },
+  {
+    "id": 56,
+    "category": "features",
+    "title": "Control document layouts globally",
+    "text": "In settings you can allow or disable document-local layout blocks globally. When disabled, the Document option also disappears from layout selectors.",
+    "example": null
+  },
+  {
+    "id": 57,
+    "category": "features",
+    "title": "Default layout for documents",
+    "text": "Choose whether new document layouts should start from Scientific, Compact, or Literary defaults.",
+    "example": null
+  },
+  {
+    "id": 58,
+    "category": "features",
+    "title": "Hide the layout block",
+    "text": "You can hide the layout block in the editor while document-local layouts are allowed, keeping the Markdown cleaner without losing print rules.",
+    "example": null
+  },
+  {
+    "id": 59,
+    "category": "features",
+    "title": "Insert images directly",
+    "text": "Paste images from the clipboard or drop them into the editor. The app uploads them and inserts the matching Markdown image link automatically.",
     "example": null
   }
 ]

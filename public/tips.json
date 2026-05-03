@@ -31,7 +31,7 @@
     "id": 4,
     "category": "features",
     "title": "Vorschau-Presets",
-    "text": "Wechsle zwischen Wissenschaftlich, Kompakt und Literarisch für verschiedene Lese-Layouts.",
+    "text": "Wechsle zwischen Wissenschaftlich, Kompakt, Literarisch und Dokument. Das Preset Dokument nutzt die Layoutvorgaben aus dem Markdown oder das in den Einstellungen gewählte Standardlayout.",
     "example": null
   },
   {
@@ -101,7 +101,7 @@
     "id": 14,
     "category": "features",
     "title": "Seitenansicht",
-    "text": "Aktiviere die Seitenansicht für eine Druck-/PDF-ähnliche Vorschau mit Seitenumbrüchen.",
+    "text": "Aktiviere die Seitenansicht für eine Druck-/PDF-ähnliche Vorschau mit Seitenumbrüchen. Sie verwendet die Dokument-Layoutregeln statt der normalen Bildschirm-Presets.",
     "example": null
   },
   {
@@ -382,6 +382,34 @@
     "category": "shortcuts",
     "title": "KI-Assistent schnell öffnen",
     "text": "Drücke Alt+Leertaste um den KI-Assistenten zu öffnen oder zu schließen.",
+    "example": null
+  },
+  {
+    "id": 56,
+    "category": "features",
+    "title": "Dokument-Layouts global steuern",
+    "text": "In den Einstellungen kannst du dokumentlokale Layoutblöcke global erlauben oder abschalten. Ist die Funktion deaktiviert, verschwindet auch die Option Dokument aus den Layout-Auswahlen.",
+    "example": null
+  },
+  {
+    "id": 57,
+    "category": "features",
+    "title": "Standardlayout für Dokumente",
+    "text": "Lege in den Einstellungen fest, ob neue Dokument-Layouts auf Wissenschaftlich, Kompakt oder Literarisch basieren sollen.",
+    "example": null
+  },
+  {
+    "id": 58,
+    "category": "features",
+    "title": "Layout-Block ausblenden",
+    "text": "Der Layout-Block lässt sich im Editor ausblenden, solange dokumentlokale Layouts erlaubt sind. So bleibt das Markdown aufgeräumt, ohne die Druckregeln zu verlieren.",
+    "example": null
+  },
+  {
+    "id": 59,
+    "category": "features",
+    "title": "Bilder direkt einfügen",
+    "text": "Füge Bilder direkt aus der Zwischenablage oder per Drag & Drop ein. Die App lädt sie hoch und setzt automatisch den passenden Markdown-Bildlink ein.",
     "example": null
   }
 ]

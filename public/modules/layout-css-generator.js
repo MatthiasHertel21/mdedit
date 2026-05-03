@@ -205,17 +205,27 @@ export class LayoutCSSGenerator {
 }
 
 .print-content p {
-  margin: 0 0 ${body.paragraph.spacing};
+  margin: ${body.paragraph.spacing} 0;
 }
-${body.paragraph.firstLineIndent !== '0' ? `
 .print-content p + p {
-  text-indent: ${body.paragraph.firstLineIndent};
-}` : ''}
+  text-indent: ${body.paragraph.firstLineIndent || '0'};
+}
+
+.print-content ul,
+.print-content ol,
+.print-content li,
+.print-content li > * {
+  font-family: inherit;
+  line-height: inherit;
+}
 
 /* Headings */
 .print-content h1, .print-content h2, .print-content h3, .print-content h4, .print-content h5, .print-content h6 {
   font-family: ${headings.fontFamily || body.fontFamily};
   color: ${headings.color};
+  text-indent: 0;
+  margin-left: 0;
+  padding-left: 0;
   break-after: avoid;
   page-break-after: avoid;
 }`;
@@ -297,7 +307,9 @@ ${selector} {
   width: 100%;
   margin: ${tLayout.margin.top} 0 ${tLayout.margin.bottom};
   border-collapse: collapse;
+  font-family: ${layout.typography.body.fontFamily};
   font-size: ${tLayout.fontSize};
+  line-height: ${layout.typography.body.lineHeight};
   break-inside: auto;
   page-break-inside: auto;
   ${tLayout.borderTop ? `border-top: ${tLayout.borderTop.width} solid ${tLayout.borderTop.color};` : ''}
@@ -315,6 +327,9 @@ ${selector} th {
   text-align: ${tLayout.header.textAlign};
   padding: ${tLayout.cellPadding};
   border: ${tLayout.border.width} solid ${tLayout.border.color};
+  font-family: inherit;
+  line-height: inherit;
+  vertical-align: top;
   ${tLayout.headerBorderBottom ? `border-bottom: ${tLayout.headerBorderBottom.width} solid ${tLayout.headerBorderBottom.color};` : ''}
 }
 
@@ -322,6 +337,17 @@ ${selector} td {
   padding: ${tLayout.cellPadding};
   border: ${tLayout.border.width} solid ${tLayout.border.color};
   text-align: ${tLayout.body.textAlign};
+  font-family: inherit;
+  line-height: inherit;
+  vertical-align: top;
+}`;
+
+      css += `
+
+${selector} th *,
+${selector} td * {
+  font-family: inherit;
+  line-height: inherit;
 }`;
 
       if (tLayout.body.zebraStriping) {
@@ -399,15 +425,51 @@ ${selector} caption {
 /* Spacing */
 .print-content ul, .print-content ol {
   margin: ${spacing.list} 0;
-  padding-left: ${spacing.listIndent};
+  padding-left: 0;
 }
 
 .print-content ul {
-  list-style-type: "${lists.unordered.marker}";
+  list-style: none;
 }
 
 .print-content ol {
-  list-style-type: ${lists.ordered.style};
+  list-style: none;
+  counter-reset: print-list-item;
+}
+
+.print-content li {
+  position: relative;
+  padding-left: calc(${spacing.listIndent} - 0.1em);
+  line-height: inherit;
+  margin: 0 0 1pt;
+}
+
+.print-content ul > li::before,
+.print-content ol > li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.8em;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.print-content ul > li::before {
+  content: "${lists.unordered.marker}";
+}
+
+.print-content ol > li {
+  counter-increment: print-list-item;
+}
+
+.print-content ol > li::before {
+  content: counter(print-list-item) ".";
+}
+
+.print-content li > p {
+  margin: 0;
 }
 
 .print-content blockquote {

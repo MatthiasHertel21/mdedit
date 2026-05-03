@@ -84,26 +84,35 @@
                     <i class="fa-solid fa-share-nodes"></i>
                   </button>
                   <div id="shareMenu" class="share-menu-panel hidden">
-                    <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
-                      <i class="fa-solid fa-link"></i>
-                      <span data-i18n="permalink">Permalink kopieren</span>
-                    </button>
-                    <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
-                      <i class="fa-regular fa-copy"></i>
-                      <span data-i18n="copyMd">Markdown kopieren</span>
-                    </button>
-                    <button id="downloadMdBtn" class="share-menu-item" title="Markdown herunterladen" aria-label="Markdown herunterladen" data-i18n-title="downloadMd" data-i18n-aria="downloadMd">
-                      <i class="fa-solid fa-download"></i>
-                      <span data-i18n="downloadMd">Markdown herunterladen</span>
-                    </button>
-                    <button id="copyTextBtn" class="share-menu-item" title="Word kopieren" aria-label="Word kopieren">
-                      <i class="fa-regular fa-file-word"></i>
-                      <span>Word kopieren</span>
-                    </button>
-                    <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
-                      <i class="fa-solid fa-file-word"></i>
-                      <span data-i18n="downloadWord">Word herunterladen</span>
-                    </button>
+                    <div class="share-menu-section">
+                      <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
+                        <i class="fa-solid fa-link"></i>
+                        <span data-i18n="permalink">Permalink kopieren</span>
+                      </button>
+                      <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
+                        <i class="fa-regular fa-copy"></i>
+                        <span data-i18n="copyMd">Markdown kopieren</span>
+                      </button>
+                      <button id="copyTextBtn" class="share-menu-item" title="Word kopieren" aria-label="Word kopieren" data-i18n-title="copyWord" data-i18n-aria="copyWord">
+                        <i class="fa-regular fa-file-word"></i>
+                        <span data-i18n="copyWord">Word kopieren</span>
+                      </button>
+                    </div>
+                    <div class="share-menu-divider" aria-hidden="true"></div>
+                    <div class="share-menu-section">
+                      <button id="downloadMdBtn" class="share-menu-item" title="Markdown herunterladen" aria-label="Markdown herunterladen" data-i18n-title="downloadMd" data-i18n-aria="downloadMd">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span data-i18n="downloadMd">Markdown herunterladen</span>
+                      </button>
+                      <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
+                        <i class="fa-solid fa-file-word"></i>
+                        <span data-i18n="downloadWord">Word herunterladen</span>
+                      </button>
+                      <button id="sharePdfBtn" class="share-menu-item" title="PDF herunterladen" aria-label="PDF herunterladen" data-i18n-title="downloadPdf" data-i18n-aria="downloadPdf">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span data-i18n="downloadPdf">PDF herunterladen</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -129,6 +138,7 @@
                         <button class="preview-preset-item" data-preset="scientific" role="menuitem" data-i18n="presetScientific">Wissenschaftlich</button>
                         <button class="preview-preset-item" data-preset="compact" role="menuitem" data-i18n="presetCompact">Kompakt</button>
                         <button class="preview-preset-item" data-preset="literary" role="menuitem" data-i18n="presetLiterary">Literarisch</button>
+                        <button class="preview-preset-item" data-preset="document" data-document-layout-option="true" role="menuitem" data-i18n="presetDocument">Dokument</button>
                       </div>
                     </div>
                     <div class="header-icons">
@@ -401,73 +411,51 @@
       <div class="modal-tabs">
         <button class="tab active" data-tab="editor" data-i18n="tabEditor">Editor</button>
         <button class="tab" data-tab="markdown" data-i18n="tabMarkdown">Markdown</button>
-        <button class="tab" data-tab="storage" data-i18n="tabSpaces">Spaces</button>
+        <button class="tab" data-tab="storage" data-i18n="tabStorage">Storage</button>
         <button class="tab" data-tab="ai" data-i18n="tabAI">KI-Modelle</button>
         <button class="tab" data-tab="about" data-i18n="tabImpressum">Impressum</button>
       </div>
       <div class="modal-body">
         <div class="tab-panel active" data-tab-panel="editor">
-          <div class="settings-language-row">
-            <label for="languageSelect" data-i18n="viewLanguage">Standardsprache</label>
-            <select id="languageSelect" class="setting-select">
-              <option value="auto" data-i18n="viewLangAuto">Automatisch</option>
-              <option value="de">Deutsch</option>
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="es">Español</option>
-              <option value="it">Italiano</option>
-              <option value="nl">Nederlands</option>
-              <option value="pl">Polski</option>
-              <option value="tr">Türkçe</option>
-              <option value="ru">Русский</option>
-              <option value="zh">中文</option>
-              <option value="ko">한국어</option>
-            </select>
+          <div class="settings-editor-top">
+            <div class="settings-language-row">
+              <label for="languageSelect" data-i18n="viewLanguage">Standardsprache</label>
+              <select id="languageSelect" class="setting-select">
+                <option value="auto" data-i18n="viewLangAuto">Automatisch</option>
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="it">Italiano</option>
+                <option value="nl">Nederlands</option>
+                <option value="pl">Polski</option>
+                <option value="tr">Türkçe</option>
+                <option value="ru">Русский</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+              </select>
+            </div>
+            <div class="settings-language-row settings-inline-select">
+              <label for="documentLayoutDefaultPreset" data-i18n="settingDocumentLayoutDefaultPreset">Standardlayout für Dokumente</label>
+              <select id="documentLayoutDefaultPreset" class="setting-select">
+                <option value="scientific" data-i18n="presetScientific">Wissenschaftlich</option>
+                <option value="compact" data-i18n="presetCompact">Kompakt</option>
+                <option value="literary" data-i18n="presetLiterary">Literarisch</option>
+              </select>
+            </div>
           </div>
           <div class="settings-grid settings-grid-split">
-            <!-- Left Column: MD Editor specific -->
-            <div class="settings-column">
-              <h3 class="settings-column-title" data-i18n="editorColumnMd">Markdown Editor</h3>
-              <div class="setting">
-                <label class="switch">
-                  <input type="checkbox" data-setting="lineNumbers" />
-                  <span class="slider"></span>
-                </label>
-                <div class="setting-text">
-                  <div class="setting-title" data-i18n="settingLineNumbers">Zeilennummern anzeigen</div>
-                </div>
-              </div>
-              <div class="setting">
-                <label class="switch">
-                  <input type="checkbox" data-setting="lineWrapping" />
-                  <span class="slider"></span>
-                </label>
-                <div class="setting-text">
-                  <div class="setting-title" data-i18n="settingLineWrapping">Zeilenumbruch im Editor</div>
-                </div>
-              </div>
-              <div class="setting">
-                <label class="switch">
-                  <input type="checkbox" data-setting="syntaxHighlight" />
-                  <span class="slider"></span>
-                </label>
-                <div class="setting-text">
-                  <div class="setting-title" data-i18n="settingSyntaxHighlight">Syntax-Highlighting</div>
-                </div>
-              </div>
-              <div class="setting">
-                <label class="switch">
-                  <input type="checkbox" data-setting="hideLayoutBlock" />
-                  <span class="slider"></span>
-                </label>
-                <div class="setting-text">
-                  <div class="setting-title" data-i18n="settingHideLayoutBlock">Layout-Block im Editor ausblenden</div>
-                </div>
-              </div>
-            </div>
-            <!-- Right Column: General/App-wide -->
             <div class="settings-column">
               <h3 class="settings-column-title" data-i18n="editorColumnGeneral">Allgemein</h3>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" id="autoSyncToggle" data-setting="autoSync" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingAutoSync">Automatisch im Browser-Speicher sichern</div>
+                </div>
+              </div>
               <div class="setting">
                 <label class="switch">
                   <input type="checkbox" data-setting="syncScroll" />
@@ -505,25 +493,59 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="danger-zone">
-            <h3>
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span data-i18n="dangerZoneTitle">Gefahrenzone</span>
-            </h3>
-            <div class="danger-zone-content">
-              <div class="danger-zone-text">
-                <div class="danger-zone-title" data-i18n="settingDataReset">Alle Daten zurücksetzen</div>
-                <div class="danger-zone-desc" data-i18n="dangerZoneDesc">Löscht unwiderruflich alle Dokumente, Einstellungen, Historie und lokalen Daten. Diese Aktion kann nicht rückgängig gemacht werden!</div>
+            <div class="settings-column">
+              <h3 class="settings-column-title" data-i18n="editorColumnMd">Markdown Editor</h3>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="allowDocumentLayouts" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingAllowDocumentLayouts">Dokumentlokale Layouts erlauben</div>
+                </div>
               </div>
-              <button id="resetAllDataBtn" class="btn-danger-outline">
-                <i class="fa-solid fa-trash-can"></i> <span data-i18n="settingDataResetAction">Zurücksetzen</span>
-              </button>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="hideLayoutBlock" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingHideLayoutBlock">Layout-Block im Editor ausblenden</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="lineNumbers" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingLineNumbers">Zeilennummern anzeigen</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="lineWrapping" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingLineWrapping">Zeilenumbruch im Editor</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="syntaxHighlight" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingSyntaxHighlight">Syntax-Highlighting</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div class="tab-panel" data-tab-panel="markdown">
-          <div class="settings-grid">
+          <p class="settings-description compact-settings-description" data-i18n="markdownExtensionsDescription">Diese Optionen steuern die Markdown-Erweiterungen, die der Editor und die Vorschau verwenden sollen.</p>
+          <div class="settings-grid markdown-settings-grid">
           <div class="setting">
             <label class="switch">
               <input type="checkbox" data-setting="gfm" />
@@ -684,6 +706,9 @@
                   <button id="renameWorkspaceBtn" class="icon-btn" title="Umbenennen" data-i18n-title="workspaceRename">
                     <i class="fa-solid fa-pen"></i>
                   </button>
+                  <button id="exportAllBtn" class="icon-btn" title="ZIP Download" data-i18n-title="workspaceZipDownload">
+                    <i class="fa-solid fa-file-zipper"></i>
+                  </button>
                   <button id="deleteWorkspaceBtn" class="icon-btn icon-btn-danger" title="Löschen" data-i18n-title="workspaceDelete">
                     <i class="fa-solid fa-trash"></i>
                   </button>
@@ -691,26 +716,17 @@
                 <div id="workspaceInfo" class="workspace-info"></div>
               </div>
             </div>
-            <div class="setting">
-              <label class="switch">
-                <input type="checkbox" id="autoSyncToggle" data-setting="autoSync" />
-                <span class="slider"></span>
-              </label>
-              <div class="setting-text">
-                <div class="setting-title" data-i18n="settingAutoSync">Automatisch im Browser-Speicher sichern</div>
-              </div>
-            </div>
             <div class="setting setting-full">
               <div class="setting-text">
                 <div class="setting-title" data-i18n="storageActions">Aktionen</div>
-                <div class="storage-action-list">
-                  <button id="exportAllBtn" class="storage-action-item">
+                <div class="storage-action-list storage-action-list-inline">
+                  <button id="backupZipBtn" class="storage-action-item">
                     <div class="storage-action-icon">
                       <i class="fa-solid fa-file-zipper"></i>
                     </div>
                     <div class="storage-action-text">
-                      <div class="storage-action-title" data-i18n="storageExportAllTitle">Alle Dokumente exportieren</div>
-                      <div class="storage-action-desc" data-i18n="storageExportAllDesc">Erstellt ein ZIP-Archiv mit allen Markdown-Dateien aus dem aktuellen Workspace</div>
+                      <div class="storage-action-title" data-i18n="storageBackupZipTitle">Save to ZIP</div>
+                      <div class="storage-action-desc" data-i18n="storageBackupZipDesc">Erstellt ein ZIP-Archiv mit allen Dokumenten aus allen Spaces und allen Bildern</div>
                     </div>
                   </button>
                   <button id="syncNowBtn" class="storage-action-item">
@@ -718,21 +734,36 @@
                       <i class="fa-solid fa-sync"></i>
                     </div>
                     <div class="storage-action-text">
-                      <div class="storage-action-title" data-i18n="storageSyncTitle">Jetzt synchronisieren</div>
+                      <div class="storage-action-title" data-i18n="storageSyncTitle">Save to Local Storage</div>
                       <div class="storage-action-desc" data-i18n="storageSyncDesc">Speichert alle aktuellen Dokumente sofort im lokalen Browser-Speicher</div>
-                    </div>
-                  </button>
-                  <button id="clearSyncBtn" class="storage-action-item storage-action-danger">
-                    <div class="storage-action-icon">
-                      <i class="fa-solid fa-trash"></i>
-                    </div>
-                    <div class="storage-action-text">
-                      <div class="storage-action-title" data-i18n="storageClearTitle">Lokalen Speicher leeren</div>
-                      <div class="storage-action-desc" data-i18n="storageClearDesc">Löscht alle lokal gespeicherten Dokumente aus diesem Workspace (nicht rückgängig machbar)</div>
                     </div>
                   </button>
                 </div>
                 <div id="syncStatus" class="sync-status"></div>
+              </div>
+            </div>
+            <div class="danger-zone setting-full">
+              <h3>
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span data-i18n="dangerZoneTitle">Gefahrenzone</span>
+              </h3>
+              <div class="danger-zone-content">
+                <div class="danger-zone-text">
+                  <div class="danger-zone-title" data-i18n="storageClearTitle">Lokalen Speicher leeren</div>
+                  <div class="danger-zone-desc" data-i18n="storageClearLocalDesc">Entfernt Workspace-Zuordnungen, Einstellungen und lokale Sicherungen aus diesem Browser. Server-Dokumente bleiben erhalten.</div>
+                </div>
+                <button id="clearSyncBtn" class="btn-danger-outline">
+                  <i class="fa-solid fa-eraser"></i> <span data-i18n="storageClearLocalAction">Clear Local Storage</span>
+                </button>
+              </div>
+              <div class="danger-zone-content">
+                <div class="danger-zone-text">
+                  <div class="danger-zone-title" data-i18n="settingDataReset">Alle Daten zurücksetzen</div>
+                  <div class="danger-zone-desc" data-i18n="dangerZoneDesc">Löscht unwiderruflich alle Dokumente, Einstellungen, Historie und lokalen Daten. Diese Aktion kann nicht rückgängig gemacht werden!</div>
+                </div>
+                <button id="resetAllDataBtn" class="btn-danger-outline">
+                  <i class="fa-solid fa-trash-can"></i> <span data-i18n="settingDataResetAction">Zurücksetzen</span>
+                </button>
               </div>
             </div>
           </div>
@@ -859,6 +890,7 @@
                 <option value="scientific" data-i18n="presetScientific">Wissenschaftlich</option>
                 <option value="compact" data-i18n="presetCompact">Kompakt</option>
                 <option value="literary" data-i18n="presetLiterary">Literarisch</option>
+                <option value="document" data-document-layout-option="true" data-i18n="presetDocument">Dokument</option>
               </select>
             </div>
 
@@ -903,11 +935,17 @@
                     <div class="layout-text-element-item active" data-element="body">
                       <span data-i18n="layoutElementBody">Normaler Text</span>
                     </div>
-                    <div class="layout-text-element-item" data-element="table-cell">
-                      <span data-i18n="layoutElementTableCell">Tabellentext</span>
+                    <div class="layout-text-element-item" data-element="h1">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 1
                     </div>
-                    <div class="layout-text-element-item" data-element="table-header">
-                      <span data-i18n="layoutElementTableHeader">Tabellen-Header</span>
+                    <div class="layout-text-element-item" data-element="h2">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 2
+                    </div>
+                    <div class="layout-text-element-item" data-element="h3">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 3
+                    </div>
+                    <div class="layout-text-element-item" data-element="h4">
+                      <span data-i18n="layoutEditorLevel">Ebene</span> 4
                     </div>
                   </div>
                   
@@ -937,21 +975,6 @@
                     </div>
                   </div>
                   
-                  <div class="layout-text-element-group">
-                    <div class="layout-text-element-group-header" data-i18n="layoutEditorHeadings">Überschriften</div>
-                    <div class="layout-text-element-item" data-element="h1">
-                      <span data-i18n="layoutEditorLevel">Ebene</span> 1
-                    </div>
-                    <div class="layout-text-element-item" data-element="h2">
-                      <span data-i18n="layoutEditorLevel">Ebene</span> 2
-                    </div>
-                    <div class="layout-text-element-item" data-element="h3">
-                      <span data-i18n="layoutEditorLevel">Ebene</span> 3
-                    </div>
-                    <div class="layout-text-element-item" data-element="h4">
-                      <span data-i18n="layoutEditorLevel">Ebene</span> 4
-                    </div>
-                  </div>
                 </div>
                 
                 <!-- Right: Attribute Box -->
@@ -1592,9 +1615,14 @@
                       <code>&lt;!-- table:layoutName --&gt;</code>
                     </div>
                     <div class="layout-form-row row-2">
-                      <div class="layout-form-group">
+                      <div class="layout-form-group layout-table-name-group">
                         <label for="table-layout-name" data-i18n="layoutTableName">Layoutname</label>
-                        <input type="text" id="table-layout-name" class="layout-form-input" value="default">
+                        <div class="layout-table-name-row">
+                          <input type="text" id="table-layout-name" class="layout-form-input" value="default">
+                          <button id="table-layout-profile-delete" class="icon-btn icon-btn-danger layout-table-delete-icon" type="button" title="Löschen" aria-label="Löschen" data-i18n-title="layoutTableDelete" data-i18n-aria="layoutTableDelete">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
                       <div class="layout-form-group">
                         <label for="table-type" data-i18n="layoutTableType">Tabellentyp</label>
@@ -1627,13 +1655,6 @@
                           <option value="center" data-i18n="layoutTableAlignmentCenter">Zentriert</option>
                           <option value="right" data-i18n="layoutTableAlignmentRight">Rechts</option>
                         </select>
-                      </div>
-                      <div class="layout-form-group layout-table-delete-group">
-                        <label>&nbsp;</label>
-                        <button id="table-layout-profile-delete" class="btn-danger" type="button">
-                          <i class="fa-solid fa-trash"></i>
-                          <span data-i18n="layoutTableDelete">Löschen</span>
-                        </button>
                       </div>
                     </div>
                   </div>
