@@ -52,7 +52,8 @@ const defaultSettings = {
   syncScroll: true,
   hideLayoutBlock: false,
   allowDocumentLayouts: true,
-  documentLayoutDefaultPreset: "scientific"
+  documentLayoutDefaultPreset: "scientific",
+  collabEnabled: true
 };
 
 const settingsKey = "md-settings";
@@ -1313,6 +1314,59 @@ const layoutBlockRegex = /```layout\s*\n[\s\S]*?\n```/g;
 
 const stripLayoutBlock = (text) => text.replace(layoutBlockRegex, "").trimEnd();
 
+const preprocessLayoutCommands = (markdown) => {
+  let processed = String(markdown || "");
+
+  processed = processed
+    .replace(/<!--\s*page-break\s*-->/gi, '<div class="page-break"></div>')
+    .replace(/^\s*:::\s*page-?break\s*$/gim, '<div class="page-break"></div>')
+    .replace(/<!--\s*page-break\s+(odd|even|right|left)\s*-->/gi, '<div class="page-break" data-break="$1"></div>');
+
+  processed = processed
+    .replace(/<!--\s*column-break\s*-->/gi, '<div class="column-break"></div>')
+    .replace(/^\s*:::\s*column-?break\s*$/gim, '<div class="column-break"></div>');
+
+  processed = processed
+    .replace(
+      /<!--\s*columns:(\d+)(?:\s+gap:(\S+))?(?:\s+rule:(true|false))?\s*-->/gi,
+      (match, count, gap, rule) => `<div class="md-columns" data-count="${count}" data-gap="${gap || '20pt'}" data-rule="${rule === 'true'}">`
+    )
+    .replace(/<!--\s*\/columns\s*-->/gi, '</div>')
+    .replace(
+      /^\s*:::\s*columns\{count=(\d+)(?:\s+gap=(\S+))?(?:\s+rule=(true|false))?\}\s*$/gim,
+      (match, count, gap, rule) => `<div class="md-columns" data-count="${count}" data-gap="${gap || '20pt'}" data-rule="${rule === 'true'}">`
+    );
+
+  processed = processed
+    .replace(/<!--\s*chapter\s*-->/gi, '<div class="chapter-marker"></div>')
+    .replace(/^\s*:::\s*chapter\s*$/gim, '<div class="chapter-marker"></div>');
+
+  processed = processed
+    .replace(
+      /<!--\s*section:(\S+)(?:\s+columns:(\d+))?\s*-->/gi,
+      (match, type, cols) => `<div class="section-break" data-type="${type}" data-columns="${cols || '1'}"></div>`
+    )
+    .replace(
+      /^\s*:::\s*section\{type=(\S+)(?:\s+columns=(\d+))?\}\s*$/gim,
+      (match, type, cols) => `<div class="section-break" data-type="${type}" data-columns="${cols || '1'}"></div>`
+    );
+
+  processed = processed
+    .replace(/<!--\s*table:(\w+)\s*-->/gi, '<div class="table-layout-marker" data-layout="$1"></div>')
+    .replace(/^\s*:::\s*table\{layout=(\w+)\}\s*$/gim, '<div class="table-layout-marker" data-layout="$1"></div>');
+
+  processed = processed
+    .replace(/<!--\s*title-page\s*-->/gi, '<div class="title-page-marker" data-start="true"></div>')
+    .replace(/<!--\s*\/title-page\s*-->/gi, '<div class="title-page-marker" data-end="true"></div>')
+    .replace(/^\s*:::\s*title-?page\s*$/gim, '<div class="title-page-marker" data-start="true"></div>');
+
+  processed = processed
+    .replace(/<!--\s*blank-page\s*-->/gi, '<div class="blank-page-marker"></div>')
+    .replace(/^\s*:::\s*blank-?page\s*$/gim, '<div class="blank-page-marker"></div>');
+
+  return processed;
+};
+
 let layoutBlockMarker = null;
 const updateLayoutBlockVisibility = () => {
   if (!editorView) return;
@@ -1503,6 +1557,10 @@ const syncSettingsUI = () => {
   const documentLayoutDefaultPreset = document.getElementById("documentLayoutDefaultPreset");
   if (documentLayoutDefaultPreset) {
     documentLayoutDefaultPreset.value = activeSettings.documentLayoutDefaultPreset || "scientific";
+  }
+  const collabDisplayNameInput = document.getElementById("collabDisplayName");
+  if (collabDisplayNameInput) {
+    collabDisplayNameInput.value = localStorage.getItem("md-collab-display-name") || "";
   }
   const allowDocumentLayouts = activeSettings.allowDocumentLayouts !== false;
   const hideLayoutInput = document.querySelector('[data-setting="hideLayoutBlock"]');
@@ -3040,7 +3098,7 @@ const renderPreview = () => {
     wasHealed = true;
   }
   
-  const previewText = stripLayoutBlock(text);
+  const previewText = preprocessLayoutCommands(stripLayoutBlock(text));
   if (previewPreset === "document") {
     refreshDynamicStyles(text);
   }
@@ -3891,7 +3949,7 @@ const loadPaste = async (id) => {
   setStatus(t("loaded"), "success");
 
   // Initialize collaborative editing if paste is shared
-  if (data.shared) {
+  if (data.shared && activeSettings.collabEnabled !== false) {
     try {
       const collabSupport = window.collabSupport || 
         (window.collabSupport = (await import("./modules/collab-integration.js")).initCollabSupport({
@@ -6549,6 +6607,15 @@ document.querySelectorAll("[data-setting]").forEach((input) => {
 
 document.getElementById("documentLayoutDefaultPreset")?.addEventListener("change", (event) => {
   applySettings({ documentLayoutDefaultPreset: event.target.value || "scientific" });
+});
+
+document.getElementById("collabDisplayName")?.addEventListener("input", (event) => {
+  const value = event.target.value.trim();
+  if (value) {
+    localStorage.setItem("md-collab-display-name", value);
+  } else {
+    localStorage.removeItem("md-collab-display-name");
+  }
 });
 elements.copyNodeMdBtn?.addEventListener("click", () => {
   const node = selectedNodeId ? findNodeById(lastTree, selectedNodeId) : null;

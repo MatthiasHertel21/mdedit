@@ -3863,23 +3863,27 @@ section {
 .collab-presence-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px 0;
-  min-height: 46px;
+  gap: 4px;
 }
 
 .presence-avatar,
 .presence-more {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   border: 2px solid var(--panel);
-  box-shadow: 0 8px 20px rgba(34, 83, 107, 0.12);
+  box-shadow: 0 2px 6px rgba(34, 83, 107, 0.15);
+  margin-left: -6px;
+}
+
+.collab-presence-container .presence-avatar:first-child,
+.collab-presence-container .presence-more:first-child {
+  margin-left: 0;
 }
 
 .presence-avatar {

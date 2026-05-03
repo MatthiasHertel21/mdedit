@@ -1580,10 +1580,30 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
     }
   }
 
-  const memberId = crypto.randomUUID();
-  const fantasyName = getRandomFantasyName();
-  const avatarColor = getAvatarColor(memberId);
+  const { displayName, memberId: requestedMemberId } = req.body || {};
+  const sanitizedDisplayName = typeof displayName === "string" && displayName.trim().length > 0 && displayName.trim().length <= 60
+    ? displayName.trim() : null;
   const ts = nowIso();
+
+  // Reuse existing identity if the client sends a known memberId for this paste
+  if (requestedMemberId && typeof requestedMemberId === "string") {
+    const existing = db.prepare(
+      "SELECT id, fantasy_name, avatar_color FROM collab_members WHERE id = ? AND paste_id = ?"
+    ).get(requestedMemberId, req.params.id);
+
+    if (existing) {
+      db.prepare("UPDATE collab_members SET last_seen = ? WHERE id = ?").run(ts, existing.id);
+      return {
+        memberId: existing.id,
+        fantasyName: existing.fantasy_name,
+        avatarColor: existing.avatar_color
+      };
+    }
+  }
+
+  const memberId = crypto.randomUUID();
+  const fantasyName = sanitizedDisplayName || getRandomFantasyName();
+  const avatarColor = getAvatarColor(memberId);
 
   db.prepare(
     "INSERT INTO collab_members (id, paste_id, session_id, fantasy_name, avatar_color, last_seen, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"

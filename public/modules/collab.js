@@ -65,16 +65,38 @@ export class CollabManager {
     }
   }
 
+  _identityKey() {
+    return `md-collab-identity-${this.pasteId}`;
+  }
+
+  _loadStoredIdentity() {
+    try {
+      return JSON.parse(localStorage.getItem(this._identityKey())) || null;
+    } catch { return null; }
+  }
+
+  _saveIdentity(memberId, fantasyName, avatarColor) {
+    try {
+      localStorage.setItem(this._identityKey(), JSON.stringify({ memberId, fantasyName, avatarColor }));
+    } catch { /* ignore */ }
+  }
+
   // Join collab session
-  async join(password = null) {
+  async join(options = {}) {
+    const { password = null, displayName = null } = typeof options === "string"
+      ? { password: options }
+      : options;
     try {
       this.manualDisconnect = false;
 
-      // Register member (server validates password if set)
+      const stored = this._loadStoredIdentity();
+
+      // Register member (server validates password if set, reuses existing identity if memberId known)
+      const body = { ...(password ? { password } : {}), ...(stored?.memberId ? { memberId: stored.memberId } : {}), ...(displayName ? { displayName } : {}) };
       const res = await fetch(`/api/pastes/${this.pasteId}/collab/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(password ? { password } : {})
+        body: JSON.stringify(body)
       });
 
       if (!res.ok) {
@@ -86,6 +108,9 @@ export class CollabManager {
       this.memberId = memberId;
       this.fantasyName = fantasyName;
       this.avatarColor = avatarColor;
+
+      // Persist identity so reloads reuse the same member entry
+      this._saveIdentity(memberId, fantasyName, avatarColor);
 
       // Connect WebSocket
       this.connectWebSocket();

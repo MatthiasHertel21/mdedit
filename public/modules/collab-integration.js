@@ -13,6 +13,7 @@ export function initCollabSupport(app, elements) {
   let passwordDialog = null;
   let chatSyncIntervalId = null;
   let chatMessagesSyncIntervalId = null;
+  let presenceIntervalId = null;
 
   const t = (key, fallback) => window.t?.(key) || fallback;
 
@@ -154,6 +155,13 @@ export function initCollabSupport(app, elements) {
     collabManager.on("member-left", (data) => {
       presenceManager?.removeMember(data.memberId);
     });
+
+    // Poll presence every 5 s so newly joined members appear even without WS events
+    if (presenceIntervalId) window.clearInterval(presenceIntervalId);
+    presenceIntervalId = window.setInterval(async () => {
+      if (!collabManager) return;
+      await collabManager.loadMembers();
+    }, 5000);
   };
 
   const setupCollabChat = async () => {
@@ -298,11 +306,19 @@ export function initCollabSupport(app, elements) {
       window.clearInterval(chatMessagesSyncIntervalId);
       chatMessagesSyncIntervalId = null;
     }
+    if (presenceIntervalId) {
+      window.clearInterval(presenceIntervalId);
+      presenceIntervalId = null;
+    }
     collabManager?.disconnect();
     collabManager = null;
     presenceManager = null;
     passwordDialog = null;
     setCollabUiVisible(false);
+  };
+
+  const getDisplayName = () => {
+    return localStorage.getItem("md-collab-display-name")?.trim() || null;
   };
 
   const initCollab = async (pasteId, isShared = false) => {
@@ -311,6 +327,13 @@ export function initCollabSupport(app, elements) {
     if (!isShared) {
       return;
     }
+
+    // Check user setting: opt-out of collab
+    const collabEnabled = localStorage.getItem("md-settings");
+    try {
+      const settings = collabEnabled ? JSON.parse(collabEnabled) : {};
+      if (settings.collabEnabled === false) return;
+    } catch { /* ignore */ }
 
     collabManager = new CollabManager(pasteId, app.sessionId || "");
 
@@ -343,7 +366,7 @@ export function initCollabSupport(app, elements) {
       }
     }
 
-    const joined = await collabManager.join(password);
+    const joined = await collabManager.join({ password, displayName: getDisplayName() });
     if (!joined) {
       await showMessageDialog({
         title: t("collabChat", "Team chat"),

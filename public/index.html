@@ -115,12 +115,12 @@
                     </div>
                   </div>
                 </div>
+                <div id="collabPresenceContainer" class="collab-presence-container hidden"></div>
                 <button id="collabPasswordBtn" class="header-icon hidden" title="Passwort" aria-label="Passwort" style="display: none;" data-i18n-title="collabPassword" data-i18n-aria="collabPassword">
                   <i class="fa-solid fa-key"></i>
                 </button>
               </div>
             </div>
-            <div id="collabPresenceContainer" class="collab-presence-container hidden"></div>
             <div id="markdownEditor" class="editor-host"></div>
             <div id="editorSuggestion" class="editor-suggestion hidden"></div>
           </section>
@@ -496,6 +496,20 @@
           <div class="settings-grid settings-grid-split">
             <div class="settings-column">
               <h3 class="settings-column-title" data-i18n="editorColumnGeneral">Allgemein</h3>
+              <div class="settings-language-row">
+                <label for="collabDisplayName" data-i18n="settingCollabDisplayName">Anzeigename (Kollaboration)</label>
+                <input type="text" id="collabDisplayName" class="setting-select" placeholder="Dein Name" data-i18n-placeholder="settingCollabDisplayNamePlaceholder" maxlength="50" autocomplete="off" />
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="collabEnabled" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingCollabEnabled">Gemeinsame Bearbeitung erlauben</div>
+                  <div class="setting-subtitle" data-i18n="settingCollabEnabledDesc">Automatisch an geteilten Dokumenten teilnehmen</div>
+                </div>
+              </div>
               <div class="setting">
                 <label class="switch">
                   <input type="checkbox" id="autoSyncToggle" data-setting="autoSync" />
