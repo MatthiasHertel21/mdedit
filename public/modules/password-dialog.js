@@ -8,6 +8,7 @@ export class PasswordDialog {
     this.callbacks = callbacks;
     this.isOpen = false;
     this.currentPassword = null;
+    this.hasExistingPassword = false;
   }
 
   // Open dialog (for setting password)
@@ -42,8 +43,8 @@ export class PasswordDialog {
 
           <div id="passwordInputSection" class="password-input-section hidden">
             <label for="passwordInput" data-i18n="passwordInputLabel">Passwort</label>
-            <input type="password" id="passwordInput" class="password-input" placeholder="Passwort eingeben" />
-            <input type="password" id="passwordConfirm" class="password-input" placeholder="Passwort wiederholen" />
+            <input type="password" id="passwordInput" class="password-input" placeholder="Passwort eingeben" data-i18n-placeholder="passwordInputPlaceholder" />
+            <input type="password" id="passwordConfirm" class="password-input" placeholder="Passwort wiederholen" data-i18n-placeholder="passwordConfirmPlaceholder" />
             <div id="passwordMatchError" class="error-text hidden" data-i18n="passwordMismatch">Passwörter stimmen nicht überein</div>
           </div>
 
@@ -70,6 +71,7 @@ export class PasswordDialog {
 
     document.body.appendChild(overlay);
     document.body.appendChild(modal);
+  overlay.addEventListener("click", () => this.close());
 
     // Event listeners
     const closeBtn = modal.querySelector(".modal-header .icon");
@@ -115,6 +117,7 @@ export class PasswordDialog {
       const inputSection = document.querySelector("#passwordInputSection");
       
       if (settings.hasPassword) {
+        this.hasExistingPassword = true;
         toggle.checked = true;
         inputSection.classList.remove("hidden");
       }
@@ -133,7 +136,7 @@ export class PasswordDialog {
     const toggle = document.querySelector("#passwordProtectionToggle");
     const removeBtn = document.querySelector("#passwordRemoveBtn");
     
-    if (toggle.checked) {
+    if (toggle.checked && this.hasExistingPassword) {
       removeBtn.classList.remove("hidden");
     } else {
       removeBtn.classList.add("hidden");
@@ -162,6 +165,10 @@ export class PasswordDialog {
       }
     }
 
+    errorText.classList.add("hidden");
+    const canRead = document.querySelector("#canRead")?.checked ?? true;
+    const canWrite = document.querySelector("#canWrite")?.checked ?? true;
+
     // Save to server
     saveBtn.disabled = true;
     try {
@@ -169,7 +176,9 @@ export class PasswordDialog {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          password: toggle.checked ? passwordInput.value : null
+          password: toggle.checked ? passwordInput.value : null,
+          canRead,
+          canWrite
         })
       });
 
@@ -182,6 +191,7 @@ export class PasswordDialog {
         this.callbacks.onSave();
       }
 
+      this.hasExistingPassword = toggle.checked;
       this.close();
     } catch (e) {
       console.error("Error saving password:", e);
@@ -201,7 +211,7 @@ export class PasswordDialog {
       const res = await fetch(`/api/pastes/${this.pasteId}/collab/password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: null })
+        body: JSON.stringify({ password: null, canRead: true, canWrite: true })
       });
 
       if (!res.ok) {
@@ -213,6 +223,7 @@ export class PasswordDialog {
         this.callbacks.onRemove();
       }
 
+      this.hasExistingPassword = false;
       this.close();
     } catch (e) {
       console.error("Error removing password:", e);

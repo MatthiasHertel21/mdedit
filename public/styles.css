@@ -3857,6 +3857,220 @@ section {
   background: var(--accent-light);
   color: var(--accent);
 }
+
+/* ===== COLLAB STYLES ===== */
+
+.collab-presence-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 0;
+  min-height: 46px;
+}
+
+.presence-avatar,
+.presence-more {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--panel);
+  box-shadow: 0 8px 20px rgba(34, 83, 107, 0.12);
+}
+
+.presence-avatar {
+  color: white;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.presence-avatar:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 12px 24px rgba(34, 83, 107, 0.2);
+}
+
+.presence-more {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+#passwordDialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.password-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.password-input-section,
+.permissions-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.password-input-section label,
+.permissions-block h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.password-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.password-input:focus,
+.collab-thread-select:focus,
+.collab-chat-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 137, 207, 0.14);
+}
+
+.error-text {
+  font-size: 12px;
+  color: #c62828;
+}
+
+.password-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.collab-chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.collab-thread-select {
+  min-width: 150px;
+  max-width: 210px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.collab-chat-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at top right, rgba(0, 137, 207, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 252, 254, 0.96));
+}
+
+.collab-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.collab-chat-message {
+  align-self: flex-start;
+  width: min(100%, 460px);
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 137, 207, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(34, 83, 107, 0.08);
+}
+
+.collab-chat-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.collab-chat-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.collab-chat-time {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.collab-chat-input-area {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.collab-chat-input {
+  flex: 1;
+  min-height: 50px;
+  max-height: 150px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.collab-chat-input-area .primary-btn {
+  height: 50px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .collab-thread-select {
+    min-width: 120px;
+    max-width: 160px;
+  }
+
+  .collab-chat-input-area,
+  .password-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .collab-chat-input-area .primary-btn,
+  .password-dialog-actions .primary-btn,
+  .password-dialog-actions .btn-secondary {
+    width: 100%;
+  }
+}
 /* Mermaid Editor Modal */
 .mermaid-editor-body {
   padding: 0;

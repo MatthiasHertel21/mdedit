@@ -76,7 +76,8 @@ export class CollabManager {
       // Register member
       const res = await fetch(`/api/pastes/${this.pasteId}/collab/join`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: "{}"
       });
 
       if (!res.ok) {
@@ -102,20 +103,13 @@ export class CollabManager {
   // Connect WebSocket
   connectWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/api/pastes/${this.pasteId}/collab/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/api/pastes/${this.pasteId}/collab/ws?memberId=${encodeURIComponent(this.memberId)}`;
 
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
       this.isConnected = true;
       this.emit("connected", { memberId: this.memberId, fantasyName: this.fantasyName });
-      
-      // Send join message
-      this.socket.send(JSON.stringify({
-        type: "join",
-        memberId: this.memberId,
-        fantasyName: this.fantasyName
-      }));
 
       // Load members
       this.loadMembers();
@@ -172,11 +166,22 @@ export class CollabManager {
         });
         break;
 
-      case "chat":
+      case "chat": {
+        const member = this.members.get(msg.memberId);
         this.emit("chat-message", {
           threadId: msg.threadId,
           memberId: msg.memberId,
+          memberName: msg.memberName || member?.fantasyName || member?.fantasy_name || "Anonymous",
           content: msg.content,
+          timestamp: msg.timestamp
+        });
+        break;
+      }
+
+      case "chat-thread-created":
+        this.emit("chat-thread-created", {
+          threadId: msg.threadId,
+          title: msg.title,
           timestamp: msg.timestamp
         });
         break;
@@ -194,9 +199,11 @@ export class CollabManager {
 
       const { members } = await res.json();
       members.forEach(m => {
-        if (m.id !== this.memberId) {
-          this.members.set(m.id, m);
-        }
+        this.members.set(m.id, {
+          ...m,
+          fantasyName: m.fantasyName || m.fantasy_name,
+          avatarColor: m.avatarColor || m.avatar_color
+        });
       });
 
       this.emit("members-loaded", { members: Array.from(this.members.values()) });
@@ -332,16 +339,25 @@ export class CollabManager {
   }
 
   // Send chat message
-  sendChatMessage(threadId, message) {
-    if (!this.isConnected) return false;
+  async sendChatMessage(threadId, message) {
+    try {
+      const res = await fetch(
+        `/api/pastes/${this.pasteId}/collab/chat/threads/${threadId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            memberId: this.memberId,
+            message
+          })
+        }
+      );
 
-    this.socket.send(JSON.stringify({
-      type: "chat",
-      threadId,
-      content: message
-    }));
-
-    return true;
+      return res.ok;
+    } catch (e) {
+      console.error("Error sending chat message:", e);
+      return false;
+    }
   }
 
   // Disconnect

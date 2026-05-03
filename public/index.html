@@ -115,7 +115,7 @@
                     </div>
                   </div>
                 </div>
-                <button id="collabPasswordBtn" class="header-icon hidden" title="Passwort" aria-label="Passwort" style="display: none;">
+                <button id="collabPasswordBtn" class="header-icon hidden" title="Passwort" aria-label="Passwort" style="display: none;" data-i18n-title="collabPassword" data-i18n-aria="collabPassword">
                   <i class="fa-solid fa-key"></i>
                 </button>
               </div>
@@ -158,6 +158,9 @@
                       </button>
                       <button id="aiChatToggle" class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent (Alt+Space)" aria-label="KI-Assistent" data-i18n-title="aiChat" data-i18n-aria="aiChat">
                         <i class="fa-solid fa-robot"></i>
+                      </button>
+                      <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
+                        <i class="fa-solid fa-users"></i>
                       </button>
                     </div>
                   </div>
@@ -206,6 +209,9 @@
                     <button class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
                       <i class="fa-solid fa-robot"></i>
                     </button>
+                    <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
+                      <i class="fa-solid fa-users"></i>
+                    </button>
                   </div>
                 </div>
                 <div class="tree-panel-body">
@@ -239,6 +245,9 @@
                     <button class="header-icon view-toggle-btn active" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
                       <i class="fa-solid fa-robot"></i>
                     </button>
+                    <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
+                      <i class="fa-solid fa-users"></i>
+                    </button>
                   </div>
                 </div>
                 <div id="aiChatBody" class="ai-chat-body">
@@ -259,10 +268,22 @@
                     <span data-i18n="collabChat">Team-Chat</span>
                   </div>
                   <div class="header-icons">
-                    <button id="newCollabThreadBtn" class="header-icon" title="Neuer Thread" aria-label="Neuer Thread">
+                    <button id="newCollabThreadBtn" class="header-icon" title="Neuer Thread" aria-label="Neuer Thread" data-i18n-title="collabThreadNew" data-i18n-aria="collabThreadNew">
                       <i class="fa-solid fa-plus"></i>
                     </button>
-                    <select id="collabThreadSelect" class="collab-thread-select" aria-label="Thread auswählen"></select>
+                    <select id="collabThreadSelect" class="collab-thread-select" aria-label="Thread auswählen" data-i18n-aria="collabThreadSelect"></select>
+                    <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
+                      <i class="fa-solid fa-align-left"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn" data-view="tree" title="Baum" aria-label="Baum">
+                      <i class="fa-solid fa-network-wired"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
+                      <i class="fa-solid fa-robot"></i>
+                    </button>
+                    <button class="header-icon view-toggle-btn active collab-chat-toggle" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
+                      <i class="fa-solid fa-users"></i>
+                    </button>
                   </div>
                 </div>
                 <div id="collabChatBody" class="collab-chat-body">

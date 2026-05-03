@@ -1091,6 +1091,9 @@ const elements = {
   previewTreeToggle: document.getElementById("previewTreeToggle"),
   previewRenderToggle: document.getElementById("previewRenderToggle"),
   previewDocxBtn: document.getElementById("previewDocxBtn"),
+  collabPasswordBtn: document.getElementById("collabPasswordBtn"),
+  collabPresenceContainer: document.getElementById("collabPresenceContainer"),
+  collabChatPanel: document.getElementById("collabChatPanel"),
   historyList: document.getElementById("historyList"),
   newPasteBtn: document.getElementById("newPasteBtn"),
   historySearch: document.getElementById("historySearch"),
@@ -1181,6 +1184,7 @@ const elements = {
 };
 
 let currentPasteId = null;
+let currentPasteIsShared = false;
 let currentWorkspace = "default";
 let tipsData = [];
 let tipsLoadedLocale = null;
@@ -1211,6 +1215,7 @@ let treeVisible = false;
 let lastStatsText = "";
 let imageManager = null;
 let previewSyncHighlightTimeout = null;
+let suppressCollabBroadcast = false;
 
 const sidebarPinModeKey = "sidebarPinMode";
 const sidebarCollapsedKey = "sidebarCollapsed";
@@ -3262,12 +3267,14 @@ const setView = (view) => {
   localStorage.setItem("currentView", view);
   treeVisible = view === "tree";
   const chatVisible = view === "chat";
-  const previewVisible = !treeVisible && !chatVisible;
+  const collabVisible = view === "collab";
+  const previewVisible = !treeVisible && !chatVisible && !collabVisible;
   
   // Toggle panels
   elements.previewPanel?.classList.toggle("active", previewVisible);
   elements.treePanel?.classList.toggle("active", treeVisible);
   elements.aiChatPanel?.classList.toggle("active", chatVisible);
+  elements.collabChatPanel?.classList.toggle("active", collabVisible);
   
   // Toggle button states
   elements.viewPreviewBtn?.classList.toggle("primary", previewVisible);
@@ -3287,6 +3294,8 @@ const setView = (view) => {
     if (aiChat) {
       document.getElementById("aiChatInput")?.focus();
     }
+  } else if (collabVisible) {
+    document.getElementById("collabChatInput")?.focus();
   } else {
     renderPreview();
   }
@@ -3853,6 +3862,7 @@ const loadPaste = async (id) => {
   if (!res.ok) return;
   const data = await res.json();
   currentPasteId = data.id;
+  currentPasteIsShared = !!data.shared;
   // Loading an existing paste must not trigger "new document" state.
   clearedForNew = false;
   localStorage.setItem("lastPasteId", data.id);
@@ -3881,17 +3891,27 @@ const loadPaste = async (id) => {
   setStatus(t("loaded"), "success");
 
   // Initialize collaborative editing if paste is shared
-  if (data.shared && window.initCollabSupport) {
+  if (data.shared) {
     try {
       const collabSupport = window.collabSupport || 
         (window.collabSupport = (await import("./modules/collab-integration.js")).initCollabSupport({
-          sessionId: currentSessionId || ""
+          sessionId: "",
+          applyRemoteMarkdown: (markdown) => {
+            suppressCollabBroadcast = true;
+            setMarkdown(markdown);
+            suppressCollabBroadcast = false;
+            updateLive();
+          },
+          setView,
+          getCurrentView: () => currentView
         }, elements));
       
       await collabSupport.initCollab(id, data.shared);
     } catch (error) {
       console.warn("Failed to initialize collab:", error);
     }
+  } else {
+    window.collabSupport?.disconnect?.();
   }
 };
 
@@ -3916,6 +3936,7 @@ const createOrUpdatePaste = async () => {
       }
       const data = await res.json();
       currentPasteId = data.id;
+      currentPasteIsShared = false;
 
       // Initialize image manager for new paste
       try {
@@ -4279,6 +4300,9 @@ const handleEditorChange = () => {
     setStatus(t("newDoc"), "success");
   }
   updateLive();
+  if (!suppressCollabBroadcast) {
+    window.collabSupport?.getCollabManager?.()?.sendEdit(text);
+  }
   autosave();
 };
 
@@ -5478,9 +5502,22 @@ elements.permalinkBtn?.addEventListener("click", async () => {
       });
       if (res.ok) {
         currentPasteIsShared = true;
-        // Show password button
-        if (elements.collabPasswordBtn) {
-          elements.collabPasswordBtn.style.display = "inline-block";
+        try {
+          const collabSupport = window.collabSupport ||
+            (window.collabSupport = (await import("./modules/collab-integration.js")).initCollabSupport({
+              sessionId: "",
+              applyRemoteMarkdown: (markdown) => {
+                suppressCollabBroadcast = true;
+                setMarkdown(markdown);
+                suppressCollabBroadcast = false;
+                updateLive();
+              },
+              setView,
+              getCurrentView: () => currentView
+            }, elements));
+          await collabSupport.initCollab(currentPasteId, true);
+        } catch (err) {
+          console.warn("Failed to activate collab after sharing:", err);
         }
       }
     } catch (err) {

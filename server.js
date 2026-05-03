@@ -1458,7 +1458,7 @@ const getAvatarColor = (id) => {
 
 // Password API: Set/Update/Remove password
 app.post("/api/pastes/:id/collab/password", async (req, reply) => {
-  const { password } = req.body || {};
+  const { password, canRead, canWrite } = req.body || {};
   
   const paste = db.prepare(
     "SELECT session_id FROM pastes WHERE id = ? AND session_id = ?"
@@ -1471,16 +1471,18 @@ app.post("/api/pastes/:id/collab/password", async (req, reply) => {
 
   const ts = nowIso();
   const passwordHash = password ? await bcryptjs.hash(password, 10) : null;
+  const normalizedCanWrite = typeof canWrite === "boolean" ? canWrite : true;
+  const normalizedCanRead = typeof canRead === "boolean" ? (canRead || normalizedCanWrite) : true;
   
   const existing = db.prepare("SELECT paste_id FROM collab_settings WHERE paste_id = ?").get(req.params.id);
   
   if (existing) {
-    db.prepare("UPDATE collab_settings SET password_hash = ?, updated_at = ? WHERE paste_id = ?")
-      .run(passwordHash, ts, req.params.id);
+    db.prepare("UPDATE collab_settings SET password_hash = ?, can_read = ?, can_write = ?, updated_at = ? WHERE paste_id = ?")
+      .run(passwordHash, normalizedCanRead ? 1 : 0, normalizedCanWrite ? 1 : 0, ts, req.params.id);
   } else {
     db.prepare(
-      "INSERT INTO collab_settings (paste_id, password_hash, can_read, can_write, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)"
-    ).run(req.params.id, passwordHash, ts, ts);
+      "INSERT INTO collab_settings (paste_id, password_hash, can_read, can_write, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(req.params.id, passwordHash, normalizedCanRead ? 1 : 0, normalizedCanWrite ? 1 : 0, ts, ts);
   }
   
   return { ok: true };
@@ -1540,7 +1542,7 @@ app.post("/api/pastes/:id/collab/verify-password", async (req, reply) => {
 
 // Collab members: Register member when joining
 app.post("/api/pastes/:id/collab/join", async (req, reply) => {
-  const paste = db.prepare("SELECT id, shared FROM pastes WHERE id = ?").get(req.params.id);
+  const paste = db.prepare("SELECT id, shared, session_id FROM pastes WHERE id = ?").get(req.params.id);
   
   if (!paste) {
     reply.code(404);
@@ -1549,11 +1551,16 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
 
   if (!paste.shared) {
     // Private paste - allow only owner
-    const owner = db.prepare("SELECT session_id FROM pastes WHERE id = ?").get(req.params.id);
-    if (owner.session_id !== req.sessionId) {
+    if (paste.session_id !== req.sessionId) {
       reply.code(403);
       return { error: "Not authorized" };
     }
+  }
+
+  const settings = db.prepare("SELECT can_read FROM collab_settings WHERE paste_id = ?").get(req.params.id);
+  if (paste.shared && settings && !settings.can_read && paste.session_id !== req.sessionId) {
+    reply.code(403);
+    return { error: "Read access disabled" };
   }
 
   const memberId = crypto.randomUUID();
@@ -1643,7 +1650,10 @@ const connectedClients = new Map(); // Map<pasteId, Map<memberId, socket>>
 app.register(async (fastify) => {
   fastify.get("/api/pastes/:id/collab/ws", { websocket: true }, (socket, req) => {
     const pasteId = req.params.id;
-    const memberId = req.body?.memberId || crypto.randomUUID();
+    const memberId = req.query?.memberId || crypto.randomUUID();
+    const member = db.prepare(
+      "SELECT fantasy_name, avatar_color FROM collab_members WHERE id = ? AND paste_id = ?"
+    ).get(memberId, pasteId);
 
     if (!connectedClients.has(pasteId)) {
       connectedClients.set(pasteId, new Map());
@@ -1656,7 +1666,8 @@ app.register(async (fastify) => {
     broadcastToClients(pasteId, {
       type: "member-joined",
       memberId,
-      fantasyName: req.body?.fantasyName || "Anonymous"
+      fantasyName: member?.fantasy_name || "Anonymous",
+      avatarColor: member?.avatar_color || getAvatarColor(memberId)
     }, memberId);
 
     socket.on("message", (data) => {
@@ -1692,6 +1703,21 @@ const broadcastToClients = (pasteId, message, excludeMemberId = null) => {
 
 const handleCollabMessage = (pasteId, memberId, message) => {
   const { type, content } = message;
+  const ts = nowIso();
+
+  db.prepare("UPDATE collab_members SET last_seen = ? WHERE id = ? AND paste_id = ?")
+    .run(ts, memberId, pasteId);
+
+  if (type === "edit") {
+    const member = db.prepare("SELECT session_id FROM collab_members WHERE id = ? AND paste_id = ?").get(memberId, pasteId);
+    const paste = db.prepare("SELECT session_id FROM pastes WHERE id = ?").get(pasteId);
+    const settings = db.prepare("SELECT can_write FROM collab_settings WHERE paste_id = ?").get(pasteId);
+    const canWrite = settings?.can_write ?? 1;
+
+    if (!canWrite && member?.session_id !== paste?.session_id) {
+      return;
+    }
+  }
 
   if (type === "edit") {
     // Save snapshot every 30 seconds (simplified - not per-message)
@@ -1703,7 +1729,6 @@ const handleCollabMessage = (pasteId, memberId, message) => {
     const lastSnapshotTime = lastSnapshot ? new Date(lastSnapshot.created_at).getTime() : 0;
     
     if (now - lastSnapshotTime > 30000) {
-      const ts = nowIso();
       db.prepare(
         "INSERT INTO collab_snapshots (id, paste_id, markdown, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
       ).run(crypto.randomUUID(), pasteId, content, ts, memberId);
@@ -1725,7 +1750,6 @@ const handleCollabMessage = (pasteId, memberId, message) => {
   } else if (type === "chat") {
     // Save chat message
     const threadId = message.threadId;
-    const ts = nowIso();
     const msgId = crypto.randomUUID();
     
     db.prepare(
@@ -1769,6 +1793,13 @@ app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
     "INSERT INTO collab_chat_threads (id, paste_id, title, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
   ).run(threadId, req.params.id, title, ts, memberId);
 
+  broadcastToClients(req.params.id, {
+    type: "chat-thread-created",
+    threadId,
+    title,
+    timestamp: ts
+  });
+
   return { threadId, title };
 });
 
@@ -1810,6 +1841,59 @@ app.get("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, re
   `).all(threadId);
 
   return { messages };
+});
+
+app.post("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, reply) => {
+  const { threadId } = req.params;
+  const { memberId, message } = req.body || {};
+
+  const thread = db.prepare(
+    "SELECT paste_id FROM collab_chat_threads WHERE id = ?"
+  ).get(threadId);
+
+  if (!thread || thread.paste_id !== req.params.id) {
+    reply.code(404);
+    return { error: "Thread not found" };
+  }
+
+  if (!memberId || typeof memberId !== "string") {
+    reply.code(400);
+    return { error: "Invalid member" };
+  }
+
+  if (!message || typeof message !== "string" || !message.trim()) {
+    reply.code(400);
+    return { error: "Invalid message" };
+  }
+
+  const member = db.prepare(
+    "SELECT id, fantasy_name FROM collab_members WHERE id = ? AND paste_id = ?"
+  ).get(memberId, req.params.id);
+
+  if (!member) {
+    reply.code(404);
+    return { error: "Member not found" };
+  }
+
+  const msgId = crypto.randomUUID();
+  const ts = nowIso();
+  const content = message.trim();
+
+  db.prepare(
+    "INSERT INTO collab_chat_messages (id, thread_id, member_id, message, created_at) VALUES (?, ?, ?, ?, ?)"
+  ).run(msgId, threadId, memberId, content, ts);
+
+  broadcastToClients(req.params.id, {
+    type: "chat",
+    threadId,
+    messageId: msgId,
+    memberId,
+    memberName: member.fantasy_name,
+    content,
+    timestamp: ts
+  });
+
+  return { messageId: msgId, timestamp: ts };
 });
 
 const start = async () => {
