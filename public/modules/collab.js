@@ -16,6 +16,10 @@ export class CollabManager {
     this.eventListeners = new Map();
     this.snapshotQueue = [];
     this.lastSnapshotTime = 0;
+    this.reconnectTimer = null;
+    this.reconnectAttempts = 0;
+    this.handshakeTimer = null;
+    this.manualDisconnect = false;
   }
 
   // Register event listener
@@ -63,6 +67,8 @@ export class CollabManager {
   // Join collab session
   async join(password = null) {
     try {
+      this.manualDisconnect = false;
+
       // Verify password if needed
       const needsPassword = await this.checkPasswordProtection();
       if (needsPassword && password) {
@@ -100,15 +106,67 @@ export class CollabManager {
     }
   }
 
+  clearReconnectTimer() {
+    if (this.reconnectTimer) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  clearHandshakeTimer() {
+    if (this.handshakeTimer) {
+      window.clearTimeout(this.handshakeTimer);
+      this.handshakeTimer = null;
+    }
+  }
+
+  hasOpenSocket() {
+    return this.socket?.readyState === WebSocket.OPEN;
+  }
+
+  scheduleReconnect() {
+    if (this.manualDisconnect || !this.memberId || this.reconnectTimer) {
+      return;
+    }
+
+    const delay = Math.min(1000 * (2 ** this.reconnectAttempts), 10000);
+    this.reconnectAttempts += 1;
+    this.emit("reconnecting", { attempt: this.reconnectAttempts, delay });
+
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connectWebSocket();
+    }, delay);
+  }
+
   // Connect WebSocket
   connectWebSocket() {
+    if (this.manualDisconnect || !this.memberId) {
+      return;
+    }
+
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    this.clearReconnectTimer();
+    this.clearHandshakeTimer();
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/api/pastes/${this.pasteId}/collab/ws?memberId=${encodeURIComponent(this.memberId)}`;
 
     this.socket = new WebSocket(wsUrl);
 
+    this.handshakeTimer = window.setTimeout(() => {
+      if (this.socket?.readyState === WebSocket.CONNECTING) {
+        this.socket.close();
+      }
+    }, 8000);
+
     this.socket.onopen = () => {
+      this.clearHandshakeTimer();
       this.isConnected = true;
+      this.reconnectAttempts = 0;
       this.emit("connected", { memberId: this.memberId, fantasyName: this.fantasyName });
 
       // Load members
@@ -130,8 +188,11 @@ export class CollabManager {
     };
 
     this.socket.onclose = () => {
+      this.clearHandshakeTimer();
       this.isConnected = false;
       this.emit("disconnected");
+      this.socket = null;
+      this.scheduleReconnect();
     };
   }
 
@@ -214,7 +275,7 @@ export class CollabManager {
 
   // Send edit
   sendEdit(markdown) {
-    if (!this.isConnected) return;
+    if (!this.hasOpenSocket()) return;
     
     this.socket.send(JSON.stringify({
       type: "edit",
@@ -242,7 +303,7 @@ export class CollabManager {
 
   // Send cursor position
   sendCursor(position) {
-    if (!this.isConnected) return;
+    if (!this.hasOpenSocket()) return;
 
     this.socket.send(JSON.stringify({
       type: "cursor",
@@ -362,11 +423,15 @@ export class CollabManager {
 
   // Disconnect
   disconnect() {
+    this.manualDisconnect = true;
+    this.clearReconnectTimer();
+    this.clearHandshakeTimer();
     if (this.socket) {
       this.socket.close();
       this.socket = null;
     }
     this.isConnected = false;
+    this.reconnectAttempts = 0;
     this.members.clear();
   }
 
