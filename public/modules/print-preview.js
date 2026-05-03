@@ -149,6 +149,30 @@ export class PrintPreview {
     }
   }
 
+  restoreSplitTableHeaders() {
+    const root = this.elements.printPreview;
+    if (!root) return;
+
+    const originals = new Map();
+    root.querySelectorAll('table[data-ref]').forEach((table) => {
+      const ref = table.getAttribute('data-ref');
+      const thead = table.querySelector('thead');
+      if (ref && thead && !originals.has(ref)) {
+        originals.set(ref, thead.cloneNode(true));
+      }
+    });
+
+    root.querySelectorAll('table[data-split-from]').forEach((table) => {
+      if (table.querySelector('thead')) return;
+
+      const sourceRef = table.getAttribute('data-split-from');
+      const header = sourceRef ? originals.get(sourceRef) : null;
+      if (!header) return;
+
+      table.insertBefore(header.cloneNode(true), table.firstChild);
+    });
+  }
+
   async generatePreview() {
     if (!this.elements.printPreview || !this.elements.preview) return;
 
@@ -308,6 +332,7 @@ export class PrintPreview {
         
         // Render pages
         await this.paged.preview(styledHTML, [], this.elements.printPreview);
+        this.restoreSplitTableHeaders();
         
         // Clean up source element after rendering
         if (this.sourceElement) {
