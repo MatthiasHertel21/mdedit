@@ -11,6 +11,56 @@ export class PasswordDialog {
     this.hasExistingPassword = false;
   }
 
+  // Show a confirmation modal; resolves true/false
+  _showConfirm(message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      const modal = document.createElement("div");
+      modal.className = "modal";
+      modal.innerHTML = `
+        <div class="modal-body">
+          <div class="password-dialog-content">
+            <p>${message}</p>
+            <div class="password-dialog-actions">
+              <button type="button" class="btn-secondary" data-cancel>${window.t?.("cancel") || "Abbrechen"}</button>
+              <button type="button" class="primary-btn" data-confirm>${window.t?.("confirm") || "OK"}</button>
+            </div>
+          </div>
+        </div>`;
+      const cleanup = (v) => { overlay.remove(); modal.remove(); resolve(v); };
+      overlay.addEventListener("click", () => cleanup(false));
+      modal.querySelector("[data-confirm]").addEventListener("click", () => cleanup(true));
+      modal.querySelector("[data-cancel]").addEventListener("click", () => cleanup(false));
+      document.body.appendChild(overlay);
+      document.body.appendChild(modal);
+    });
+  }
+
+  // Show a message modal; resolves when dismissed
+  _showAlert(message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      const modal = document.createElement("div");
+      modal.className = "modal";
+      modal.innerHTML = `
+        <div class="modal-body">
+          <div class="password-dialog-content">
+            <p>${message}</p>
+            <div class="password-dialog-actions">
+              <button type="button" class="primary-btn" data-ok>OK</button>
+            </div>
+          </div>
+        </div>`;
+      const cleanup = () => { overlay.remove(); modal.remove(); resolve(); };
+      overlay.addEventListener("click", cleanup);
+      modal.querySelector("[data-ok]").addEventListener("click", cleanup);
+      document.body.appendChild(overlay);
+      document.body.appendChild(modal);
+    });
+  }
+
   // Open dialog (for setting password)
   open() {
     this.isOpen = true;
@@ -183,7 +233,7 @@ export class PasswordDialog {
       });
 
       if (!res.ok) {
-        alert(window.t?.("saveFailed") || "Speichern fehlgeschlagen");
+        await this._showAlert(window.t?.("saveFailed") || "Speichern fehlgeschlagen");
         return;
       }
 
@@ -195,7 +245,7 @@ export class PasswordDialog {
       this.close();
     } catch (e) {
       console.error("Error saving password:", e);
-      alert(window.t?.("error") || "Fehler");
+      await this._showAlert(window.t?.("error") || "Fehler");
     } finally {
       saveBtn.disabled = false;
     }
@@ -203,7 +253,8 @@ export class PasswordDialog {
 
   // Remove password
   async removePassword() {
-    if (!confirm(window.t?.("removePasswordConfirm") || "Passwortschutz entfernen?")) {
+    const confirmed = await this._showConfirm(window.t?.("removePasswordConfirm") || "Passwortschutz entfernen?");
+    if (!confirmed) {
       return;
     }
 
@@ -215,7 +266,7 @@ export class PasswordDialog {
       });
 
       if (!res.ok) {
-        alert(window.t?.("removeFailed") || "Entfernen fehlgeschlagen");
+        await this._showAlert(window.t?.("removeFailed") || "Entfernen fehlgeschlagen");
         return;
       }
 

@@ -1557,10 +1557,27 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
     }
   }
 
-  const settings = db.prepare("SELECT can_read FROM collab_settings WHERE paste_id = ?").get(req.params.id);
-  if (paste.shared && settings && !settings.can_read && paste.session_id !== req.sessionId) {
-    reply.code(403);
-    return { error: "Read access disabled" };
+  // Non-owners must satisfy password + can_read checks
+  if (paste.session_id !== req.sessionId) {
+    const settings = db.prepare("SELECT password_hash, can_read FROM collab_settings WHERE paste_id = ?").get(req.params.id);
+
+    if (settings?.password_hash) {
+      const { password } = req.body || {};
+      if (!password) {
+        reply.code(401);
+        return { error: "Password required" };
+      }
+      const isValid = await bcryptjs.compare(password, settings.password_hash);
+      if (!isValid) {
+        reply.code(401);
+        return { error: "Invalid password" };
+      }
+    }
+
+    if (settings && !settings.can_read) {
+      reply.code(403);
+      return { error: "Read access disabled" };
+    }
   }
 
   const memberId = crypto.randomUUID();
@@ -1681,6 +1698,9 @@ app.register(async (fastify) => {
 
     socket.on("close", () => {
       clients.delete(memberId);
+      if (clients.size === 0) {
+        connectedClients.delete(pasteId);
+      }
       broadcastToClients(pasteId, {
         type: "member-left",
         memberId
@@ -1785,13 +1805,15 @@ app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
 
   const threadId = crypto.randomUUID();
   const ts = nowIso();
-  
-  // For now, assume default member for paste owner
-  const memberId = null; // This would need proper association
+  const { memberId: creatorMemberId } = req.body || {};
+
+  const creator = creatorMemberId
+    ? db.prepare("SELECT id FROM collab_members WHERE id = ? AND paste_id = ?").get(creatorMemberId, req.params.id)
+    : null;
 
   db.prepare(
     "INSERT INTO collab_chat_threads (id, paste_id, title, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
-  ).run(threadId, req.params.id, title, ts, memberId);
+  ).run(threadId, req.params.id, title, ts, creator?.id ?? null);
 
   broadcastToClients(req.params.id, {
     type: "chat-thread-created",

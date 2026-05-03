@@ -20,6 +20,7 @@ export class CollabManager {
     this.reconnectAttempts = 0;
     this.handshakeTimer = null;
     this.manualDisconnect = false;
+    this.maxReconnectAttempts = Infinity;
   }
 
   // Register event listener
@@ -69,21 +70,11 @@ export class CollabManager {
     try {
       this.manualDisconnect = false;
 
-      // Verify password if needed
-      const needsPassword = await this.checkPasswordProtection();
-      if (needsPassword && password) {
-        const verified = await this.verifyPassword(password);
-        if (!verified) {
-          this.emit("error", { message: "Invalid password" });
-          return false;
-        }
-      }
-
-      // Register member
+      // Register member (server validates password if set)
       const res = await fetch(`/api/pastes/${this.pasteId}/collab/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}"
+        body: JSON.stringify(password ? { password } : {})
       });
 
       if (!res.ok) {
@@ -353,7 +344,7 @@ export class CollabManager {
       const res = await fetch(`/api/pastes/${this.pasteId}/collab/chat/threads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title })
+        body: JSON.stringify({ title, memberId: this.memberId })
       });
 
       if (!res.ok) {
