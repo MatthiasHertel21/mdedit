@@ -17,6 +17,7 @@ import db from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const INDEX_HTML_PATH = path.join(__dirname, "public", "index.html");
 
 // Export queue to prevent too many concurrent pandoc processes
 const exportQueue = {
@@ -447,6 +448,33 @@ const SESSION_COOKIE_OPTIONS = {
   maxAge: 60 * 60 * 24 * 365  // 1 year, refreshed on every request
 };
 
+const CRAWLER_USER_AGENT_PATTERN = /(?:bot|crawler|spider|slurp|facebookexternalhit|twitterbot|slackbot|discordbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|embedly|google-inspectiontool|googleother|googlebot|bingbot|applebot|bitlybot|vkshare)/i;
+const PUBLIC_CRAWLER_SAFE_PATHS = new Set(["/", "/help.html", "/help-en.html"]);
+
+let productionIndexHtmlCache = null;
+
+const readIndexHtml = async () => {
+  if (process.env.NODE_ENV !== "production") {
+    return fs.promises.readFile(INDEX_HTML_PATH, "utf8");
+  }
+
+  if (productionIndexHtmlCache !== null) {
+    return productionIndexHtmlCache;
+  }
+
+  productionIndexHtmlCache = await fs.promises.readFile(INDEX_HTML_PATH, "utf8");
+  return productionIndexHtmlCache;
+};
+
+const shouldBypassSessionForCrawler = (req, pathname) => {
+  if (!PUBLIC_CRAWLER_SAFE_PATHS.has(pathname)) return false;
+
+  if (req.method === "HEAD") return true;
+
+  const userAgent = req.headers["user-agent"];
+  return typeof userAgent === "string" && CRAWLER_USER_AGENT_PATTERN.test(userAgent);
+};
+
 const shouldAttachSessionToRequest = (req) => {
   const pathname = (req.raw?.url || req.url || "/").split("?")[0];
 
@@ -463,6 +491,7 @@ const shouldAttachSessionToRequest = (req) => {
   }
 
   if (pathname.startsWith("/static/")) return false;
+  if (shouldBypassSessionForCrawler(req, pathname)) return false;
 
   return true;
 };
@@ -2043,7 +2072,7 @@ app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.
 
 // Root path
 app.get("/", async (req, reply) => {
-  const html = await fs.promises.readFile(path.join(__dirname, "public", "index.html"), "utf8");
+  const html = await readIndexHtml();
   reply.type("text/html");
   return html;
 });
@@ -2058,7 +2087,7 @@ app.get("/:id", async (req, reply) => {
     const row = db.prepare("SELECT id FROM pastes WHERE id = ?").get(pasteId);
     if (row) {
       // Serve index.html - frontend will load the paste
-      const html = await fs.promises.readFile(path.join(__dirname, "public", "index.html"), "utf8");
+      const html = await readIndexHtml();
       reply.type("text/html");
       return html;
     }
