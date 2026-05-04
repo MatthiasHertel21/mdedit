@@ -2033,7 +2033,7 @@ const serveStatic = async (req, reply, filename) => {
     const stats = await fs.promises.stat(filePath);
     const ext = path.extname(filename);
     const mimeTypes = {
-      ".html": "text/html",
+      ".html": "text/html; charset=utf-8",
       ".js": "application/javascript",
       ".css": "text/css",
       ".json": "application/json",
@@ -2073,7 +2073,7 @@ app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.
 // Root path
 app.get("/", async (req, reply) => {
   const html = await readIndexHtml();
-  reply.type("text/html");
+  reply.type("text/html; charset=utf-8");
   return html;
 });
 
@@ -2088,7 +2088,7 @@ app.get("/:id", async (req, reply) => {
     if (row) {
       // Serve index.html - frontend will load the paste
       const html = await readIndexHtml();
-      reply.type("text/html");
+      reply.type("text/html; charset=utf-8");
       return html;
     }
   }
