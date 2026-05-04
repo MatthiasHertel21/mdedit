@@ -21,3 +21,9 @@ npm-debug.log*
 *.log
 .DS_Store
 .vscode/
+
+# Local deployment/runtime files kept out of the public repository
+deploy/*.local.yml
+deploy/*.private.yml
+deploy/*.override.yml
+deploy-prod.local.sh

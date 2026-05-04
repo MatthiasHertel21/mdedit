@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# deploy-prod.sh – Deploy a release from /home/ga/md (dev) to /home/ga/mdedit (prod)
+# deploy-prod.sh - Generic local deployment helper.
+#
+# This script is intentionally free of host-specific paths, domains, and
+# production configuration. Provide local deployment details via environment
+# variables or untracked files outside the public repository.
 #
 # Usage:
-#   ./deploy-prod.sh            # Deploy current state (bumps patch version)
-#   ./deploy-prod.sh 1.2.3      # Deploy with explicit version
+#   PROD_DIR=/path/to/runtime ./deploy-prod.sh
+#   PROD_DIR=/path/to/runtime ./deploy-prod.sh 1.2.3
 #   ./deploy-prod.sh --help
-#
-# What it does:
-#   1. Optionally bumps the version in package.json
-#   2. Builds the Docker image from /home/ga/md tagged as mdedit-app:<version>
-#   3. Tags it as mdedit-app:latest
-#   4. Syncs the tracked production compose file into /home/ga/mdedit
-#   5. Restarts the production container using the freshly built image
 
 set -euo pipefail
 
-DEV_DIR="/home/ga/md"
-PROD_DIR="/home/ga/mdedit"
-IMAGE_NAME="mdedit-app"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+DEV_DIR="${DEV_DIR:-$SCRIPT_DIR}"
+PROD_DIR="${PROD_DIR:-}"
+IMAGE_NAME="${IMAGE_NAME:-mdedit-app}"
+PROD_COMPOSE_FILE="${PROD_COMPOSE_FILE:-${PROD_DIR:+$PROD_DIR/docker-compose.yml}}"
+PROD_HEALTH_URL="${PROD_HEALTH_URL:-http://localhost:3211/health}"
 
 cd "$DEV_DIR"
 
@@ -31,7 +31,23 @@ fi
 if [[ "${1:-}" == "--help" ]]; then
   echo "Usage: $0 [version]"
   echo "  version  optional semver (e.g. 1.2.3). Defaults to current package.json version."
+  echo
+  echo "Environment variables:"
+  echo "  PROD_DIR           Required. Runtime directory containing docker-compose.yml and data/."
+  echo "  PROD_COMPOSE_FILE  Optional. Defaults to \$PROD_DIR/docker-compose.yml."
+  echo "  PROD_HEALTH_URL    Optional. Defaults to http://localhost:3211/health."
+  echo "  IMAGE_NAME         Optional. Defaults to mdedit-app."
   exit 0
+fi
+
+if [[ -z "$PROD_DIR" ]]; then
+  echo "✗ PROD_DIR is required. Keep host-specific runtime paths outside the public repo."
+  exit 1
+fi
+
+if [[ -z "$PROD_COMPOSE_FILE" || ! -f "$PROD_COMPOSE_FILE" ]]; then
+  echo "✗ Production compose file not found: ${PROD_COMPOSE_FILE:-<unset>}"
+  exit 1
 fi
 
 # ── Determine version ────────────────────────────────────────────────────────
@@ -43,7 +59,7 @@ else
   NEW_VERSION="$CURRENT_VERSION"
 fi
 
-echo "► Deploying version $NEW_VERSION to production (mdedit.io)"
+echo "► Deploying version $NEW_VERSION"
 
 echo "  Running release checks ..."
 npm run audit:prod
@@ -64,10 +80,6 @@ fi
 echo "  Building image $IMAGE_NAME:$NEW_VERSION ..."
 docker build -t "$IMAGE_NAME:$NEW_VERSION" -t "$IMAGE_NAME:latest" .
 
-# ── Sync tracked production config ────────────────────────────────────────────
-echo "  Syncing tracked production compose file ..."
-install -m 644 "$DEV_DIR/deploy/docker-compose.prod.yml" "$PROD_DIR/docker-compose.yml"
-
 # ── Restart production container ──────────────────────────────────────────────
 echo "  Restarting production container ..."
 cd "$PROD_DIR"
@@ -77,11 +89,11 @@ docker compose up -d --force-recreate
 # ── Health check ─────────────────────────────────────────────────────────────
 echo "  Waiting for health check ..."
 sleep 5
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3211/health || echo "000")
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_HEALTH_URL" || echo "000")
 if [[ "$HTTP_STATUS" == "200" ]]; then
   echo "✓ Production is up and healthy (v$NEW_VERSION)"
 else
-  echo "✗ Health check failed (HTTP $HTTP_STATUS) – check: docker compose -f $PROD_DIR/docker-compose.yml logs"
+  echo "✗ Health check failed (HTTP $HTTP_STATUS) - check: docker compose -f $PROD_COMPOSE_FILE logs"
   exit 1
 fi
 
@@ -97,4 +109,4 @@ else
   echo "  Run 'git push && git push --tags' to publish."
 fi
 
-echo "Done. Production running at http://localhost:3211 (→ https://mdedit.io)"
+echo "Done. Production deployment finished."
