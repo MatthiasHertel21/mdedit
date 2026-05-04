@@ -1,3 +1,5 @@
+import { documentLayout } from './document-layout.js';
+
 // AI Chat Module - provider-aware assistant for Markdown editing
 
 export class AIChat {
@@ -349,7 +351,7 @@ export class AIChat {
       return false;
     }
 
-    return /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints)/i.test(userPrompt.trim());
+    return /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints|layout|seitenrand|ränder|typografie|spalten|kopfzeile|fußzeile|header|footer|margins|columns|table of contents|inhaltsverzeichnis)/i.test(userPrompt.trim());
   }
 
   buildAssistantDisplayMessage({ message, action, content, applied, editorAvailable }) {
@@ -374,7 +376,7 @@ export class AIChat {
 
     if (content) {
       sections.push('', '**Vorschau:**');
-      sections.push('```markdown');
+      sections.push(action === 'UPDATE_LAYOUT' ? '```yaml' : '```markdown');
       sections.push(this.getContentPreview(content));
       sections.push('```');
     }
@@ -429,6 +431,20 @@ export class AIChat {
         editor.setValue(content);
         this.showToast('Dokument ersetzt', 'success');
         break;
+
+      case 'UPDATE_LAYOUT': {
+        const updatedMarkdown = this.applyLayoutUpdate(editor.getValue(), content);
+        if (!updatedMarkdown) {
+          this.undoStack.pop();
+          if (this.undoStack.length === 0 && this.undoBtn) {
+            this.undoBtn.style.display = 'none';
+          }
+          return;
+        }
+        editor.setValue(updatedMarkdown);
+        this.showToast('Layout aktualisiert', 'success');
+        break;
+      }
         
       case 'APPEND':
         const currentValue = editor.getValue();
@@ -454,6 +470,31 @@ export class AIChat {
       window.triggerSave();
     } else {
       console.warn('AI Chat - triggerSave not available');
+    }
+  }
+
+  applyLayoutUpdate(markdown, layoutFragment) {
+    if (!window.jsyaml) {
+      this.showToast('Layout-Aktualisierung nicht verfügbar', 'error');
+      return null;
+    }
+
+    try {
+      const fragment = window.jsyaml.load(String(layoutFragment || ''));
+      if (!fragment || typeof fragment !== 'object' || Array.isArray(fragment)) {
+        this.showToast('Die Layout-Antwort war nicht gültig.', 'error');
+        return null;
+      }
+
+      const baseLayout = typeof window.getEffectiveDocumentLayout === 'function'
+        ? window.getEffectiveDocumentLayout(markdown, { ignorePermission: true })
+        : documentLayout.parseFromMarkdown(markdown || '');
+      const mergedLayout = documentLayout.deepMerge(baseLayout, fragment);
+      return documentLayout.updateInMarkdown(markdown || '', mergedLayout);
+    } catch (error) {
+      console.error('AI Chat - Failed to apply layout update', error);
+      this.showToast('Die Layout-Antwort konnte nicht verarbeitet werden.', 'error');
+      return null;
     }
   }
 
@@ -537,7 +578,8 @@ export class AIChat {
       'REPLACE': 'Gesamten Text ersetzen',
       'APPEND': 'Am Ende anfügen',
       'PREPEND': 'Am Anfang einfügen',
-      'INSERT': 'An Cursor-Position einfügen'
+      'INSERT': 'An Cursor-Position einfügen',
+      'UPDATE_LAYOUT': 'Layout aktualisieren'
     };
     return labels[action] || action;
   }

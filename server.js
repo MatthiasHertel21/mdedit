@@ -163,7 +163,7 @@ const buildAiMessages = (history, inputMessage, systemPrompt) => {
   return conversation;
 };
 
-const AI_EDIT_INTENT_PATTERN = /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints)/i;
+const AI_EDIT_INTENT_PATTERN = /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints|layout|seitenrand|seitenränder|seitenraender|ränder|raender|typografie|spalten|kopfzeile|fußzeile|fusszeile|header|footer|margins|columns|table of contents|inhaltsverzeichnis)/i;
 const AI_CHAT_ONLY_PATTERN = /^(wer bist du|who are you|was bist du|what are you|was kannst du|what can you do|wie funktioniert|how does this work|hilfe|help|erklär|explain|warum|why|wieso|weshalb|what is|was ist|how to|wie kann ich)/i;
 
 const shouldForceAdviceResponse = (prompt) => {
@@ -181,6 +181,32 @@ const shouldForceAdviceResponse = (prompt) => {
 const shouldAllowDocumentChange = (prompt) => {
   if (typeof prompt !== "string") return false;
   return AI_EDIT_INTENT_PATTERN.test(prompt.trim().toLowerCase());
+};
+
+const decodeAiStringValue = (value) => String(value || "")
+  .replace(/\\n/g, "\n")
+  .replace(/\\r/g, "\r")
+  .replace(/\\t/g, "\t")
+  .replace(/\\"/g, '"')
+  .replace(/\\\\/g, "\\")
+  .trim();
+
+const salvageStructuredAiResponse = (text) => {
+  const raw = String(text || "");
+  const actionMatch = raw.match(/"action"\s*:\s*"([A-Z_]+)"/i);
+  const messageMatch = raw.match(/"message"\s*:\s*"([\s\S]*?)"\s*,\s*"markdown"/i);
+  const markdownNullMatch = raw.match(/"markdown"\s*:\s*null\s*,\s*"action"/i);
+  const markdownMatch = raw.match(/"markdown"\s*:\s*"([\s\S]*?)"\s*,\s*"action"/i);
+
+  if (!actionMatch || !messageMatch) {
+    return null;
+  }
+
+  return {
+    message: decodeAiStringValue(messageMatch[1]),
+    markdown: markdownNullMatch ? null : decodeAiStringValue(markdownMatch?.[1] || ""),
+    action: actionMatch[1].trim().toUpperCase()
+  };
 };
 
 const requestOpenAiCompatibleChatCompletion = async ({ apiKey, model, messages, endpoint, providerName }) => {
@@ -398,7 +424,33 @@ const SESSION_COOKIE_OPTIONS = {
   maxAge: 60 * 60 * 24 * 365  // 1 year, refreshed on every request
 };
 
+const shouldAttachSessionToRequest = (req) => {
+  const pathname = (req.raw?.url || req.url || "/").split("?")[0];
+
+  if (
+    pathname === "/health" ||
+    pathname === "/stats" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/security.txt" ||
+    pathname === "/.well-known/security.txt" ||
+    pathname === "/favicon.ico"
+  ) {
+    return false;
+  }
+
+  if (pathname.startsWith("/static/")) return false;
+
+  return true;
+};
+
 app.addHook("onRequest", (req, reply, done) => {
+  if (!shouldAttachSessionToRequest(req)) {
+    req.sessionId = null;
+    done();
+    return;
+  }
+
   let sid = req.cookies.sid;
   if (sid) {
     // Validate session still exists in DB (guards against DB resets)
@@ -815,8 +867,8 @@ OUTPUT-FORMAT (IMMER JSON):
 Antworte IMMER mit gültigem JSON in diesem Format:
 {
   "message": "Deine Antwort/Erklärung an den Benutzer",
-  "markdown": "Das angepasste Markdown-Dokument" oder null,
-  "action": "REPLACE|INSERT|APPEND|PREPEND|ADVICE"
+  "markdown": "Das angepasste Markdown-Dokument oder ein YAML-Layout-Fragment" oder null,
+  "action": "REPLACE|INSERT|APPEND|PREPEND|UPDATE_LAYOUT|ADVICE"
 }
 
 AKTIONEN:
@@ -824,6 +876,7 @@ AKTIONEN:
 - INSERT: Fügt Text an Cursor-Position ein (markdown = einzufügender Text)
 - APPEND: Hängt Text am Ende an (markdown = anzuhängender Text)
 - PREPEND: Fügt Text am Anfang ein (markdown = voranzustellender Text)
+- UPDATE_LAYOUT: Aktualisiert nur den layout-Codeblock (markdown = YAML-Fragment mit den zu ändernden Layout-Feldern)
 - ADVICE: Nur Antwort, keine Dokumentänderung (markdown = null)
 
 BEISPIELE:
@@ -852,9 +905,18 @@ BEISPIELE:
      "action": "APPEND"
    }
 
+4. Benutzer: "Mache die Seitenränder breiter und aktiviere eine Kopfzeile"
+   Document: "# Bericht"
+   {
+     "message": "Ich habe das Layout mit breiteren Seitenrändern und einer Kopfzeile aktualisiert.",
+     "markdown": "page:\n  margins:\n    top: 2.8cm\n    right: 2.4cm\n    bottom: 2.4cm\n    left: 2.8cm\nheader:\n  enabled: true\n  right: '{page}'",
+     "action": "UPDATE_LAYOUT"
+   }
+
 REGELN:
 - Antworte IMMER mit gültigem JSON
 - Behalte Markdown-Formatierung bei (##, **, -, etc.)
+- Wenn die Anfrage das Layout, Seitenformat, Ränder, Spalten, Kopf-/Fußzeilen oder Typografie betrifft, bevorzuge UPDATE_LAYOUT statt REPLACE/APPEND
 - Sei präzise und knapp
 - Reine Chat-, Meta- oder Hilfefragen wie "Wer bist du?", "Was kannst du?" oder "Wie funktioniert das?" sind IMMER action=ADVICE und markdown=null
 - Bei unklaren Anfragen: action=ADVICE, markdown=null`;
@@ -878,16 +940,25 @@ REGELN:
       text = await requestGeminiChatCompletion({ apiKey, model, history: trimAiHistory(history), inputMessage, systemPrompt });
     }
 
+    let normalizedText = String(text || '').trim();
+
     // Extract JSON from markdown code blocks if present
-    const jsonMatch = text.match(/```(?:json)?\s*({[\s\S]*?})\s*```/);
+    const jsonMatch = normalizedText.match(/```(?:json)?\s*({[\s\S]*?})\s*```/i);
     if (jsonMatch) {
-      text = jsonMatch[1];
+      normalizedText = jsonMatch[1].trim();
+    }
+
+    if (!(normalizedText.startsWith('{') && normalizedText.endsWith('}'))) {
+      const objectMatch = normalizedText.match(/\{[\s\S]*\}/);
+      if (objectMatch) {
+        normalizedText = objectMatch[0].trim();
+      }
     }
 
     // Parse JSON response
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(text);
+      parsedResponse = JSON.parse(normalizedText);
       
       // Ensure response has required fields
       if (!parsedResponse.message || !parsedResponse.action) {
@@ -917,9 +988,29 @@ REGELN:
       };
       
     } catch (parseError) {
+      const salvagedResponse = salvageStructuredAiResponse(normalizedText);
+      if (salvagedResponse?.message && salvagedResponse?.action) {
+        const requestedAction = salvagedResponse.action;
+        const forceAdvice = shouldForceAdviceResponse(userPrompt);
+        const allowDocumentChange = shouldAllowDocumentChange(userPrompt);
+        const normalizedAction = forceAdvice || (requestedAction !== "ADVICE" && !allowDocumentChange)
+          ? "ADVICE"
+          : requestedAction;
+        const normalizedMarkdown = forceAdvice || normalizedAction === "ADVICE"
+          ? null
+          : salvagedResponse.markdown || null;
+
+        return {
+          message: salvagedResponse.message,
+          markdown: normalizedMarkdown,
+          action: normalizedAction,
+          content: normalizedMarkdown
+        };
+      }
+
       // Fallback: treat as plain advice
       return {
-        message: text,
+        message: normalizedText,
         markdown: null,
         action: "ADVICE",
         content: null
@@ -965,8 +1056,8 @@ const formatNumber = (value) => new Intl.NumberFormat("de-DE").format(Number(val
 
 const formatBytes = (bytes) => {
   const value = Number(bytes || 0);
-  if (!Number.isFinite(value) || value <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
+  if (!Number.isFinite(value) || value <= 0) return "0 Byte";
+  const units = ["Byte", "KB", "MB", "GB", "TB"];
   const exponent = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
   const scaled = value / 1024 ** exponent;
   return `${scaled >= 10 || exponent === 0 ? scaled.toFixed(0) : scaled.toFixed(1)} ${units[exponent]}`;
@@ -1005,23 +1096,48 @@ const getDirectorySizeBytes = async (dirPath) => {
 };
 
 const getStatsCountsForWindow = (sinceIso = null) => {
-  const users = sinceIso
-    ? db.prepare("SELECT COUNT(*) as count FROM sessions WHERE last_seen >= ?").get(sinceIso).count
-    : db.prepare("SELECT COUNT(*) as count FROM sessions").get().count;
+  const activeAppSessions = sinceIso
+    ? db.prepare(`
+        SELECT COUNT(*) as count FROM (
+          SELECT session_id AS sid FROM pastes WHERE updated_at >= ?
+          UNION
+          SELECT session_id AS sid FROM collab_members WHERE session_id IS NOT NULL AND last_seen >= ?
+        )
+      `).get(sinceIso, sinceIso).count
+    : db.prepare(`
+        SELECT COUNT(*) as count FROM (
+          SELECT session_id AS sid FROM pastes
+          UNION
+          SELECT session_id AS sid FROM collab_members WHERE session_id IS NOT NULL
+        )
+      `).get().count;
 
-  const sessions = sinceIso
-    ? db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= ?").get(sinceIso).count
-    : db.prepare("SELECT COUNT(*) as count FROM sessions").get().count;
+  const linkedBrowserSessions = sinceIso
+    ? db.prepare(`
+        SELECT COUNT(*) as count
+        FROM sessions s
+        WHERE s.created_at >= ?
+          AND (
+            EXISTS (SELECT 1 FROM pastes p WHERE p.session_id = s.id)
+            OR EXISTS (SELECT 1 FROM collab_members cm WHERE cm.session_id = s.id)
+          )
+      `).get(sinceIso).count
+    : db.prepare(`
+        SELECT COUNT(*) as count
+        FROM sessions s
+        WHERE EXISTS (SELECT 1 FROM pastes p WHERE p.session_id = s.id)
+           OR EXISTS (SELECT 1 FROM collab_members cm WHERE cm.session_id = s.id)
+      `).get().count;
 
-  const documents = sinceIso
+  const createdDocuments = sinceIso
     ? db.prepare("SELECT COUNT(*) as count FROM pastes WHERE created_at >= ?").get(sinceIso).count
     : db.prepare("SELECT COUNT(*) as count FROM pastes").get().count;
 
-  const sharedPermalinks = sinceIso
-    ? db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared = 1 AND shared_at IS NOT NULL AND shared_at >= ?").get(sinceIso).count
-    : db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared = 1").get().count;
+  const shareActivations = sinceIso
+    ? db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared_at IS NOT NULL AND shared_at >= ?").get(sinceIso).count
+    : db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared_at IS NOT NULL").get().count;
 
-  return { users, sessions, documents, sharedPermalinks };
+  return { activeAppSessions, linkedBrowserSessions, createdDocuments, shareActivations };
 };
 
 const renderStatsPage = async () => {
@@ -1047,10 +1163,10 @@ const renderStatsPage = async () => {
   const rowsHtml = windowRows.map((row) => `
     <tr>
       <th scope="row">${escapeHtmlText(row.label)}</th>
-      <td>${formatNumber(row.counts.users)}</td>
-      <td>${formatNumber(row.counts.sessions)}</td>
-      <td>${formatNumber(row.counts.documents)}</td>
-      <td>${formatNumber(row.counts.sharedPermalinks)}</td>
+      <td>${formatNumber(row.counts.activeAppSessions)}</td>
+      <td>${formatNumber(row.counts.linkedBrowserSessions)}</td>
+      <td>${formatNumber(row.counts.createdDocuments)}</td>
+      <td>${formatNumber(row.counts.shareActivations)}</td>
     </tr>
   `).join("");
 
@@ -1157,7 +1273,7 @@ const renderStatsPage = async () => {
   <main>
     <section class="hero">
       <h1>Server-Statistiken</h1>
-      <p>Benutzer = Sessions mit Aktivität im Zeitraum. Sessions = neu angelegte Browser-Sessions im Zeitraum. Geteilte Permalinks = aktuell freigegebene Dokumente.</p>
+      <p>Aktive App-Sessions = Sessions mit Dokument- oder Kollaborationsaktivität im Zeitraum. Browser-Sessions = neu angelegte, app-relevante Sessions. Dokumente = neu angelegte Dokumente. Freigaben = erstmals freigegebene Permalinks.</p>
       <div class="hint">Aufruf direkt über <code>/stats</code>.</div>
     </section>
 
@@ -1167,10 +1283,10 @@ const renderStatsPage = async () => {
         <thead>
           <tr>
             <th>Zeitraum</th>
-            <th>Benutzer</th>
-            <th>Sessions</th>
-            <th>Dokumente</th>
-            <th>Geteilte Permalinks</th>
+            <th>Aktive App-Sessions</th>
+            <th>Browser-Sessions</th>
+            <th>Neue Dokumente</th>
+            <th>Freigaben</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -1179,8 +1295,8 @@ const renderStatsPage = async () => {
 
     <section class="grid">
       <article class="card">
-        <h2>Inhalt</h2>
-        <p>Logische Nutzdaten in der Anwendung</p>
+        <h2>Dokumentinhalt</h2>
+        <p>Nur Markdown- und Bildinhalte, ohne DB-, WAL-, Session- und Secret-Overhead</p>
         <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
         <p style="margin-top: 10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
       </article>
