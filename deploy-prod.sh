@@ -100,6 +100,9 @@ if [[ -n "$FALLBACK_DIR" ]]; then
   run_fallback_cmd install -m 644 "$DEV_DIR/public/help.html" "$FALLBACK_DIR/help.html"
   run_fallback_cmd install -m 644 "$DEV_DIR/public/help-en.html" "$FALLBACK_DIR/help-en.html"
   run_fallback_cmd install -m 644 "$DEV_DIR/public/brand/mdedit-icon.png" "$FALLBACK_DIR/mdedit-icon.png"
+  if [[ -f "$DEV_DIR/public/brand/social-card.png" ]]; then
+    run_fallback_cmd install -m 644 "$DEV_DIR/public/brand/social-card.png" "$FALLBACK_DIR/social-card.png"
+  fi
 fi
 
 # ── Restart production container ──────────────────────────────────────────────

@@ -2037,6 +2037,8 @@ const serveStatic = async (req, reply, filename) => {
       ".js": "application/javascript",
       ".css": "text/css",
       ".json": "application/json",
+      ".txt": "text/plain; charset=utf-8",
+      ".xml": "application/xml; charset=utf-8",
       ".svg": "image/svg+xml",
       ".ico": "image/x-icon",
       ".png": "image/png"
@@ -2056,6 +2058,8 @@ app.get("/print.css", async (req, reply) => serveStatic(req, reply, "print.css")
 app.get("/app.js", async (req, reply) => serveStatic(req, reply, "app.js"));
 app.get("/favicon.svg", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
 app.get("/favicon.ico", async (req, reply) => serveStatic(req, reply, "brand/mdedit-icon.png"));
+app.get("/robots.txt", async (req, reply) => serveStatic(req, reply, "robots.txt"));
+app.get("/sitemap.xml", async (req, reply) => serveStatic(req, reply, "sitemap.xml"));
 app.get("/tips.json", async (req, reply) => serveStatic(req, reply, "tips.json"));
 app.get("/tips-en.json", async (req, reply) => serveStatic(req, reply, "tips-en.json"));
 
