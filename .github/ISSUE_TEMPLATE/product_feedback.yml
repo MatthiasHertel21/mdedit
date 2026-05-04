@@ -1,0 +1,71 @@
+name: Product feedback
+description: Suggest an improvement, workflow change, or missing capability
+title: "feedback: "
+labels:
+  - feedback
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for feature ideas, UX feedback, workflow pain points, and product positioning feedback.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the document task or workflow that currently feels awkward or unsupported.
+      placeholder: I am trying to ...
+    validations:
+      required: true
+  - type: textarea
+    id: current_workaround
+    attributes:
+      label: Current workaround
+      description: What do you do today instead?
+      placeholder: Right now I work around it by ...
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested change
+      description: Describe the feature, workflow, or UX improvement you want.
+      placeholder: It would help if mdedit.io could ...
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Expected impact
+      options:
+        - Small convenience improvement
+        - Noticeable workflow improvement
+        - Important for regular use
+        - Critical blocker
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Editing experience
+        - Layout and print
+        - Export
+        - Sharing and collaboration
+        - AI assistance
+        - Localization and help
+        - Onboarding and documentation
+        - Deployment and self-hosting
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples, mockups, or comparable tools
+      description: Links or examples help when the feedback is about UX or positioning.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution context
+      options:
+        - label: I would be willing to test a prototype or follow-up build.
+        - label: I would be willing to help refine the requirement.

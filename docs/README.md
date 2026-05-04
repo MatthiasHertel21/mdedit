@@ -1,10 +1,15 @@
 # Documentation Index
 
+## Repository Guides
+
+- [Project README](../README.md)
+- [Contributing Guide](../CONTRIBUTING.md)
+
 ## Operations
 
 - [AI API](operations/AI-API.md)
 - [Docker Setup](operations/DOCKER.md)
-- [Security Audit](operations/SECURITY.md)
+- [Security Status](operations/SECURITY.md)
 
 ## Engineering
 

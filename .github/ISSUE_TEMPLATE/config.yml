@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation index
+    url: https://github.com/MatthiasHertel21/mdedit/tree/main/docs
+    about: Check the docs before filing deployment or usage questions.
+  - name: Contributing guide
+    url: https://github.com/MatthiasHertel21/mdedit/blob/main/CONTRIBUTING.md
+    about: Read the contribution workflow, local setup, and validation notes.

@@ -1,9 +1,11 @@
-# mdedit.io Security Audit Report - Implementierte Fixes
+# mdedit.io Security Status
 
-**Datum:** 11. Februar 2026  
-**Status:** ✅ Kritische P0-Issues behoben
+**Datum:** 4. Mai 2026  
+**Status:** Implementierte Basis-Schutzmaßnahmen vorhanden, weitere Härtung empfohlen
 
-## Implementierte Security-Fixes
+Diese Datei beschreibt den aktuellen Sicherheitsstand der Codebase. Sie ist kein externes Audit und keine formale Zertifizierung.
+
+## Implementierte Security-Maßnahmen
 
 ### 🔴 P0 - KRITISCH (behoben)
 
@@ -31,7 +33,7 @@
 **Fix:**
 - `@fastify/helmet` integriert
 - Strict Content-Security-Policy konfiguriert
-- CDN-Domains für Markdown-Plugins whitelisted
+- restriktive Header per Helmet konfiguriert
 
 **Dateien:** `package.json`, `server.js`
 
@@ -96,19 +98,29 @@
 
 **Dateien:** `cleanup.js`, `README.md`
 
-## Noch nicht implementiert (Empfehlungen)
+#### 10. Client-seitige HTML-Sanitization für gerendertes Markdown ✅
+**Problem:** Markdown-Rendering nutzt HTML-Injektion im Browser und braucht Schutz gegen unsichere Tags, Attribute und URLs  
+**Fix:**
+- `sanitizeRenderedHtml()` entfernt blockierte Tags wie `script`, `iframe`, `object`, `embed` und Formular-Elemente
+- Event-Handler-Attribute wie `onclick` und `srcdoc` werden entfernt
+- `href`- und `src`-Werte werden gegen Allow-Listen geprüft
+- Inline-Styles werden auf wenige erlaubte Properties reduziert
 
-### XSS-Schutz via DOMPurify
-**Status:** ⚠️ Ausstehend  
-**Risiko:** HOCH  
-**Aufwand:** 2-3 Stunden  
-**Beschreibung:** `innerHTML` wird an mehreren Stellen mit Markdown-Output verwendet. CSP bietet ersten Schutz, aber Sanitization wäre besser.
+**Dateien:** `public/app.js`
+
+## Noch offen / Empfehlungen
+
+### Rendering-Sanitization weiter härten oder auf DOMPurify umstellen
+**Status:** ⚠️ Teilweise umgesetzt  
+**Risiko:** MITTEL  
+**Aufwand:** 2-4 Stunden  
+**Beschreibung:** Es existiert bereits eine eigene Sanitization im Client. Sie reduziert das Risiko deutlich, ist aber eine proprietäre Allow-List und sollte gezielt weiter geprüft oder durch eine etablierte Bibliothek wie DOMPurify ersetzt werden.
 
 **Empfohlene Lösung:**
 ```bash
 npm install dompurify isomorphic-dompurify
 ```
-Dann alle `element.innerHTML = md.render(...)` durch sanitized Version ersetzen.
+Dann die bestehende Sanitization zentral ablösen oder gezielt gegen DOMPurify benchmarken und die verbleibenden HTML-Einschleusungspfade vereinheitlichen.
 
 ### CSRF-Protection
 **Status:** ⚠️ Ausstehend  
@@ -165,25 +177,26 @@ npm run dev
 ## Known Issues
 
 ### Fastify npm audit Warning
-**Status:** ⚠️ False Positive  
-**Details:** npm audit zeigt Vulnerability für "fastify <=5.7.2". Die App nutzt v4.29.1 (neueste stabile v4.x). Die Advisory betrifft primär v5.0.0-5.7.2. Ein Upgrade auf v5.7.4+ wäre breaking change und erfordert umfangreiche Tests.
+**Status:** Beobachten  
+**Details:** `npm audit` sollte immer gegen die aktuell installierten Dependencies bewertet werden. Die Codebase nutzt derzeit Fastify `^5.8.5`, nicht mehr die frühere v4-Linie. Deshalb dürfen ältere Hinweise auf v4.x nicht mehr als Statusbeschreibung verwendet werden.
 
 **Mitigation:** 
 - Rate Limiting ist implementiert (schützt vor DoS)
 - Body-Validation ist aktiv
 - Monitoring empfohlen
 
-**Langfristig:** Upgrade auf Fastify v5.x in separater Version/Branch testen.
+**Langfristig:** Dependencies regelmäßig mit `npm run audit:prod` und dem Release-Gate prüfen.
 
 ## Zusammenfassung
 
-**✅ Behoben:** 9 kritische/hochpriorisierte Issues  
-**⚠️ Empfohlen:** 3 weitere Verbesserungen für maximale Sicherheit  
-**📊 Security-Score:** 8/10 (sehr gut, Production-ready mit Einschränkungen)
+**✅ Vorhanden:** mehrere wirksame Basis-Schutzmaßnahmen  
+**⚠️ Offen:** vor allem CSRF sowie weitere Härtung der Sanitization  
+**Einordnung:** solide Basis für eine selbst gehostete Beta, aber kein Anlass für überzogene Security-Versprechen
 
 **Nächste Schritte:**
 1. Dependencies installieren (`npm install`)
 2. `.env` Datei mit COOKIE_SECRET erstellen
 3. Testing durchführen
-4. Bei Bedarf: DOMPurify + CSRF integrieren
-5. Production-Deployment mit Checklist
+4. Rendering-Sanitization weiter härten oder durch DOMPurify ersetzen
+5. Bei Bedarf: CSRF-Schutz ergänzen
+6. Production-Deployment mit Checklist

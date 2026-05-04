@@ -13,6 +13,8 @@ data/.cookie_secret
 data/.stats_token
 assets/
 data/assets/
+!docs/assets/
+!docs/assets/readme-editor.png
 
 tmp/
 *.backup

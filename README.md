@@ -1,6 +1,58 @@
 # mdedit.io
 
-Browser-based Markdown editor with live preview, document structure view, and export to Markdown, DOCX, and PDF.
+<p align="center">
+   <img src="public/brand/mdedit-logo.png" alt="mdedit.io logo" width="360">
+</p>
+
+mdedit.io is a browser-based Markdown editor for long-form writing, structured documents, and shareable drafts.
+
+It combines live preview, document outline, collaboration, AI-assisted editing, printable layout controls, and export to Markdown, DOCX, and PDF in one self-hosted app.
+
+> Write in Markdown, keep structure visible, share only when you decide to, and export when the draft is ready.
+
+![mdedit.io editor screenshot](docs/assets/readme-editor.png)
+
+## Public Beta
+
+- Status: active public beta
+- Best for: notes, articles, handouts, technical drafts, and shareable working documents
+- Deployment model: self-hosted web application, not an npm package
+
+Try the local app after startup at `http://localhost:3210`.
+
+## How It Feels
+
+mdedit.io is built for the gap between a plain text editor and a full publishing system.
+
+You write in Markdown, keep a live preview next to the source, move through long documents via the outline, adjust print layout when the document starts to matter, and share a permalink only when you want the draft to leave the current session.
+
+The app is especially useful when a document starts simple but grows into something structured enough to need headings, export paths, review, or collaboration.
+
+## Why mdedit.io?
+
+- Write and preview Markdown side by side
+- Navigate long documents through a heading-based outline
+- Share documents explicitly via permalink instead of making everything public by default
+- Collaborate in the browser with built-in collab features
+- Use AI assistance for editing and document work
+- Export working drafts to Markdown, DOCX, and PDF
+
+## Try These Paths
+
+- Open the example document in [docs/examples/example.md](docs/examples/example.md)
+- Start locally with Docker and open `http://localhost:3210`
+- Test sharing deliberately instead of publishing everything by default
+- Run `npm run release:check` before a public rollout
+
+## Feedback
+
+Feedback, bug reports, and product suggestions are welcome through the repository issue tracker.
+
+The repo includes dedicated issue forms for bug reports, product feedback, and general questions to keep reports actionable.
+
+For contribution workflow and local validation, see [CONTRIBUTING.md](CONTRIBUTING.md). For the current security posture and remaining hardening work, see [docs/operations/SECURITY.md](docs/operations/SECURITY.md).
+
+If you want a quick walkthrough of the feature surface, start with the example document in [docs/examples/example.md](docs/examples/example.md).
 
 ## Documentation
 
@@ -10,6 +62,14 @@ Browser-based Markdown editor with live preview, document structure view, and ex
 - Examples and test material: `docs/examples/`, `docs/testing/`
 
 You can find an overview in [docs/README.md](docs/README.md).
+
+## Repository Scope
+
+This repository contains the mdedit.io application itself.
+
+- `package.json` uses `"private": true` to prevent accidental publication to the npm registry
+- the source is open and licensed under Apache 2.0, except for brand assets and trademarks noted below
+- browser dependencies are bundled locally for the active runtime path
 
 ## Getting Started
 

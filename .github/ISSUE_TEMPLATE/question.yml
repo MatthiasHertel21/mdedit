@@ -1,0 +1,56 @@
+name: Question
+description: Ask a usage, deployment, or project question
+title: "question: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for questions that are not bug reports and not feature requests.
+        If your topic is really a reproducible defect, please use the bug form instead.
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - How to use a feature
+        - Deployment and operations
+        - Self-hosting setup
+        - Export and print behavior
+        - Collaboration and sharing
+        - AI features
+        - Localization and docs
+        - Contribution process
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Explain what you are trying to do and where you are blocked.
+      placeholder: I am trying to ...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Add environment details, attempted steps, links to docs, or anything already tried.
+      placeholder: I already checked ...
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options:
+        - Docker Compose
+        - Direct Node.js
+        - Reverse proxy deployment
+        - Hosted instance
+        - Not sure
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.2.1 or abc1234
