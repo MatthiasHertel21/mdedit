@@ -97,20 +97,20 @@ textarea {
 .sidebar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
   text-decoration: none;
 }
 
 .sidebar-brand-icon {
+  display: none;
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
-  display: block;
 }
 
 .sidebar-brand-wordmark {
-  width: 128px;
+  width: 154px;
   max-width: 100%;
   height: auto;
   display: block;
@@ -162,6 +162,12 @@ textarea {
 .sidebar.collapsed .sidebar-brand {
   width: 100%;
   justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-brand-icon {
+  display: block;
+  width: 42px;
+  height: 42px;
 }
 
 .sidebar.collapsed .sidebar-brand-wordmark {
@@ -1954,19 +1960,23 @@ section {
   text-decoration: underline;
 }
 
-.about-brand-card {
+.about-layout {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px 20px;
-  margin-bottom: 18px;
-  border: 1px solid rgba(11, 130, 197, 0.16);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(228, 241, 248, 0.92));
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.about-brand-column {
+  flex: 0 0 240px;
+}
+
+.about-content-column {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .about-brand-lockup {
-  width: min(100%, 280px);
+  width: min(100%, 240px);
   height: auto;
   display: block;
 }
@@ -2016,11 +2026,18 @@ section {
 
 @media (max-width: 900px) {
   .sidebar-brand-wordmark {
-    width: 110px;
+    width: 138px;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-layout {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .about-brand-card {
-    padding: 16px;
+  .about-brand-column {
+    flex: 0 0 auto;
   }
 }
 
