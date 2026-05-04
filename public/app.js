@@ -1229,6 +1229,16 @@ const elements = {
   editorResizer: document.querySelector(".editor-resizer"),
   treeResizer: document.querySelector(".tree-resizer"),
   sidebar: document.getElementById("sidebar"),
+  mobileSidebarBackdrop: document.getElementById("mobileSidebarBackdrop"),
+  mobileSpacesBtn: document.getElementById("mobileSpacesBtn"),
+  mobileCurrentSpaceName: document.getElementById("mobileCurrentSpaceName"),
+  mobileHistoryToggle: document.getElementById("mobileHistoryToggle"),
+  mobileOverflowToggle: document.getElementById("mobileOverflowToggle"),
+  mobileOverflowPanel: document.getElementById("mobileOverflowPanel"),
+  mobileTipsBtn: document.getElementById("mobileTipsBtn"),
+  mobileSettingsBtn: document.getElementById("mobileSettingsBtn"),
+  mobileEditorToggle: document.getElementById("mobileEditorToggle"),
+  mobilePreviewToggle: document.getElementById("mobilePreviewToggle"),
   footerStats: document.getElementById("footerStats"),
   previewTitle: document.getElementById("previewTitle"),
   settingsBtn: document.getElementById("settingsBtn"),
@@ -1320,6 +1330,11 @@ let tipsLoadedLocale = null;
 let historyCache = [];
 let selectedNodeId = null;
 let currentView = "preview";
+const mobileWorkspaceViewKey = "mobileWorkspaceView";
+const mobileLayoutMedia = window.matchMedia("(max-width: 768px)");
+let mobileSidebarOpen = false;
+let mobileWorkspaceView = localStorage.getItem(mobileWorkspaceViewKey) || "editor";
+let mobileOverflowOpen = false;
 let printViewActive = false;
 let lastSavedMarkdown = "";
 let aiChat = null;
@@ -1356,17 +1371,79 @@ const sidebarCollapsedKey = "sidebarCollapsed";
 let sidebarPinMode = localStorage.getItem(sidebarPinModeKey) || "unpinned";
 let sidebarCollapsed = localStorage.getItem(sidebarCollapsedKey) !== "false";
 
+const updateMobileWorkspaceView = () => {
+  const app = elements.sidebar?.closest(".app");
+  if (!app) return;
+  const normalizedView = mobileWorkspaceView === "preview" ? "preview" : "editor";
+  app.classList.toggle("mobile-view-editor", mobileLayoutMedia.matches && normalizedView === "editor");
+  app.classList.toggle("mobile-view-preview", mobileLayoutMedia.matches && normalizedView === "preview");
+  elements.mobileEditorToggle?.classList.toggle("active", normalizedView === "editor");
+  elements.mobilePreviewToggle?.classList.toggle("active", normalizedView === "preview");
+  elements.mobileEditorToggle?.setAttribute("aria-selected", normalizedView === "editor" ? "true" : "false");
+  elements.mobilePreviewToggle?.setAttribute("aria-selected", normalizedView === "preview" ? "true" : "false");
+};
+
+const setMobileWorkspaceView = (view) => {
+  mobileWorkspaceView = view === "preview" ? "preview" : "editor";
+  localStorage.setItem(mobileWorkspaceViewKey, mobileWorkspaceView);
+  updateMobileWorkspaceView();
+};
+
+const closeMobileSidebar = () => {
+  if (!mobileLayoutMedia.matches) return;
+  mobileSidebarOpen = false;
+  updateSidebarState();
+};
+
+const updateMobileOverflowState = () => {
+  elements.mobileOverflowPanel?.classList.toggle("hidden", !mobileOverflowOpen);
+  elements.mobileOverflowToggle?.setAttribute("aria-expanded", mobileOverflowOpen ? "true" : "false");
+};
+
+const closeMobileOverflow = () => {
+  mobileOverflowOpen = false;
+  updateMobileOverflowState();
+};
+
+const toggleMobileOverflow = () => {
+  mobileOverflowOpen = !mobileOverflowOpen;
+  updateMobileOverflowState();
+};
+
+const toggleMobileSidebar = () => {
+  if (!mobileLayoutMedia.matches) return;
+  closeMobileOverflow();
+  mobileSidebarOpen = !mobileSidebarOpen;
+  updateSidebarState();
+};
+
+const syncResponsiveLayoutState = () => {
+  if (!mobileLayoutMedia.matches) {
+    mobileSidebarOpen = false;
+    mobileOverflowOpen = false;
+  }
+  updateSidebarState();
+  updateMobileOverflowState();
+  updateMobileWorkspaceView();
+};
+
 const updateSidebarState = () => {
   const sidebar = elements.sidebar;
   const app = sidebar?.closest(".app");
   if (!sidebar || !app) return;
+  const isMobileLayout = mobileLayoutMedia.matches;
   const effectiveCollapsed = sidebarPinMode === "pinned-collapsed"
     ? true
     : sidebarPinMode === "pinned-expanded"
       ? false
       : sidebarCollapsed;
-  sidebar.classList.toggle("collapsed", effectiveCollapsed);
-  app.classList.toggle("sidebar-collapsed", effectiveCollapsed);
+  sidebar.classList.toggle("collapsed", isMobileLayout ? false : effectiveCollapsed);
+  app.classList.toggle("sidebar-collapsed", isMobileLayout ? false : effectiveCollapsed);
+  app.classList.toggle("mobile-sidebar-open", isMobileLayout && mobileSidebarOpen);
+  if (elements.mobileSidebarBackdrop) {
+    elements.mobileSidebarBackdrop.hidden = !(isMobileLayout && mobileSidebarOpen);
+  }
+  elements.mobileHistoryToggle?.classList.toggle("active", isMobileLayout && mobileSidebarOpen);
   elements.pinToggle?.classList.toggle("active", sidebarPinMode !== "unpinned");
   const label = elements.pinToggle?.querySelector(".icon-label");
   if (elements.pinToggle) {
@@ -2698,6 +2775,9 @@ const updateWorkspaceInfo = () => {
   if (elements.currentSpaceName) {
     elements.currentSpaceName.textContent = workspace.name;
   }
+  if (elements.mobileCurrentSpaceName) {
+    elements.mobileCurrentSpaceName.textContent = workspace.name;
+  }
 };
 
 const updateWorkspacePastes = () => {
@@ -3548,6 +3628,9 @@ const setView = (view) => {
   if (view === "collab") {
     view = "preview";
   }
+  if (mobileLayoutMedia.matches) {
+    setMobileWorkspaceView("preview");
+  }
   currentView = view;
   localStorage.setItem("currentView", view);
   treeVisible = view === "tree";
@@ -4006,8 +4089,9 @@ const renderHistory = () => {
         return;
       }
       clearTimeout(row._clickTimer);
-      row._clickTimer = setTimeout(() => {
-        loadPaste(item.id);
+      row._clickTimer = setTimeout(async () => {
+        await loadPaste(item.id);
+        closeMobileSidebar();
       }, 220);
     });
     row.addEventListener("dblclick", async (event) => {
@@ -4102,6 +4186,7 @@ const renderHistory = () => {
           if (currentPasteId !== item.id) {
             await loadPaste(item.id);
           }
+          closeMobileSidebar();
           jumpToLine(heading.line);
         });
         outlineEl.appendChild(outlineItem);
@@ -4846,11 +4931,25 @@ window.addEventListener("resize", () => {
 });
 
 const setGridColumns = () => {
+  if (mobileLayoutMedia.matches) {
+    elements.content.style.gridTemplateColumns = "";
+    return;
+  }
   elements.content.style.gridTemplateColumns = `${startEditor}px 6px ${startPreview}px`;
 };
 
 const initColumns = () => {
   if (!elements.content) return;
+  if (mobileLayoutMedia.matches) {
+    elements.content.style.gridTemplateColumns = "";
+    if (editorView && typeof editorView.setSize === "function") {
+      editorView.setSize(null, "100%");
+    }
+    if (editorView && typeof editorView.refresh === "function") {
+      editorView.refresh();
+    }
+    return;
+  }
   const editorWidth = elements.editorSection.offsetWidth;
   const previewWidth = elements.previewSection.offsetWidth;
 
@@ -4916,6 +5015,9 @@ const onMouseUp = (event) => {
 };
 
 const startDrag = (mode) => (event) => {
+  if (mode === "editor-preview" && mobileLayoutMedia.matches) {
+    return;
+  }
   event.preventDefault();
   isDragging = true;
   dragMode = mode;
@@ -6979,9 +7081,34 @@ elements.pinToggle?.addEventListener("click", () => {
     setSidebarPinMode("unpinned");
   }
 });
+elements.mobileHistoryToggle?.addEventListener("click", toggleMobileSidebar);
+elements.mobileSidebarBackdrop?.addEventListener("click", closeMobileSidebar);
+elements.mobileOverflowToggle?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleMobileOverflow();
+});
+elements.mobileSpacesBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  closeMobileOverflow();
+  openSpacesOverview();
+});
+elements.mobileTipsBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  closeMobileOverflow();
+  showTipsModal();
+});
+elements.mobileSettingsBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  closeMobileOverflow();
+  openSettings();
+});
+elements.mobileEditorToggle?.addEventListener("click", () => setMobileWorkspaceView("editor"));
+elements.mobilePreviewToggle?.addEventListener("click", () => setMobileWorkspaceView("preview"));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeSettings();
+    closeMobileSidebar();
+    closeMobileOverflow();
   }
   if (event.key === "F1") {
     event.preventDefault();
@@ -7008,6 +7135,14 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       rotateHistory(1);
     }
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (!target.closest(".mobile-overflow-menu")) {
+    closeMobileOverflow();
   }
 });
 
@@ -7097,14 +7232,18 @@ try {
 }
 
 elements.sidebar.addEventListener("mouseenter", () => {
+  if (mobileLayoutMedia.matches) return;
   if (sidebarPinMode !== "unpinned") return;
   setSidebarCollapsed(false);
 });
 
 elements.sidebar.addEventListener("mouseleave", () => {
+  if (mobileLayoutMedia.matches) return;
   if (sidebarPinMode !== "unpinned") return;
   setSidebarCollapsed(true);
 });
+
+mobileLayoutMedia.addEventListener("change", syncResponsiveLayoutState);
 
 (async () => {
   await applyTranslations();
@@ -7116,6 +7255,8 @@ applyLayoutEditorCss();
 syncSettingsUI();
 setFooterStats(t("statsEmpty"));
 updateSidebarState();
+updateMobileOverflowState();
+updateMobileWorkspaceView();
 initEditor();
 initMermaidCanvasEvents();
 

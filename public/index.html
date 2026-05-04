@@ -3,18 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>mdedit.io</title>
-    <meta name="description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
+    <title>mdedit.io - No-account Markdown editor with PDF/DOCX export</title>
+    <meta name="description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
     <link rel="canonical" href="https://mdedit.io/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="mdedit.io" />
-    <meta property="og:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
+    <meta property="og:title" content="mdedit.io - No-account Markdown editor" />
+    <meta property="og:description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
     <meta property="og:url" content="https://mdedit.io/" />
-    <meta property="og:image" content="https://mdedit.io/static/brand/mdedit-icon.png" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="mdedit.io" />
-    <meta name="twitter:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
-    <meta name="twitter:image" content="https://mdedit.io/static/brand/mdedit-icon.png" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="mdedit.io social card with product summary and beta call to action" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="mdedit.io - No-account Markdown editor" />
+    <meta name="twitter:description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:image:alt" content="mdedit.io social card with product summary and beta call to action" />
     <meta name="application-name" content="mdedit.io" />
     <meta name="theme-color" content="#0089cf" />
     <script type="application/ld+json">
@@ -25,7 +29,7 @@
         "applicationCategory": "Productivity",
         "operatingSystem": "Web",
         "url": "https://mdedit.io/",
-        "description": "Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF."
+        "description": "mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export."
       }
     </script>
     <link rel="stylesheet" href="/styles.css" />
@@ -77,7 +81,43 @@
         </div>
       </aside>
 
+      <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop" hidden></div>
+
       <main class="main">
+        <div class="mobile-topbar">
+          <div class="mobile-topbar-actions">
+            <button id="mobileSpacesBtn" class="header-icon mobile-topbar-space" type="button" aria-label="Spaces" title="Spaces">
+              <i class="fa-solid fa-layer-group"></i>
+              <span id="mobileCurrentSpaceName">Standard</span>
+            </button>
+            <div class="mobile-view-switch mobile-view-switch-inline" role="tablist" aria-label="Mobile workspace view">
+              <button id="mobileEditorToggle" class="mobile-view-btn active" type="button" data-mobile-view="editor" role="tab" aria-selected="true">
+                <span>M</span>
+              </button>
+              <button id="mobilePreviewToggle" class="mobile-view-btn" type="button" data-mobile-view="preview" role="tab" aria-selected="false">
+                <span>V</span>
+              </button>
+            </div>
+            <button id="mobileHistoryToggle" class="header-icon" type="button" aria-label="Verlauf" title="Verlauf">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </button>
+            <div class="mobile-overflow-menu">
+              <button id="mobileOverflowToggle" class="header-icon" type="button" aria-label="Mehr" title="Mehr" aria-expanded="false" aria-controls="mobileOverflowPanel">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+              <div id="mobileOverflowPanel" class="mobile-overflow-panel hidden" role="menu">
+                <button id="mobileTipsBtn" class="mobile-overflow-item" type="button" role="menuitem">
+                  <i class="fa-solid fa-lightbulb"></i>
+                  <span data-i18n="tips">Tipps</span>
+                </button>
+                <button id="mobileSettingsBtn" class="mobile-overflow-item" type="button" role="menuitem">
+                  <i class="fa-solid fa-gear"></i>
+                  <span data-i18n="settings">Einstellungen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="content two-col">
           <section class="editor">
             <div class="section-header header-actions">
