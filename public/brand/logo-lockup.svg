@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="logoLockupTitle">
+  <title id="logoLockupTitle">mdedit.io logo</title>
+  <defs>
+    <linearGradient id="lockupBlue" x1="32" y1="28" x2="202" y2="194" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d8ff2"/>
+      <stop offset="1" stop-color="#0b82c5"/>
+    </linearGradient>
+    <linearGradient id="lockupPanel" x1="148" y1="64" x2="198" y2="154" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b9dcfb"/>
+      <stop offset="1" stop-color="#8ebdea"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8 10)">
+    <rect x="122" y="48" width="34" height="132" rx="8" fill="url(#lockupPanel)" opacity="0.95"/>
+    <rect x="142" y="60" width="28" height="108" rx="8" fill="#d6eafb" opacity="0.9"/>
+    <path d="M44 42c0-8.837 7.163-16 16-16h76.192c5.105 0 10.018 1.951 13.735 5.454l16.108 15.175A19.999 19.999 0 0 1 172 61.186v46.733h-18V68.217a9 9 0 0 0-2.84-6.549l-13.843-13.04A9 9 0 0 0 131.157 46H62v125.522l68.958-10.905 2.813 17.779-75.456 11.932C49.887 191.662 44 185.15 44 176.66V42Z" fill="url(#lockupBlue)"/>
+    <path d="M70 75h54v45H70z" fill="#ffffff"/>
+    <path d="M74.5 110V80h8.88l8.96 14.88L101.3 80h8.82v30h-7.62V92.3l-7.8 12.84h-4.92L82.06 92.3V110H74.5Z" fill="#111827"/>
+    <rect x="68" y="122" width="53" height="8" rx="4" fill="url(#lockupBlue)"/>
+    <rect x="68" y="138" width="45" height="8" rx="4" fill="url(#lockupBlue)" opacity="0.96"/>
+    <path d="M119 122h49.5c4.418 0 8 3.582 8 8v6h20.186c7.127 0 10.696 8.618 5.657 13.657l-27.029 27.029c-3.124 3.124-8.19 3.124-11.314 0s-3.124-8.19 0-11.314L177.372 152H176.5v2c0 4.418-3.582 8-8 8H119c-4.418 0-8-3.582-8-8v-24c0-4.418 3.582-8 8-8Zm57.5 16v-2H127v10h49.5v-2c0-4.418 3.582-8 8-8h2.872L176.5 138Z" fill="url(#lockupBlue)"/>
+  </g>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="800" font-size="92">
+    <text x="250" y="126" fill="#111827" letter-spacing="-3">mdedit</text>
+    <text x="533" y="126" fill="#0b82c5" letter-spacing="-3">.io</text>
+  </g>
+</svg>

@@ -36,7 +36,7 @@
 /* ===== BASE TYPOGRAPHY ===== */
 
 .print-content {
-  font-family: 'Inter', Georgia, 'Times New Roman', serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 11pt;
   line-height: 1.6;
   color: #1a1a1a;
@@ -454,6 +454,6 @@
 
 /* Hide Paged.js interface elements */
 .pagedjs_margin {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
 }
 

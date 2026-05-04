@@ -13,6 +13,10 @@ export class PrintPreview {
     this.paged = null;
     this.currentPage = 1;
     this.totalPages = 0;
+    this.zoom = 1;
+    this.minZoom = 0.6;
+    this.maxZoom = 1.8;
+    this.zoomStep = 0.1;
     this.isRendering = false;
     this.pendingRender = false;
     this.sourceElement = null; // Store reference to source element
@@ -76,6 +80,14 @@ export class PrintPreview {
     // Page navigation
     this.elements.prevPageBtn?.addEventListener('click', () => this.prevPage());
     this.elements.nextPageBtn?.addEventListener('click', () => this.nextPage());
+    this.elements.printPreviewScroll?.addEventListener('scroll', () => this.syncCurrentPageFromScroll());
+    this.elements.printPreviewScroll?.addEventListener('wheel', (event) => {
+      if (!this.isActive || !event.ctrlKey) {
+        return;
+      }
+      event.preventDefault();
+      this.adjustZoom(event.deltaY < 0 ? this.zoomStep : -this.zoomStep);
+    }, { passive: false });
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -141,11 +153,62 @@ export class PrintPreview {
     if (this.elements.printPreview) {
       this.elements.printPreview.innerHTML = '';
     }
-    
+
     // Clean up source element
     if (this.sourceElement) {
       this.sourceElement.remove();
       this.sourceElement = null;
+    }
+  }
+
+  applyZoom() {
+    const pages = this.elements.printPreview?.querySelector('.pagedjs_pages');
+    if (!pages) {
+      return;
+    }
+
+    pages.style.setProperty('--print-preview-scale', String(this.zoom));
+    pages.style.zoom = String(this.zoom);
+    this.updatePageInfo();
+  }
+
+  adjustZoom(delta) {
+    const nextZoom = Number(Math.min(this.maxZoom, Math.max(this.minZoom, this.zoom + delta)).toFixed(2));
+    if (nextZoom === this.zoom) {
+      return;
+    }
+    this.zoom = nextZoom;
+    this.applyZoom();
+    this.scrollToPage(this.currentPage);
+  }
+
+  syncCurrentPageFromScroll() {
+    const pages = Array.from(this.elements.printPreview?.querySelectorAll('.pagedjs_page') || []);
+    const scrollContainer = this.elements.printPreviewScroll;
+
+    if (!pages.length || !scrollContainer) {
+      return;
+    }
+
+    const viewportCenterX = scrollContainer.scrollLeft + scrollContainer.clientWidth / 2;
+    const viewportCenterY = scrollContainer.scrollTop + scrollContainer.clientHeight / 2;
+
+    let nearestPage = this.currentPage;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    pages.forEach((page, index) => {
+      const pageCenterX = page.offsetLeft + page.offsetWidth / 2;
+      const pageCenterY = page.offsetTop + page.offsetHeight / 2;
+      const distance = Math.hypot(pageCenterX - viewportCenterX, pageCenterY - viewportCenterY);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestPage = index + 1;
+      }
+    });
+
+    if (nearestPage !== this.currentPage) {
+      this.currentPage = nearestPage;
+      this.updatePageInfo();
     }
   }
 
@@ -301,8 +364,10 @@ export class PrintPreview {
               }
               
               .column-break {
-                break-after: column;
-                column-break-after: always;
+                break-before: column;
+                column-break-before: always;
+                height: 0;
+                margin: 0;
               }
               
               .md-columns {
@@ -375,6 +440,7 @@ export class PrintPreview {
         }
         
         this.updatePageInfo();
+        this.applyZoom();
         
         // Scroll to first page
         this.scrollToPage(1);
@@ -516,11 +582,11 @@ export class PrintPreview {
       }
     });
     
-    // Apply layout preprocessing post-processing (converts layout markers to proper styles)
-    layoutPreprocessor.postProcessHTML(temp);
+    // Re-run post-processing on the serialized preview HTML before handing it to Paged.js.
+    temp.innerHTML = layoutPreprocessor.postProcessHTML(temp.innerHTML);
     
     // Get the HTML as a string to break all DOM references
-    const cleanHTML = temp.innerHTML;
+    const cleanHTML = `<div class="print-content">${temp.innerHTML}</div>`;
     
     // Return clean HTML without wrapper - Paged.js will create its own structure
     return cleanHTML;
@@ -720,16 +786,20 @@ export class PrintPreview {
     
     if (pages && pages[pageNum - 1] && scrollContainer) {
       const page = pages[pageNum - 1];
-      const containerTop = scrollContainer.scrollTop;
       const containerHeight = scrollContainer.clientHeight;
+      const containerWidth = scrollContainer.clientWidth;
       const pageTop = page.offsetTop;
+      const pageLeft = page.offsetLeft;
       const pageHeight = page.offsetHeight;
+      const pageWidth = page.offsetWidth;
       
       // Scroll so the page is centered in the view
       const targetScroll = pageTop - (containerHeight - pageHeight) / 2;
+      const targetScrollLeft = pageLeft - (containerWidth - pageWidth) / 2;
       
       scrollContainer.scrollTo({
         top: Math.max(0, targetScroll),
+        left: Math.max(0, targetScrollLeft),
         behavior: 'smooth'
       });
       
@@ -740,7 +810,7 @@ export class PrintPreview {
 
   updatePageInfo() {
     if (this.elements.pageInfo) {
-      this.elements.pageInfo.textContent = `Seite ${this.currentPage} / ${this.totalPages}`;
+      this.elements.pageInfo.textContent = `Seite ${this.currentPage} / ${this.totalPages} · ${Math.round(this.zoom * 100)}%`;
     }
     
     // Update button states

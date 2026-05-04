@@ -3,48 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>md.twentyone.de</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" />
-    <meta name="description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
-    <link rel="canonical" href="https://md.twentyone.de/" />
+    <title>mdedit.io</title>
+    <meta name="description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
+    <link rel="canonical" href="https://mdedit.io/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="md.twentyone.de" />
-    <meta property="og:description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
-    <meta property="og:url" content="https://md.twentyone.de/" />
+    <meta property="og:title" content="mdedit.io" />
+    <meta property="og:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
+    <meta property="og:url" content="https://mdedit.io/" />
+    <meta property="og:image" content="https://mdedit.io/favicon.svg" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="md.twentyone.de" />
-    <meta name="twitter:description" content="Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export." />
+    <meta name="twitter:title" content="mdedit.io" />
+    <meta name="twitter:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
+    <meta name="twitter:image" content="https://mdedit.io/favicon.svg" />
+    <meta name="application-name" content="mdedit.io" />
+    <meta name="theme-color" content="#0b82c5" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "md.twentyone.de",
+        "name": "mdedit.io",
         "applicationCategory": "Productivity",
         "operatingSystem": "Web",
-        "url": "https://md.twentyone.de/",
-        "description": "Minimalistische Markdown-App mit Historie, Vorschau, Baumansicht und Export."
+        "url": "https://mdedit.io/",
+        "description": "Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF."
       }
     </script>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/print.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="/static/vendor/codemirror/codemirror.min.css" />
+    <link rel="stylesheet" href="/static/vendor/codemirror/addon/hint/show-hint.min.css" />
+    <link rel="stylesheet" href="/static/vendor/codemirror/addon/fold/foldgutter.min.css" />
+    <link rel="stylesheet" href="/static/vendor/katex/katex.min.css" />
+    <script src="/static/vendor/katex/katex.min.js"></script>
+    <script src="/static/vendor/jszip/jszip.min.js"></script>
     <!-- YAML parser for document layout configuration -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="/static/vendor/js-yaml/js-yaml.min.js"></script>
     <!-- Paged.js for professional print layout (manual preview only) -->
-    <script src="https://unpkg.com/pagedjs@0.4.3/dist/paged.js"></script>
+    <script src="/static/vendor/pagedjs/paged.js"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
     <div class="app">
       <aside class="sidebar collapsed" id="sidebar">
         <div class="sidebar-top">
+          <a class="sidebar-brand" href="/" aria-label="mdedit.io Startseite">
+            <img class="sidebar-brand-icon" src="/static/brand/logo-icon.svg" alt="" aria-hidden="true" />
+            <img class="sidebar-brand-wordmark" src="/static/brand/logo-lockup.svg" alt="mdedit.io" />
+          </a>
           <input id="historySearch" class="search sidebar-search" type="text" placeholder="Suchen" data-i18n-placeholder="search" />
         </div>
         <div id="collapsedOpenItems" class="collapsed-open-items"></div>
@@ -53,17 +60,17 @@
           <div id="historyList" class="history"></div>
         </div>
         <div class="sidebar-bottom">
-          <button id="layoutEditorBtn" class="icon" title="Layout-Editor" aria-label="Layout-Editor" data-i18n-title="layoutEditor" data-i18n-aria="layoutEditor">
-            <i class="fa-solid fa-palette"></i>
-            <span class="icon-label" data-i18n="layoutEditor">Layout</span>
+          <button id="pinToggle" class="icon" title="Sidebar anheften" aria-label="Sidebar anheften">
+            <i class="fa-solid fa-thumbtack"></i>
+            <span class="icon-label" data-i18n="pin">Anheften</span>
+          </button>
+          <button id="tipsBtn" class="icon" title="Tipps (F2)" aria-label="Tipps anzeigen" data-i18n-title="tips" data-i18n-aria="tips">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span class="icon-label" data-i18n="tips">Tipps</span>
           </button>
           <button id="settingsBtn" class="icon" title="Einstellungen" aria-label="Einstellungen" data-i18n-title="settings" data-i18n-aria="settings">
             <i class="fa-solid fa-gear"></i>
             <span class="icon-label" data-i18n="settings">Einstellungen</span>
-          </button>
-          <button id="pinToggle" class="icon" title="Sidebar anheften" aria-label="Sidebar anheften">
-            <i class="fa-solid fa-thumbtack"></i>
-            <span class="icon-label" data-i18n="pin">Anheften</span>
           </button>
         </div>
       </aside>
@@ -84,35 +91,31 @@
                     <i class="fa-solid fa-share-nodes"></i>
                   </button>
                   <div id="shareMenu" class="share-menu-panel hidden">
-                    <div class="share-menu-section">
-                      <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
-                        <i class="fa-solid fa-link"></i>
-                        <span data-i18n="permalink">Permalink kopieren</span>
-                      </button>
-                      <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
-                        <i class="fa-regular fa-copy"></i>
-                        <span data-i18n="copyMd">Markdown kopieren</span>
-                      </button>
-                      <button id="copyTextBtn" class="share-menu-item" title="Word kopieren" aria-label="Word kopieren" data-i18n-title="copyWord" data-i18n-aria="copyWord">
-                        <i class="fa-regular fa-file-word"></i>
-                        <span data-i18n="copyWord">Word kopieren</span>
-                      </button>
-                    </div>
+                    <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
+                      <i class="fa-solid fa-link"></i>
+                      <span data-i18n="permalink">Permalink kopieren</span>
+                    </button>
+                    <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
+                      <i class="fa-regular fa-copy"></i>
+                      <span data-i18n="copyMd">Markdown kopieren</span>
+                    </button>
+                    <button id="copyTextBtn" class="share-menu-item" title="Word kopieren" aria-label="Word kopieren" data-i18n-title="copyWord" data-i18n-aria="copyWord">
+                      <i class="fa-regular fa-file-word"></i>
+                      <span data-i18n="copyWord">Word kopieren</span>
+                    </button>
                     <div class="share-menu-divider" aria-hidden="true"></div>
-                    <div class="share-menu-section">
-                      <button id="downloadMdBtn" class="share-menu-item" title="Markdown herunterladen" aria-label="Markdown herunterladen" data-i18n-title="downloadMd" data-i18n-aria="downloadMd">
-                        <i class="fa-solid fa-file-arrow-down"></i>
-                        <span data-i18n="downloadMd">Markdown herunterladen</span>
-                      </button>
-                      <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
-                        <i class="fa-solid fa-file-word"></i>
-                        <span data-i18n="downloadWord">Word herunterladen</span>
-                      </button>
-                      <button id="sharePdfBtn" class="share-menu-item" title="PDF herunterladen" aria-label="PDF herunterladen" data-i18n-title="downloadPdf" data-i18n-aria="downloadPdf">
-                        <i class="fa-solid fa-file-pdf"></i>
-                        <span data-i18n="downloadPdf">PDF herunterladen</span>
-                      </button>
-                    </div>
+                    <button id="downloadMdBtn" class="share-menu-item" title="Markdown herunterladen" aria-label="Markdown herunterladen" data-i18n-title="downloadMd" data-i18n-aria="downloadMd">
+                      <i class="fa-solid fa-file-arrow-down"></i>
+                      <span data-i18n="downloadMd">Markdown herunterladen</span>
+                    </button>
+                    <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
+                      <i class="fa-solid fa-file-word"></i>
+                      <span data-i18n="downloadWord">Word herunterladen</span>
+                    </button>
+                    <button id="sharePdfBtn" class="share-menu-item" title="PDF herunterladen" aria-label="PDF herunterladen" data-i18n-title="downloadPdf" data-i18n-aria="downloadPdf">
+                      <i class="fa-solid fa-file-pdf"></i>
+                      <span data-i18n="downloadPdf">PDF herunterladen</span>
+                    </button>
                   </div>
                 </div>
                 <div id="collabPresenceContainer" class="collab-presence-container hidden"></div>
@@ -145,6 +148,9 @@
                         <button class="preview-preset-item" data-preset="document" data-document-layout-option="true" role="menuitem" data-i18n="presetDocument">Dokument</button>
                       </div>
                     </div>
+                    <button id="previewLayoutEditorBtn" class="header-icon" title="Layout-Editor" aria-label="Layout-Editor" data-i18n-title="layoutEditor" data-i18n-aria="layoutEditor">
+                      <i class="fa-solid fa-palette"></i>
+                    </button>
                     <div class="header-icons">
                       <button id="togglePrintViewBtn" class="header-icon" title="Seitenansicht" aria-label="Seitenansicht" data-i18n-title="togglePagedView" data-i18n-aria="togglePagedView">
                         <i class="fa-solid fa-file-lines"></i>
@@ -158,9 +164,6 @@
                       </button>
                       <button id="aiChatToggle" class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent (Alt+Space)" aria-label="KI-Assistent" data-i18n-title="aiChat" data-i18n-aria="aiChat">
                         <i class="fa-solid fa-robot"></i>
-                      </button>
-                      <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
-                        <i class="fa-solid fa-users"></i>
                       </button>
                     </div>
                   </div>
@@ -183,9 +186,6 @@
                       </button>
                     </div>
                     <div class="header-icons">
-                      <button id="openLayoutConfig" class="icon-sm" title="Layout-Einstellungen" aria-label="Layout-Einstellungen">
-                        <i class="fa-solid fa-sliders"></i>
-                      </button>
                       <button id="printViewBtn" class="icon-sm" title="Drucken" aria-label="Drucken" data-i18n-title="print" data-i18n-aria="print">
                         <i class="fa-solid fa-print"></i>
                       </button>
@@ -208,9 +208,6 @@
                     </button>
                     <button class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
                       <i class="fa-solid fa-robot"></i>
-                    </button>
-                    <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
-                      <i class="fa-solid fa-users"></i>
                     </button>
                   </div>
                 </div>
@@ -245,9 +242,6 @@
                     <button class="header-icon view-toggle-btn active" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
                       <i class="fa-solid fa-robot"></i>
                     </button>
-                    <button class="header-icon view-toggle-btn collab-chat-toggle hidden" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
-                      <i class="fa-solid fa-users"></i>
-                    </button>
                   </div>
                 </div>
                 <div id="aiChatBody" class="ai-chat-body">
@@ -255,42 +249,6 @@
                   <div class="ai-chat-input-area">
                     <textarea id="aiChatInput" class="ai-chat-input" placeholder="Frage den KI-Assistenten..." rows="3" data-i18n-placeholder="aiChatPlaceholder"></textarea>
                     <button id="aiChatSendBtn" class="primary-btn" title="Senden" aria-label="Nachricht senden" data-i18n-title="send">
-                      <i class="fa-solid fa-paper-plane"></i>
-                      <span data-i18n="send">Senden</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <!-- Collab Chat Panel -->
-              <div id="collabChatPanel" class="panel hidden">
-                <div class="section-header header-actions">
-                  <div class="collab-chat-title-row">
-                    <span data-i18n="collabChat">Team-Chat</span>
-                  </div>
-                  <div class="header-icons">
-                    <button id="newCollabThreadBtn" class="header-icon" title="Neuer Thread" aria-label="Neuer Thread" data-i18n-title="collabThreadNew" data-i18n-aria="collabThreadNew">
-                      <i class="fa-solid fa-plus"></i>
-                    </button>
-                    <select id="collabThreadSelect" class="collab-thread-select" aria-label="Thread auswählen" data-i18n-aria="collabThreadSelect"></select>
-                    <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
-                      <i class="fa-solid fa-align-left"></i>
-                    </button>
-                    <button class="header-icon view-toggle-btn" data-view="tree" title="Baum" aria-label="Baum">
-                      <i class="fa-solid fa-network-wired"></i>
-                    </button>
-                    <button class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent" aria-label="KI-Assistent">
-                      <i class="fa-solid fa-robot"></i>
-                    </button>
-                    <button class="header-icon view-toggle-btn active collab-chat-toggle" data-view="collab" title="Team-Chat" aria-label="Team-Chat" data-i18n-title="collabChat" data-i18n-aria="collabChat">
-                      <i class="fa-solid fa-users"></i>
-                    </button>
-                  </div>
-                </div>
-                <div id="collabChatBody" class="collab-chat-body">
-                  <div id="collabChatMessages" class="collab-chat-messages"></div>
-                  <div class="collab-chat-input-area">
-                    <textarea id="collabChatInput" class="collab-chat-input" placeholder="Nachricht eingeben..." rows="3" data-i18n-placeholder="collabChatPlaceholder"></textarea>
-                    <button id="collabChatSendBtn" class="primary-btn" title="Senden" aria-label="Nachricht senden" data-i18n-title="send">
                       <i class="fa-solid fa-paper-plane"></i>
                       <span data-i18n="send">Senden</span>
                     </button>
@@ -322,7 +280,10 @@
     <div id="tipsOverlay" class="modal-overlay hidden"></div>
     <div id="tipsModal" class="modal hidden">
       <div class="modal-header">
-        <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+        <div>
+          <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+          <p style="font-size:12px;color:var(--muted,#888);margin:2px 0 0;"><kbd>F2</kbd> <span data-i18n="tipsF2Hint">jederzeit erneut öffnen</span> &nbsp;·&nbsp; <kbd>F1</kbd> <span data-i18n="tipsF1Hint">Hilfe öffnen</span></p>
+        </div>
         <button id="tipsClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -496,20 +457,6 @@
           <div class="settings-grid settings-grid-split">
             <div class="settings-column">
               <h3 class="settings-column-title" data-i18n="editorColumnGeneral">Allgemein</h3>
-              <div class="settings-language-row">
-                <label for="collabDisplayName" data-i18n="settingCollabDisplayName">Anzeigename (Kollaboration)</label>
-                <input type="text" id="collabDisplayName" class="setting-select" placeholder="Dein Name" data-i18n-placeholder="settingCollabDisplayNamePlaceholder" maxlength="50" autocomplete="off" />
-              </div>
-              <div class="setting">
-                <label class="switch">
-                  <input type="checkbox" data-setting="collabEnabled" />
-                  <span class="slider"></span>
-                </label>
-                <div class="setting-text">
-                  <div class="setting-title" data-i18n="settingCollabEnabled">Gemeinsame Bearbeitung erlauben</div>
-                  <div class="setting-subtitle" data-i18n="settingCollabEnabledDesc">Automatisch an geteilten Dokumenten teilnehmen</div>
-                </div>
-              </div>
               <div class="setting">
                 <label class="switch">
                   <input type="checkbox" id="autoSyncToggle" data-setting="autoSync" />
@@ -553,6 +500,25 @@
                 </label>
                 <div class="setting-text">
                   <div class="setting-title" data-i18n="settingShowToasts">Toasts anzeigen</div>
+                </div>
+              </div>
+              <div class="setting setting-select-only">
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingCollabDisplayName">Anzeigename (Kollaboration)</div>
+                  <div class="setting-subtitle" data-i18n="settingCollabDisplayNameDesc">Wird anderen Kollaborierenden angezeigt</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="collabDisplayName" class="setting-input" placeholder="Dein Name" data-i18n-placeholder="settingCollabDisplayNamePlaceholder" maxlength="50" autocomplete="off" />
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="collabEnabled" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingCollabEnabled">Gemeinsame Bearbeitung erlauben</div>
+                  <div class="setting-subtitle" data-i18n="settingCollabEnabledDesc">Automatisch an geteilten Dokumenten teilnehmen</div>
                 </div>
               </div>
             </div>
@@ -836,7 +802,7 @@
             <!-- Google Gemini -->
             <div class="ai-provider-row">
               <label class="switch">
-                <input type="checkbox" id="aiGeminiEnabled" data-ai-provider="gemini" checked />
+                <input type="checkbox" id="aiGeminiEnabled" data-ai-provider="gemini" />
                 <span class="slider"></span>
               </label>
               <div class="ai-provider-info">
@@ -844,9 +810,9 @@
               </div>
               <div class="ai-provider-controls">
                 <select id="aiGeminiModel" class="ai-model-select">
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                  <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                  <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                 </select>
                 <form class="ai-key-form" onsubmit="return false;">
                   <input type="password" id="aiGeminiKey" class="ai-key-input" placeholder="internal API key" data-i18n-placeholder="aiKeyInternal" autocomplete="off" />
@@ -875,22 +841,23 @@
               </div>
             </div>
             
-            <!-- xAI -->
+            <!-- Groq -->
             <div class="ai-provider-row">
               <label class="switch">
-                <input type="checkbox" id="aiXAIEnabled" data-ai-provider="xai" />
+                <input type="checkbox" id="aiGroqEnabled" data-ai-provider="groq" checked />
                 <span class="slider"></span>
               </label>
               <div class="ai-provider-info">
-                <div class="ai-provider-name">xAI (Grok)</div>
+                <div class="ai-provider-name">Groq</div>
               </div>
               <div class="ai-provider-controls">
-                <select id="aiXAIModel" class="ai-model-select">
-                  <option value="grok-beta">Grok Beta</option>
-                  <option value="grok-vision-beta">Grok Vision Beta</option>
+                <select id="aiGroqModel" class="ai-model-select">
+                  <option value="openai/gpt-oss-120b" selected>GPT OSS 120B</option>
+                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                  <option value="qwen/qwen3-32b">Qwen 3 32B</option>
                 </select>
                 <form class="ai-key-form" onsubmit="return false;">
-                  <input type="password" id="aiXAIKey" class="ai-key-input" placeholder="xai-..." autocomplete="off" />
+                  <input type="password" id="aiGroqKey" class="ai-key-input" placeholder="gsk_..." autocomplete="off" />
                 </form>
               </div>
             </div>
@@ -918,18 +885,25 @@
           </div>
         </div>
         <div class="tab-panel" data-tab-panel="about">
+          <div class="about-brand-card">
+            <img class="about-brand-lockup" src="/static/brand/logo-lockup.svg" alt="mdedit.io" />
+            <p class="about-brand-text">Clear. Focused. Share Anywhere.</p>
+          </div>
           <h3 class="about-title" data-i18n="aboutImprint">Impressum</h3>
           <p class="about-imprint">
             <strong>Matthias Hertel</strong><br>
             Dresden, Deutschland<br>
             matthias.hertel@gmail.com
           </p>
+          <p class="about-version" style="margin-top:12px;font-size:13px;color:var(--muted,#888);">
+            <span data-i18n="aboutVersion">Version</span>: <span id="appVersion">–</span>
+          </p>
           
           <h4 class="about-subtitle" data-i18n="aboutPrivacy">Datenschutz</h4>
           <p class="about-text" data-i18n="aboutPrivacyText">Ihre Daten werden lokal im Browser gespeichert. Es findet keine Übertragung an Dritte statt. Die Anwendung nutzt localStorage zur Speicherung Ihrer Einstellungen und Dokumente. Sie können alle Daten jederzeit über die Browser-Einstellungen löschen.</p>
           
           <h4 class="about-subtitle" data-i18n="aboutLicense">Lizenz</h4>
-          <p class="about-text" data-i18n="aboutLicenseText">Diese Anwendung steht unter der MIT-Lizenz und darf frei verwendet werden.</p>
+          <p class="about-text" data-i18n="aboutLicenseText">Der Quellcode dieser Anwendung steht unter der Apache License 2.0. Dokumentation und Website-Inhalte stehen, sofern nicht anders angegeben, unter CC BY 4.0. Name, Domain, Logos, Icons und sonstige Brand-Assets sind nicht automatisch mitlizenziert.</p>
         </div>
       </div>
     </div>
@@ -2455,11 +2429,11 @@
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="/static/vendor/codemirror/codemirror.min.js"></script>
+    <script src="/static/vendor/codemirror/mode/markdown/markdown.min.js"></script>
+    <script src="/static/vendor/codemirror/addon/hint/show-hint.min.js"></script>
+    <script src="/static/vendor/codemirror/addon/fold/foldcode.min.js"></script>
+    <script src="/static/vendor/codemirror/addon/fold/foldgutter.min.js"></script>
     <script type="module" src="/app.js"></script>
   </body>
 </html>

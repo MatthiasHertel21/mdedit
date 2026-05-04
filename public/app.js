@@ -1,25 +1,28 @@
-import MarkdownIt from "https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm";
-import markdownItTaskLists from "https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/+esm";
-import markdownItMultimdTable from "https://cdn.jsdelivr.net/npm/markdown-it-multimd-table@4.2.3/+esm";
-import { Markmap } from "https://esm.sh/markmap-view@0.18.9";
-import markdownItFootnote from "https://cdn.jsdelivr.net/npm/markdown-it-footnote@3.0.3/+esm";
-import markdownItDeflist from "https://cdn.jsdelivr.net/npm/markdown-it-deflist@2.1.0/+esm";
-import markdownItContainer from "https://cdn.jsdelivr.net/npm/markdown-it-container@3.0.0/+esm";
-import markdownItKatex from "https://cdn.jsdelivr.net/npm/markdown-it-katex@2.0.3/+esm";
-import mermaid from "https://esm.sh/mermaid@11.4.0";
-import markdownItEmoji from "https://cdn.jsdelivr.net/npm/markdown-it-emoji@3.0.0/+esm";
-import markdownItSub from "https://cdn.jsdelivr.net/npm/markdown-it-sub@2.0.0/+esm";
-import markdownItSup from "https://cdn.jsdelivr.net/npm/markdown-it-sup@2.0.0/+esm";
-import markdownItMark from "https://cdn.jsdelivr.net/npm/markdown-it-mark@3.0.1/+esm";
-import markdownItAbbr from "https://cdn.jsdelivr.net/npm/markdown-it-abbr@1.0.4/+esm";
-import markdownItAnchor from "https://cdn.jsdelivr.net/npm/markdown-it-anchor@8.6.7/+esm";
-import markdownItToc from "https://cdn.jsdelivr.net/npm/markdown-it-toc-done-right@4.2.0/+esm";
-import markdownItAttrs from "https://cdn.jsdelivr.net/npm/markdown-it-attrs@4.1.6/+esm";
-import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
+import {
+  JSZip,
+  MarkdownIt,
+  Markmap,
+  markdownItAbbr,
+  markdownItAnchor,
+  markdownItAttrs,
+  markdownItContainer,
+  markdownItDeflist,
+  markdownItEmoji,
+  markdownItFootnote,
+  markdownItKatex,
+  markdownItMark,
+  markdownItMultimdTable,
+  markdownItSub,
+  markdownItSup,
+  markdownItTaskLists,
+  markdownItToc,
+  mermaid
+} from "/static/vendor/esm/browser-deps.js";
 import { printPreview } from "./modules/print-preview.js";
 import { AIChat } from "./modules/ai-chat.js";
 import { documentLayout } from "./modules/document-layout.js";
 import { layoutCSSGenerator } from "./modules/layout-css-generator.js";
+import { layoutPreprocessor } from "./modules/layout-preprocessor.js";
 import { ImageManager } from "./modules/image-manager.js";
 import { CollabManager } from "./modules/collab.js";
 import { PresenceManager } from "./modules/presence.js";
@@ -629,7 +632,7 @@ const defaultCustomCssTemplate = `/* Example: customize preview styles */
 .preview-content {
   font-size: 16px;
   line-height: 1.7;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   color: #22536b;
 }
 
@@ -674,7 +677,7 @@ const defaultCustomCssTemplate = `/* Example: customize preview styles */
 .mermaid .nodeLabel,
 .mermaid .edgeLabel {
   color: #22536b !important;
-  font-family: "Inter", system-ui, sans-serif !important;
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif !important;
   font-size: 13px !important;
 }
 
@@ -697,7 +700,7 @@ const addAdmonition = (instance, type, title) => {
 
 const buildMarkdownIt = (settings) => {
   const instance = MarkdownIt({
-    html: true,
+    html: false,
     linkify: settings.gfm,
     breaks: false,
     typographer: settings.typographer,
@@ -836,15 +839,15 @@ const initMermaid = () => {
   const bg = getCssVarValue("--bg", "#f9fcfe");
   const preset = previewPreset || "scientific";
   const presetMap = {
-    scientific: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
-    compact: { fontSize: 11, nodePadding: 6, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
+    scientific: { fontSize: 13, nodePadding: 10, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" },
+    compact: { fontSize: 11, nodePadding: 6, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" },
     literary: { fontSize: 14, nodePadding: 12, fontFamily: "Georgia, Times New Roman, serif" },
-    custom: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" }
+    custom: { fontSize: 13, nodePadding: 10, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" }
   };
   const presetVars = presetMap[preset] || presetMap.scientific;
   mermaid.initialize({
     startOnLoad: false,
-    securityLevel: "loose",
+    securityLevel: "strict",
     theme: "base",
     themeVariables: {
       primaryColor: accentLight,
@@ -872,6 +875,65 @@ const escapeHtml = (text) => {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+};
+
+const sanitizeRenderedHtml = (html) => {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+
+  const blockedTags = new Set([
+    "script",
+    "iframe",
+    "object",
+    "embed",
+    "link",
+    "meta",
+    "base",
+    "form",
+    "input",
+    "button",
+    "textarea",
+    "select",
+    "option"
+  ]);
+
+  const safeUrlPattern = /^(?:https?:|mailto:|tel:|\/|#|\.?\/)/i;
+  const safeImageUrlPattern = /^(?:https?:|data:image\/|blob:|\/|\.?\/)/i;
+
+  const elements = template.content.querySelectorAll("*");
+  elements.forEach((element) => {
+    const tagName = element.tagName.toLowerCase();
+    if (blockedTags.has(tagName)) {
+      element.remove();
+      return;
+    }
+
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim();
+
+      if (name.startsWith("on") || name === "srcdoc" || name === "style") {
+        element.removeAttribute(attribute.name);
+        return;
+      }
+
+      if (name === "href" || name === "xlink:href") {
+        if (!safeUrlPattern.test(value)) {
+          element.removeAttribute(attribute.name);
+        }
+        return;
+      }
+
+      if (name === "src") {
+        const pattern = tagName === "img" ? safeImageUrlPattern : safeUrlPattern;
+        if (!pattern.test(value)) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+    });
+  });
+
+  return template.innerHTML;
 };
 
 const toSafeFilename = (value, fallback) => {
@@ -1148,8 +1210,7 @@ const elements = {
   printPreviewBody: document.getElementById("printPreviewBody"),
   printPreview: document.getElementById("printPreview"),
   previewBody: document.getElementById("previewBody"),
-  openLayoutConfig: document.getElementById("openLayoutConfig"),
-  layoutEditorBtn: document.getElementById("layoutEditorBtn"),
+  previewLayoutEditorBtn: document.getElementById("previewLayoutEditorBtn"),
   layoutEditorModal: document.getElementById("layoutEditorModal"),
   layoutEditorOverlay: document.getElementById("layoutEditorOverlay"),
   layoutEditorClose: document.getElementById("layoutEditorClose"),
@@ -1313,59 +1374,6 @@ const insertMarkdownAtCursor = (text) => {
 const layoutBlockRegex = /```layout\s*\n[\s\S]*?\n```/g;
 
 const stripLayoutBlock = (text) => text.replace(layoutBlockRegex, "").trimEnd();
-
-const preprocessLayoutCommands = (markdown) => {
-  let processed = String(markdown || "");
-
-  processed = processed
-    .replace(/<!--\s*page-break\s*-->/gi, '<div class="page-break"></div>')
-    .replace(/^\s*:::\s*page-?break\s*$/gim, '<div class="page-break"></div>')
-    .replace(/<!--\s*page-break\s+(odd|even|right|left)\s*-->/gi, '<div class="page-break" data-break="$1"></div>');
-
-  processed = processed
-    .replace(/<!--\s*column-break\s*-->/gi, '<div class="column-break"></div>')
-    .replace(/^\s*:::\s*column-?break\s*$/gim, '<div class="column-break"></div>');
-
-  processed = processed
-    .replace(
-      /<!--\s*columns:(\d+)(?:\s+gap:(\S+))?(?:\s+rule:(true|false))?\s*-->/gi,
-      (match, count, gap, rule) => `<div class="md-columns" data-count="${count}" data-gap="${gap || '20pt'}" data-rule="${rule === 'true'}">`
-    )
-    .replace(/<!--\s*\/columns\s*-->/gi, '</div>')
-    .replace(
-      /^\s*:::\s*columns\{count=(\d+)(?:\s+gap=(\S+))?(?:\s+rule=(true|false))?\}\s*$/gim,
-      (match, count, gap, rule) => `<div class="md-columns" data-count="${count}" data-gap="${gap || '20pt'}" data-rule="${rule === 'true'}">`
-    );
-
-  processed = processed
-    .replace(/<!--\s*chapter\s*-->/gi, '<div class="chapter-marker"></div>')
-    .replace(/^\s*:::\s*chapter\s*$/gim, '<div class="chapter-marker"></div>');
-
-  processed = processed
-    .replace(
-      /<!--\s*section:(\S+)(?:\s+columns:(\d+))?\s*-->/gi,
-      (match, type, cols) => `<div class="section-break" data-type="${type}" data-columns="${cols || '1'}"></div>`
-    )
-    .replace(
-      /^\s*:::\s*section\{type=(\S+)(?:\s+columns=(\d+))?\}\s*$/gim,
-      (match, type, cols) => `<div class="section-break" data-type="${type}" data-columns="${cols || '1'}"></div>`
-    );
-
-  processed = processed
-    .replace(/<!--\s*table:(\w+)\s*-->/gi, '<div class="table-layout-marker" data-layout="$1"></div>')
-    .replace(/^\s*:::\s*table\{layout=(\w+)\}\s*$/gim, '<div class="table-layout-marker" data-layout="$1"></div>');
-
-  processed = processed
-    .replace(/<!--\s*title-page\s*-->/gi, '<div class="title-page-marker" data-start="true"></div>')
-    .replace(/<!--\s*\/title-page\s*-->/gi, '<div class="title-page-marker" data-end="true"></div>')
-    .replace(/^\s*:::\s*title-?page\s*$/gim, '<div class="title-page-marker" data-start="true"></div>');
-
-  processed = processed
-    .replace(/<!--\s*blank-page\s*-->/gi, '<div class="blank-page-marker"></div>')
-    .replace(/^\s*:::\s*blank-?page\s*$/gim, '<div class="blank-page-marker"></div>');
-
-  return processed;
-};
 
 let layoutBlockMarker = null;
 const updateLayoutBlockVisibility = () => {
@@ -1587,11 +1595,11 @@ const closeSettings = () => {
   elements.settingsOverlay?.classList.add("hidden");
 };
 
-const openLayoutEditor = () => {
+const openLayoutEditor = (preset = previewPreset || "scientific") => {
   elements.layoutEditorModal?.classList.remove("hidden");
   elements.layoutEditorOverlay?.classList.remove("hidden");
   if (elements.layoutEditorSelect) {
-    elements.layoutEditorSelect.value = previewPreset || "scientific";
+    elements.layoutEditorSelect.value = preset;
   }
   // Sync CSS into layout editor (include preset styles)
   if (elements.layoutCustomCssInput) {
@@ -3098,11 +3106,11 @@ const renderPreview = () => {
     wasHealed = true;
   }
   
-  const previewText = preprocessLayoutCommands(stripLayoutBlock(text));
+  const previewText = layoutPreprocessor.process(stripLayoutBlock(text));
   if (previewPreset === "document") {
     refreshDynamicStyles(text);
   }
-  elements.preview.innerHTML = md.render(previewText);
+  elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(md.render(previewText)));
   
   // Zeige Korrekturvorschlag im Editor
   const suggestionEl = document.getElementById("editorSuggestion");
@@ -3321,18 +3329,19 @@ const togglePrintView = () => {
 };
 
 const setView = (view) => {
+  if (view === "collab") {
+    view = "preview";
+  }
   currentView = view;
   localStorage.setItem("currentView", view);
   treeVisible = view === "tree";
   const chatVisible = view === "chat";
-  const collabVisible = view === "collab";
-  const previewVisible = !treeVisible && !chatVisible && !collabVisible;
+  const previewVisible = !treeVisible && !chatVisible;
   
   // Toggle panels
   elements.previewPanel?.classList.toggle("active", previewVisible);
   elements.treePanel?.classList.toggle("active", treeVisible);
   elements.aiChatPanel?.classList.toggle("active", chatVisible);
-  elements.collabChatPanel?.classList.toggle("active", collabVisible);
   
   // Toggle button states
   elements.viewPreviewBtn?.classList.toggle("primary", previewVisible);
@@ -3352,8 +3361,6 @@ const setView = (view) => {
     if (aiChat) {
       document.getElementById("aiChatInput")?.focus();
     }
-  } else if (collabVisible) {
-    document.getElementById("collabChatInput")?.focus();
   } else {
     renderPreview();
   }
@@ -3513,7 +3520,7 @@ const renderSelectionText = (raw) => {
   if (!raw) return "";
   if (!md) return raw;
   const wrapper = document.createElement("div");
-  wrapper.innerHTML = md.render(raw);
+  wrapper.innerHTML = sanitizeRenderedHtml(md.render(raw));
   return wrapper.textContent || "";
 };
 
@@ -3626,7 +3633,7 @@ const renderNodeContent = () => {
   if (chunk) {
     headingIdState.ids = [];
     headingIdState.index = 0;
-    elements.nodeContent.innerHTML = md.render(chunk);
+    elements.nodeContent.innerHTML = sanitizeRenderedHtml(md.render(chunk));
     const stats = getStats(chunk);
     lastStatsText = formatStatsText(stats);
     elements.nodeStatsBtn?.setAttribute(
@@ -3672,6 +3679,11 @@ const renderTree = () => {
   svg.style.width = "100%";
   svg.style.height = "100%";
   container.appendChild(svg);
+
+  if (!Markmap) {
+    container.innerHTML = "<div class=\"muted\">Baumansicht ist in diesem Build derzeit nicht verfuegbar.</div>";
+    return;
+  }
 
   const mm = Markmap.create(svg, {
     duration: 200,
@@ -4336,6 +4348,140 @@ const debounce = (fn, delay) => {
   };
 };
 
+const COLLAB_GUTTER_ID = "CodeMirror-collabgutter";
+const remoteCursorBookmarks = new Map();
+const remoteCursorPositions = new Map();
+let remoteCursorGutterLines = new Set();
+
+const getCollabMemberMeta = (memberId) => {
+  const collabManager = window.collabSupport?.getCollabManager?.();
+  const member = collabManager?.getAllMembers?.().find((entry) => entry.id === memberId);
+  return {
+    name: member?.fantasyName || member?.fantasy_name || "Anonymous",
+    color: member?.avatarColor || member?.avatar_color || "#0089cf"
+  };
+};
+
+const clearRemoteCursorBookmark = (memberId) => {
+  remoteCursorBookmarks.get(memberId)?.clear?.();
+  remoteCursorBookmarks.delete(memberId);
+};
+
+const renderRemoteCursorGutter = () => {
+  if (!editorView) return;
+
+  remoteCursorGutterLines.forEach((line) => editorView.setGutterMarker(line, COLLAB_GUTTER_ID, null));
+  remoteCursorGutterLines = new Set();
+
+  const groupedByLine = new Map();
+  remoteCursorPositions.forEach((position, memberId) => {
+    if (!position || !Number.isInteger(position.line)) return;
+    const line = Math.max(0, Math.min(position.line, editorView.lineCount() - 1));
+    const membersOnLine = groupedByLine.get(line) || [];
+    membersOnLine.push({ memberId, position });
+    groupedByLine.set(line, membersOnLine);
+  });
+
+  groupedByLine.forEach((membersOnLine, line) => {
+    const marker = document.createElement("div");
+    marker.className = "collab-gutter-presence";
+
+    membersOnLine.slice(0, 3).forEach(({ memberId }) => {
+      const meta = getCollabMemberMeta(memberId);
+      const badge = document.createElement("span");
+      badge.className = "collab-gutter-badge";
+      badge.style.backgroundColor = meta.color;
+      badge.title = `${meta.name} • ${t("markdown")} ${line + 1}`;
+      badge.textContent = meta.name.charAt(0).toUpperCase();
+      marker.appendChild(badge);
+    });
+
+    if (membersOnLine.length > 3) {
+      const more = document.createElement("span");
+      more.className = "collab-gutter-more";
+      more.title = membersOnLine.map(({ memberId }) => getCollabMemberMeta(memberId).name).join(", ");
+      more.textContent = `+${membersOnLine.length - 3}`;
+      marker.appendChild(more);
+    }
+
+    editorView.setGutterMarker(line, COLLAB_GUTTER_ID, marker);
+    remoteCursorGutterLines.add(line);
+  });
+};
+
+const showRemoteCursorPosition = (position, memberId) => {
+  if (!editorView || !position || !Number.isInteger(position.line)) return;
+
+  const collabManager = window.collabSupport?.getCollabManager?.();
+  if (memberId && collabManager?.memberId === memberId) {
+    return;
+  }
+
+  const line = Math.max(0, Math.min(position.line, editorView.lineCount() - 1));
+  const lineText = editorView.getLine(line) || "";
+  const ch = Math.max(0, Math.min(position.ch ?? 0, lineText.length));
+  const meta = getCollabMemberMeta(memberId);
+
+  clearRemoteCursorBookmark(memberId);
+
+  const widget = document.createElement("span");
+  widget.className = "collab-remote-cursor";
+  widget.style.setProperty("--collab-color", meta.color);
+  widget.title = `${meta.name} • ${t("markdown")} ${line + 1}:${ch + 1}`;
+
+  const caret = document.createElement("span");
+  caret.className = "collab-remote-caret";
+  widget.appendChild(caret);
+
+  const label = document.createElement("span");
+  label.className = "collab-remote-label";
+  label.textContent = meta.name;
+  widget.appendChild(label);
+
+  const bookmark = editorView.getDoc().setBookmark({ line, ch }, {
+    widget,
+    insertLeft: true,
+    handleMouseEvents: true
+  });
+
+  remoteCursorBookmarks.set(memberId, bookmark);
+  remoteCursorPositions.set(memberId, { line, ch });
+  renderRemoteCursorGutter();
+};
+
+const clearRemoteCursorPosition = (memberId) => {
+  clearRemoteCursorBookmark(memberId);
+  remoteCursorPositions.delete(memberId);
+  renderRemoteCursorGutter();
+};
+
+const clearAllRemoteCursorPositions = () => {
+  Array.from(remoteCursorBookmarks.keys()).forEach((memberId) => clearRemoteCursorBookmark(memberId));
+  remoteCursorPositions.clear();
+  renderRemoteCursorGutter();
+};
+
+const refreshRemoteCursorPresence = () => {
+  Array.from(remoteCursorPositions.entries()).forEach(([memberId, position]) => {
+    showRemoteCursorPosition(position, memberId);
+  });
+};
+
+const syncRemoteCursorMembers = (members = []) => {
+  const activeMemberIds = new Set((members || []).map((member) => member.id));
+  Array.from(remoteCursorPositions.keys()).forEach((memberId) => {
+    if (!activeMemberIds.has(memberId)) {
+      clearRemoteCursorPosition(memberId);
+    }
+  });
+};
+
+window.highlightCursorPosition = showRemoteCursorPosition;
+window.clearRemoteCursorPosition = clearRemoteCursorPosition;
+window.clearAllRemoteCursorPositions = clearAllRemoteCursorPositions;
+window.refreshRemoteCursorPresence = refreshRemoteCursorPresence;
+window.syncRemoteCursorMembers = syncRemoteCursorMembers;
+
 const updateLive = debounce(() => {
   refreshHeadingData();
   renderPreview();
@@ -4896,7 +5042,7 @@ const updateMermaidPreview = async () => {
       });
     }
   } catch (error) {
-    elements.mermaidPreview.innerHTML = `<p style='color: #dc2626;'>Error: ${error.message}</p>`;
+    elements.mermaidPreview.innerHTML = `<p style='color: #dc2626;'>Error: ${escapeHtml(error.message)}</p>`;
   }
   await renderMermaidCanvas();
 };
@@ -4958,7 +5104,7 @@ const renderMermaidCanvas = async () => {
       }
     } catch (error) {
       console.error('Error rendering Mermaid canvas:', error);
-      elements.mermaidCanvas.innerHTML = `<p style="color: red; padding: 20px;">Error: ${error.message}</p>`;
+      elements.mermaidCanvas.innerHTML = `<p style="color: red; padding: 20px;">Error: ${escapeHtml(error.message)}</p>`;
     }
   }
   applyMermaidZoom();
@@ -5332,12 +5478,21 @@ const handleSelectionChange = () => {
 };
 
 // Editor cursor → Preview highlight
+const broadcastCollabCursor = debounce(() => {
+  if (!editorView) return;
+  const collabManager = window.collabSupport?.getCollabManager?.();
+  if (!collabManager) return;
+  const cursor = editorView.getCursor("from");
+  collabManager.sendCursor({ line: cursor.line, ch: cursor.ch });
+}, 60);
+
 const handleEditorCursor = () => {
   if (!editorView) return;
   if (syncInProgress) return;
   
   const cursor = editorView.getCursor("from");
   highlightPreviewForLine(cursor.line, true);
+  broadcastCollabCursor();
   if (currentView === "tree") {
     highlightTreeBranchForCursor();
   }
@@ -5409,7 +5564,7 @@ const initEditor = () => {
     lineWrapping: Boolean(activeSettings.lineWrapping),
     lineNumbers: activeSettings.lineNumbers,
     foldGutter: true,
-    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+    gutters: ["CodeMirror-linenumbers", COLLAB_GUTTER_ID, "CodeMirror-foldgutter"],
     foldOptions: {
       rangeFinder: mermaidBlockFolder
     },
@@ -5490,15 +5645,11 @@ elements.togglePrintViewBtn?.addEventListener("click", () => {
   togglePrintView();
 });
 
-elements.openLayoutConfig?.addEventListener("click", () => {
-  openLayoutEditor();
-});
-
 // Ctrl+Shift+L shortcut for layout configuration
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.shiftKey && e.key === "L") {
     e.preventDefault();
-    openLayoutEditor();
+    openLayoutEditor(previewPreset || "scientific");
   }
 });
 
@@ -5534,7 +5685,8 @@ document.addEventListener("click", (event) => {
 elements.shareBtn?.addEventListener("click", () => {
   elements.shareMenu?.classList.toggle("hidden");
 });
-elements.shareMenu?.addEventListener("click", () => {
+elements.shareMenu?.addEventListener("click", (event) => {
+  event.stopPropagation();
   elements.shareMenu?.classList.add("hidden");
 });
 document.addEventListener("click", (event) => {
@@ -5596,7 +5748,7 @@ elements.copyTextBtn.addEventListener("click", async () => {
 });
 elements.sharePdfBtn?.addEventListener("click", () => exportFile("pdf"));
 elements.settingsBtn?.addEventListener("click", openSettings);
-elements.layoutEditorBtn?.addEventListener("click", openLayoutEditor);
+elements.previewLayoutEditorBtn?.addEventListener("click", () => openLayoutEditor(previewPreset || "scientific"));
 elements.tipsBtn?.addEventListener("click", showTipsModal);
 elements.settingsClose?.addEventListener("click", closeSettings);
 elements.settingsOverlay?.addEventListener("click", closeSettings);
@@ -6609,10 +6761,19 @@ document.getElementById("documentLayoutDefaultPreset")?.addEventListener("change
   applySettings({ documentLayoutDefaultPreset: event.target.value || "scientific" });
 });
 
+const syncCollabDisplayName = debounce(async (value) => {
+  const collabManager = window.collabSupport?.getCollabManager?.();
+  if (!collabManager || !collabManager.memberId) return;
+  if (!value) return;
+  await collabManager.updateDisplayName(value);
+  refreshRemoteCursorPresence();
+}, 250);
+
 document.getElementById("collabDisplayName")?.addEventListener("input", (event) => {
   const value = event.target.value.trim();
   if (value) {
     localStorage.setItem("md-collab-display-name", value);
+    syncCollabDisplayName(value);
   } else {
     localStorage.removeItem("md-collab-display-name");
   }
@@ -6694,7 +6855,7 @@ window.exportFile = exportFile;
 window.printPreview = printPreview;
 window.showStatus = setStatus;  // For modules like ImageManager
 window.getEffectiveDocumentLayout = getEffectiveDocumentLayout;
-window.renderMarkdownToHtml = (text) => md.render(String(text || ""));
+window.renderMarkdownToHtml = (text) => sanitizeRenderedHtml(md.render(String(text || "")));
 
 // Restore toggle states
 const savedView = localStorage.getItem("currentView");
@@ -6762,3 +6923,9 @@ if (urlPasteId && uuidPattern.test(urlPasteId)) {
 }
 
 initColumns();
+
+// Populate version in about tab
+fetch("/api/version").then(r => r.json()).then(({ version }) => {
+  const el = document.getElementById("appVersion");
+  if (el) el.textContent = version;
+}).catch(() => {});

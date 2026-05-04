@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   md-tree:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: md-tree-app
+    container_name: mdedit-io
     restart: unless-stopped
     ports:
       - "3210:3210"
@@ -37,6 +35,9 @@ services:
       - IMAGE_MAX_SIZE_MB=${IMAGE_MAX_SIZE_MB:-10}       # Max size per single image in MB
       - IMAGE_MAX_TOTAL_MB=${IMAGE_MAX_TOTAL_MB:-50}     # Max total image storage per paste in MB
       # AI features (optional)
+      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-groq}
+      - DEFAULT_AI_MODEL=${DEFAULT_AI_MODEL:-openai/gpt-oss-120b}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3210/api/pastes', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]

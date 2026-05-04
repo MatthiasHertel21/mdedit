@@ -11,25 +11,15 @@ export function initCollabSupport(app, elements) {
   let collabManager = null;
   let presenceManager = null;
   let passwordDialog = null;
-  let chatSyncIntervalId = null;
-  let chatMessagesSyncIntervalId = null;
   let presenceIntervalId = null;
 
   const t = (key, fallback) => window.t?.(key) || fallback;
 
-  const collabToggles = () => Array.from(document.querySelectorAll(".collab-chat-toggle"));
-
   const setCollabUiVisible = (visible) => {
     elements.collabPresenceContainer?.classList.toggle("hidden", !visible);
-    elements.collabChatPanel?.classList.toggle("hidden", !visible);
     if (elements.collabPasswordBtn) {
       elements.collabPasswordBtn.classList.toggle("hidden", !visible);
       elements.collabPasswordBtn.style.display = visible ? "inline-flex" : "none";
-    }
-    collabToggles().forEach((button) => button.classList.toggle("hidden", !visible));
-
-    if (!visible && app.getCurrentView?.() === "collab") {
-      app.setView?.("preview");
     }
   };
 
@@ -144,6 +134,8 @@ export function initCollabSupport(app, elements) {
     presenceManager = new PresenceManager("#collabPresenceContainer");
     collabManager.on("members-loaded", (data) => {
       presenceManager?.updateMembers(data.members);
+      window.syncRemoteCursorMembers?.(data.members);
+      window.refreshRemoteCursorPresence?.();
     });
     collabManager.on("member-joined", (data) => {
       presenceManager?.addMember({
@@ -151,9 +143,19 @@ export function initCollabSupport(app, elements) {
         fantasyName: data.fantasyName,
         avatarColor: data.avatarColor
       });
+      window.refreshRemoteCursorPresence?.();
+    });
+    collabManager.on("member-updated", (data) => {
+      presenceManager?.updateMember({
+        id: data.memberId,
+        fantasyName: data.fantasyName,
+        avatarColor: data.avatarColor
+      });
+      window.refreshRemoteCursorPresence?.();
     });
     collabManager.on("member-left", (data) => {
       presenceManager?.removeMember(data.memberId);
+      window.clearRemoteCursorPosition?.(data.memberId);
     });
 
     // Poll presence every 5 s so newly joined members appear even without WS events
@@ -164,148 +166,7 @@ export function initCollabSupport(app, elements) {
     }, 5000);
   };
 
-  const setupCollabChat = async () => {
-    if (!elements.collabChatPanel || !collabManager) return;
-
-    if (chatSyncIntervalId) {
-      window.clearInterval(chatSyncIntervalId);
-      chatSyncIntervalId = null;
-    }
-    if (chatMessagesSyncIntervalId) {
-      window.clearInterval(chatMessagesSyncIntervalId);
-      chatMessagesSyncIntervalId = null;
-    }
-
-    const threadSelect = document.querySelector("#collabThreadSelect");
-    const chatMessages = document.querySelector("#collabChatMessages");
-    const chatInput = document.querySelector("#collabChatInput");
-    const chatSendBtn = document.querySelector("#collabChatSendBtn");
-    const newThreadBtn = document.querySelector("#newCollabThreadBtn");
-
-    if (!threadSelect || !chatMessages || !chatInput || !chatSendBtn || !newThreadBtn) {
-      return;
-    }
-
-    const renderMessages = (messages) => {
-      chatMessages.innerHTML = messages.map((message) => `
-        <div class="collab-chat-message">
-          <div class="collab-chat-author">${escapeHtml(message.fantasy_name || message.fantasyName || "Anonymous")}</div>
-          <div class="collab-chat-text">${escapeHtml(message.message || message.content || "")}</div>
-          <div class="collab-chat-time">${new Date(message.created_at || message.timestamp).toLocaleTimeString()}</div>
-        </div>
-      `).join("");
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    };
-
-    const syncMessages = async (threadId) => {
-      if (!threadId) return;
-      const messages = await collabManager.getChatMessages(threadId);
-      renderMessages(messages);
-    };
-
-    const loadThreads = async (selectedThreadId = "") => {
-      const threads = await collabManager.getChatThreads();
-      if (!threads.length) {
-        threadSelect.innerHTML = `<option value="">${escapeHtml(t("collabNoThreads", "No threads yet"))}</option>`;
-        chatMessages.innerHTML = "";
-        return;
-      }
-
-      threadSelect.innerHTML = threads.map((thread) =>
-        `<option value="${thread.id}"${thread.id === selectedThreadId ? " selected" : ""}>${escapeHtml(thread.title)}</option>`
-      ).join("");
-
-      const activeThreadId = selectedThreadId || threadSelect.value || threads[0].id;
-      threadSelect.value = activeThreadId;
-      await syncMessages(activeThreadId);
-    };
-
-    const sendMessage = async () => {
-      const threadId = threadSelect.value;
-      const message = chatInput.value.trim();
-
-      if (!threadId || !message) return;
-
-      const sent = await collabManager.sendChatMessage(threadId, message);
-      if (!sent) return;
-
-      chatInput.value = "";
-      chatInput.focus();
-      await syncMessages(threadId);
-    };
-
-    threadSelect.onchange = async (event) => {
-      const threadId = event.target.value;
-      if (!threadId) return;
-      await syncMessages(threadId);
-    };
-
-    chatSendBtn.onclick = sendMessage;
-    chatInput.onkeydown = (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-      }
-    };
-
-    newThreadBtn.onclick = async () => {
-      const title = await requestTextInput({
-        title: t("collabChat", "Team chat"),
-        message: t("collabThreadPrompt", "Thread title:"),
-        confirmLabel: t("collabThreadNew", "New thread"),
-        cancelLabel: t("cancel", "Cancel")
-      });
-      if (!title) return;
-
-      const threadId = await collabManager.createChatThread(title);
-      if (threadId) {
-        await loadThreads(threadId);
-      }
-    };
-
-    collabManager.on("chat-message", (data) => {
-      if (data.threadId !== threadSelect.value) return;
-
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "collab-chat-message";
-      msgDiv.innerHTML = `
-        <div class="collab-chat-author">${escapeHtml(data.memberName || "Anonymous")}</div>
-        <div class="collab-chat-text">${escapeHtml(data.content)}</div>
-        <div class="collab-chat-time">${new Date(data.timestamp).toLocaleTimeString()}</div>
-      `;
-      chatMessages.appendChild(msgDiv);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-
-    collabManager.on("chat-thread-created", async (data) => {
-      const shouldSelectNewThread = !threadSelect.value || threadSelect.value === data.threadId;
-      await loadThreads(shouldSelectNewThread ? data.threadId : threadSelect.value);
-    });
-
-    chatSyncIntervalId = window.setInterval(() => {
-      loadThreads(threadSelect.value).catch((error) => {
-        console.error("Error syncing chat threads:", error);
-      });
-    }, 3000);
-
-    chatMessagesSyncIntervalId = window.setInterval(() => {
-      syncMessages(threadSelect.value).catch((error) => {
-        console.error("Error syncing chat messages:", error);
-      });
-    }, 2000);
-
-    await loadThreads();
-  };
-
   const disconnect = () => {
-    if (chatSyncIntervalId) {
-      window.clearInterval(chatSyncIntervalId);
-      chatSyncIntervalId = null;
-    }
-    if (chatMessagesSyncIntervalId) {
-      window.clearInterval(chatMessagesSyncIntervalId);
-      chatMessagesSyncIntervalId = null;
-    }
     if (presenceIntervalId) {
       window.clearInterval(presenceIntervalId);
       presenceIntervalId = null;
@@ -314,6 +175,7 @@ export function initCollabSupport(app, elements) {
     collabManager = null;
     presenceManager = null;
     passwordDialog = null;
+    window.clearAllRemoteCursorPositions?.();
     setCollabUiVisible(false);
   };
 
@@ -390,8 +252,6 @@ export function initCollabSupport(app, elements) {
         window.highlightCursorPosition(data.position, data.memberId);
       }
     });
-
-    await setupCollabChat();
   };
 
   return {

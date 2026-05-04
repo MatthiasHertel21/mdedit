@@ -229,6 +229,17 @@ export class CollabManager {
         this.emit("member-left", msg);
         break;
 
+      case "member-updated": {
+        const existing = this.members.get(msg.memberId) || { id: msg.memberId };
+        this.members.set(msg.memberId, {
+          ...existing,
+          fantasyName: msg.fantasyName || existing.fantasyName || existing.fantasy_name,
+          avatarColor: msg.avatarColor || existing.avatarColor || existing.avatar_color
+        });
+        this.emit("member-updated", msg);
+        break;
+      }
+
       case "edit":
         this.emit("remote-edit", {
           content: msg.content,
@@ -325,6 +336,42 @@ export class CollabManager {
       type: "cursor",
       position
     }));
+  }
+
+  async updateDisplayName(displayName) {
+    if (!this.memberId) return false;
+
+    try {
+      const res = await fetch(`/api/pastes/${this.pasteId}/collab/display-name`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: this.memberId,
+          displayName
+        })
+      });
+
+      if (!res.ok) {
+        this.emit("error", { message: "Failed to update display name" });
+        return false;
+      }
+
+      const { fantasyName, avatarColor } = await res.json();
+      this.fantasyName = fantasyName;
+      this.avatarColor = avatarColor;
+      this._saveIdentity(this.memberId, fantasyName, avatarColor);
+      this.emit("member-updated", {
+        memberId: this.memberId,
+        fantasyName,
+        avatarColor,
+        isMe: true
+      });
+      return true;
+    } catch (e) {
+      console.error("Error updating display name:", e);
+      this.emit("error", { message: e.message });
+      return false;
+    }
   }
 
   // Get snapshots

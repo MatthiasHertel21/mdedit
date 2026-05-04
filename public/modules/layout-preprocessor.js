@@ -230,6 +230,36 @@ export class LayoutPreprocessor {
 
   applyColumnStyles(doc) {
     doc.querySelectorAll('.md-columns').forEach(el => {
+      if (!el.querySelector(':scope > .md-column')) {
+        const columns = [];
+        let currentColumn = doc.createElement('div');
+        currentColumn.className = 'md-column';
+
+        Array.from(el.childNodes).forEach((node) => {
+          const isBreak = node.nodeType === Node.ELEMENT_NODE &&
+            (node.classList.contains('column-break') || node.classList.contains('md-columnbreak'));
+
+          if (isBreak) {
+            if (currentColumn.childNodes.length > 0) {
+              columns.push(currentColumn);
+            }
+            currentColumn = doc.createElement('div');
+            currentColumn.className = 'md-column';
+            return;
+          }
+
+          currentColumn.appendChild(node);
+        });
+
+        if (currentColumn.childNodes.length > 0) {
+          columns.push(currentColumn);
+        }
+
+        if (columns.length > 0) {
+          el.replaceChildren(...columns);
+        }
+      }
+
       const count = el.dataset.count || '2';
       const gap = el.dataset.gap || '20pt';
       const rule = el.dataset.rule === 'true';

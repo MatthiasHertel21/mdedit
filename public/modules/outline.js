@@ -3,7 +3,7 @@
  * Handles document outline, tree view, and navigation
  */
 
-import { Markmap } from "https://esm.sh/markmap-view@0.18.9";
+import { Markmap } from "/static/vendor/esm/browser-deps.js";
 
 export const slugify = (text) =>
   text
@@ -120,6 +120,9 @@ export const escapeCss = (value) => {
 let markmapInstance = null;
 
 export const initMarkmap = (svgElement) => {
+  if (!Markmap) {
+    return null;
+  }
   if (markmapInstance) {
     markmapInstance.destroy();
   }
@@ -138,6 +141,10 @@ export const renderMarkmap = (data, svgElement) => {
   if (!markmapInstance) {
     markmapInstance = initMarkmap(svgElement);
   }
+  if (!markmapInstance) {
+    return null;
+  }
   markmapInstance.setData(data);
   markmapInstance.fit();
+  return markmapInstance;
 };

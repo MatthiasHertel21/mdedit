@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="logoIconTitle">
+  <title id="logoIconTitle">mdedit.io icon</title>
+  <defs>
+    <linearGradient id="logoBlue" x1="35" y1="34" x2="195" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d8ff2"/>
+      <stop offset="1" stop-color="#0b82c5"/>
+    </linearGradient>
+    <linearGradient id="logoPanel" x1="138" y1="76" x2="191" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b9dcfb"/>
+      <stop offset="1" stop-color="#8ebdea"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="126" y="62" width="34" height="132" rx="8" fill="url(#logoPanel)" opacity="0.95"/>
+    <rect x="146" y="74" width="28" height="108" rx="8" fill="#d6eafb" opacity="0.9"/>
+  </g>
+  <path d="M48 56c0-8.837 7.163-16 16-16h76.192c5.105 0 10.018 1.951 13.735 5.454l16.108 15.175A19.999 19.999 0 0 1 176 75.186v46.733h-18V82.217a9 9 0 0 0-2.84-6.549l-13.843-13.04A9 9 0 0 0 135.157 60H66v125.522l68.958-10.905 2.813 17.779-75.456 11.932C53.887 205.662 48 199.15 48 190.66V56Z" fill="url(#logoBlue)"/>
+  <path d="M74 89h54v45H74z" fill="#ffffff"/>
+  <path d="M78.5 124V94h8.88l8.96 14.88L105.3 94h8.82v30h-7.62v-17.7l-7.8 12.84h-4.92L86.06 106.3V124H78.5Z" fill="#111827"/>
+  <rect x="72" y="136" width="53" height="8" rx="4" fill="url(#logoBlue)"/>
+  <rect x="72" y="152" width="45" height="8" rx="4" fill="url(#logoBlue)" opacity="0.96"/>
+  <path d="M123 136h49.5c4.418 0 8 3.582 8 8v6h20.186c7.127 0 10.696 8.618 5.657 13.657l-27.029 27.029c-3.124 3.124-8.19 3.124-11.314 0s-3.124-8.19 0-11.314L181.372 166H180.5v2c0 4.418-3.582 8-8 8H123c-4.418 0-8-3.582-8-8v-24c0-4.418 3.582-8 8-8Zm57.5 16v-2h-49.5v10h49.5v-2c0-4.418 3.582-8 8-8h2.872L180.5 152Z" fill="url(#logoBlue)"/>
+</svg>

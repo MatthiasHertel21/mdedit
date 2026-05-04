@@ -345,36 +345,36 @@
   {
     "id": 50,
     "category": "features",
-    "title": "Organize spaces",
-    "text": "Click the space name above the history to open the spaces overview and move documents between spaces.",
+    "title": "Organize folders",
+    "text": "Click the folder name above the history to open the folders overview and move documents between folders.",
     "example": null
   },
   {
     "id": 51,
     "category": "shortcuts",
-    "title": "Switch between spaces",
-    "text": "Use Ctrl+↑ and Ctrl+↓ to quickly switch between your spaces.",
+    "title": "Switch between folders",
+    "text": "Use Ctrl+↑ and Ctrl+↓ to quickly switch between your folders.",
     "example": null
   },
   {
     "id": 52,
     "category": "features",
-    "title": "Sort documents in spaces",
-    "text": "In the spaces overview you can drag and drop to reorder documents within a space or move them between spaces.",
+    "title": "Sort documents in folders",
+    "text": "In the folders overview you can drag and drop to reorder documents within a folder or move them between folders.",
     "example": null
   },
   {
     "id": 53,
     "category": "features",
-    "title": "Edit space names",
-    "text": "Double-click a space name in the overview to edit it inline. The default space cannot be renamed.",
+    "title": "Edit folder names",
+    "text": "Double-click a folder name in the overview to edit it inline. The default folder cannot be renamed.",
     "example": null
   },
   {
     "id": 54,
     "category": "features",
-    "title": "Create a new space",
-    "text": "Click the '+' icon in the spaces overview to create a new space to organize your documents.",
+    "title": "Create a new folder",
+    "text": "Click the '+' icon in the folders overview to create a new folder to organize your documents.",
     "example": null
   },
   {
@@ -406,10 +406,45 @@
     "example": null
   },
   {
-    "id": 59,
+    "id": 60,
+    "category": "shortcuts",
+    "title": "Help & tips via keyboard",
+    "text": "Press **F1** to open the help page, and **F2** to see a new tip at any time — even if the startup tip is disabled.",
+    "example": null
+  },
+  {
+    "id": 61,
+    "category": "shortcuts",
+    "title": "Layout editor via keyboard",
+    "text": "Open the layout editor directly with **Ctrl+Shift+L** without touching the mouse.",
+    "example": null
+  },
+  {
+    "id": 62,
+    "category": "shortcuts",
+    "title": "AI assistant via keyboard",
+    "text": "**Alt+Space** opens or closes the AI assistant instantly — great for quickly switching between writing and AI.",
+    "example": null
+  },
+  {
+    "id": 63,
+    "category": "shortcuts",
+    "title": "Folders overview via keyboard",
+    "text": "**Ctrl+0** opens the folders overview where you can move documents between folders.",
+    "example": null
+  },
+  {
+    "id": 64,
     "category": "features",
-    "title": "Insert images directly",
-    "text": "Paste images from the clipboard or drop them into the editor. The app uploads them and inserts the matching Markdown image link automatically.",
+    "title": "Visual layout editor",
+    "text": "The layout editor (palette icon in preview, or Ctrl+Shift+L) lets you set page size, fonts, margins, and columns with a few clicks.",
+    "example": null
+  },
+  {
+    "id": 65,
+    "category": "features",
+    "title": "Real-time collaboration",
+    "text": "Share a document via a collaboration link and write together with others. Cursors and changes are synchronized in real time.",
     "example": null
   }
 ]

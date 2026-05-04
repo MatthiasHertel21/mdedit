@@ -1,4 +1,4 @@
-// AI Chat Module - Gemini-powered assistant for Markdown editing
+// AI Chat Module - provider-aware assistant for Markdown editing
 
 export class AIChat {
   constructor() {
@@ -157,6 +157,25 @@ export class AIChat {
     }
   }
 
+  getAiRequestConfig() {
+    const providerControls = [
+      { provider: 'groq', enabledId: 'aiGroqEnabled', modelId: 'aiGroqModel', keyId: 'aiGroqKey' },
+      { provider: 'gemini', enabledId: 'aiGeminiEnabled', modelId: 'aiGeminiModel', keyId: 'aiGeminiKey' }
+    ];
+
+    const selected = providerControls.find(({ enabledId }) => document.getElementById(enabledId)?.checked)
+      || providerControls[0];
+
+    const model = document.getElementById(selected.modelId)?.value?.trim();
+    const apiKey = document.getElementById(selected.keyId)?.value?.trim();
+
+    return {
+      provider: selected.provider,
+      model: model || undefined,
+      apiKey: apiKey || undefined
+    };
+  }
+
   async sendMessage() {
     const message = this.input.value.trim();
     if (!message || this.isProcessing) return;
@@ -175,8 +194,11 @@ export class AIChat {
     try {
       // Get current markdown content
       const currentDoc = window.editor ? window.editor.getValue() : '';
+      const aiConfig = this.getAiRequestConfig();
       
       console.log('AI Chat - Sending request:', {
+        provider: aiConfig.provider,
+        model: aiConfig.model,
         prompt: message.substring(0, 50) + '...',
         documentLength: currentDoc.length,
         hasEditor: !!window.editor
@@ -189,7 +211,10 @@ export class AIChat {
         body: JSON.stringify({
           prompt: message,
           document: currentDoc,
-          history: this.history
+          history: this.history,
+          provider: aiConfig.provider,
+          model: aiConfig.model,
+          apiKey: aiConfig.apiKey
         })
       });
 

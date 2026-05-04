@@ -55,6 +55,105 @@ const IMAGE_CONFIG = {
   ASSETS_DIR: path.join(process.env.DATA_DIR || __dirname, 'assets')
 };
 
+const AI_DEFAULT_MODELS = {
+  groq: "openai/gpt-oss-120b",
+  gemini: "gemini-2.5-flash"
+};
+
+const SUPPORTED_AI_PROVIDERS = new Set(Object.keys(AI_DEFAULT_MODELS));
+
+const getServerAiKey = (provider) => {
+  if (provider === "groq") return process.env.GROQ_API_KEY || "";
+  if (provider === "gemini") return process.env.GEMINI_API_KEY || "";
+  return "";
+};
+
+const normalizeAiProvider = (provider) => {
+  if (!provider || typeof provider !== "string") return null;
+  const normalized = provider.trim().toLowerCase();
+  return SUPPORTED_AI_PROVIDERS.has(normalized) ? normalized : null;
+};
+
+const getDefaultAiProvider = () => {
+  const configured = normalizeAiProvider(process.env.DEFAULT_AI_PROVIDER);
+  if (configured && getServerAiKey(configured)) return configured;
+  if (getServerAiKey("groq")) return "groq";
+  if (getServerAiKey("gemini")) return "gemini";
+  return configured || "groq";
+};
+
+const getDefaultAiModel = (provider) => {
+  const configuredProvider = normalizeAiProvider(process.env.DEFAULT_AI_PROVIDER);
+  if (configuredProvider === provider && process.env.DEFAULT_AI_MODEL?.trim()) {
+    return process.env.DEFAULT_AI_MODEL.trim();
+  }
+  return AI_DEFAULT_MODELS[provider];
+};
+
+const buildAiMessages = (history, inputMessage, systemPrompt) => {
+  const conversation = [
+    { role: "system", content: systemPrompt },
+    ...history.map((msg) => ({
+      role: msg.role === "user" ? "user" : "assistant",
+      content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content)
+    })),
+    { role: "user", content: inputMessage }
+  ];
+
+  return conversation;
+};
+
+const requestGroqChatCompletion = async ({ apiKey, model, messages }) => {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.2
+    })
+  });
+
+  const raw = await response.text();
+  let payload = null;
+
+  try {
+    payload = raw ? JSON.parse(raw) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message = payload?.error?.message || raw || "Groq request failed";
+    const error = new Error(message);
+    error.statusCode = response.status;
+    throw error;
+  }
+
+  return payload?.choices?.[0]?.message?.content || "";
+};
+
+const requestGeminiChatCompletion = async ({ apiKey, model, history, inputMessage, systemPrompt }) => {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const chat = genAI.getGenerativeModel({ model }).startChat({
+    history: [
+      { role: "user", parts: [{ text: systemPrompt }] },
+      { role: "model", parts: [{ text: '{"message":"Verstanden! Ich bin bereit, dir beim Markdown-Schreiben zu helfen.","markdown":null,"action":"ADVICE"}' }] },
+      ...history.map((msg) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content) }]
+      }))
+    ]
+  });
+
+  const result = await chat.sendMessage(inputMessage);
+  const response = await result.response;
+  return response.text();
+};
+
 const app = Fastify({
   logger: true,
   bodyLimit: 15 * 1024 * 1024  // 15 MB (base64 overhead + images)
@@ -66,34 +165,19 @@ app.register(fastifyHelmet, {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        "https://cdn.jsdelivr.net",
-        "https://esm.sh",
-        "https://unpkg.com",
-        "https://cdnjs.cloudflare.com"
+        "'self'"
       ],
       styleSrc: [
         "'self'",
-        "'unsafe-inline'",
-        "https://cdn.jsdelivr.net",
-        "https://cdnjs.cloudflare.com",
-        "https://fonts.googleapis.com"
+        "'unsafe-inline'"
       ],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: [
         "'self'",
-        "data:",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
-        "https://fonts.gstatic.com",
-        "https://esm.sh"
+        "data:"
       ],
       connectSrc: [
-        "'self'",
-        "https://esm.sh",
-        "https://cdn.jsdelivr.net",
-        "https://unpkg.com"
+        "'self'"
       ]
     }
   }
@@ -192,6 +276,46 @@ app.addHook("onRequest", (req, reply, done) => {
   req.sessionId = sid;
   done();
 });
+
+const getPasteAccess = (pasteId, sessionId) => {
+  const paste = db.prepare(
+    "SELECT id, shared, session_id FROM pastes WHERE id = ?"
+  ).get(pasteId);
+
+  if (!paste) {
+    return null;
+  }
+
+  const isOwner = paste.session_id === sessionId;
+  const hasCollabAccess = isOwner || !!db.prepare(
+    "SELECT id FROM collab_members WHERE paste_id = ? AND session_id = ? LIMIT 1"
+  ).get(pasteId, sessionId);
+
+  return {
+    paste,
+    isOwner,
+    hasCollabAccess
+  };
+};
+
+const requirePasteCollabAccess = (req, reply) => {
+  const access = getPasteAccess(req.params.id, req.sessionId);
+  if (!access) {
+    reply.code(404);
+    return { error: "Paste not found" };
+  }
+
+  if (!access.hasCollabAccess) {
+    reply.code(403);
+    return { error: "Not authorized" };
+  }
+
+  return access;
+};
+
+const getOwnedCollabMember = (pasteId, memberId, sessionId) => db.prepare(
+  "SELECT id, fantasy_name, avatar_color FROM collab_members WHERE id = ? AND paste_id = ? AND session_id = ?"
+).get(memberId, pasteId, sessionId);
 
 app.get("/api/pastes", async (req) => {
   const stmt = db.prepare(
@@ -446,18 +570,17 @@ app.post("/api/pastes/:id/upload-image", async (req, reply) => {
 // Get image (public, respects paste sharing)
 app.get("/assets/:pasteId/:filename", async (req, reply) => {
   try {
-    const paste = db.prepare(
-      "SELECT shared FROM pastes WHERE id = ?"
-    ).get(req.params.pasteId);
+    const access = getPasteAccess(req.params.pasteId, req.sessionId);
 
-    if (!paste) {
+    if (!access) {
       reply.code(404);
       return { error: "Not found" };
     }
 
-    // Check if public (shared) or would need session validation
-    // For now: allow if paste is shared OR request has matching session
-    // (Session validation happens via cookies)
+    if (!access.paste.shared && !access.isOwner) {
+      reply.code(403);
+      return { error: "Forbidden" };
+    }
 
     const filepath = path.join(
       IMAGE_CONFIG.ASSETS_DIR,
@@ -501,17 +624,30 @@ app.get("/assets/:pasteId/:filename", async (req, reply) => {
 
 // AI Chat Completion
 app.post("/api/chat/complete", async (req, reply) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    reply.code(503);
-    return { error: "GEMINI_API_KEY not configured" };
-  }
-
-  const { prompt, document = "", history = [] } = req.body || {};
+  const { prompt, document = "", history = [], provider: requestedProvider, model: requestedModel, apiKey: requestApiKey } = req.body || {};
   
   // Support both old (message/currentMarkdown) and new (prompt/document) format
   const userPrompt = prompt || req.body.message;
   const currentDoc = document || req.body.currentMarkdown || "";
+  const requestedProviderNormalized = normalizeAiProvider(requestedProvider);
+
+  if (requestedProvider && !requestedProviderNormalized) {
+    reply.code(400);
+    return { error: "Unsupported AI provider" };
+  }
+
+  const provider = requestedProviderNormalized || getDefaultAiProvider();
+  const model = typeof requestedModel === "string" && requestedModel.trim()
+    ? requestedModel.trim()
+    : getDefaultAiModel(provider);
+  const apiKey = typeof requestApiKey === "string" && requestApiKey.trim()
+    ? requestApiKey.trim()
+    : getServerAiKey(provider);
+
+  if (!apiKey) {
+    reply.code(503);
+    return { error: `${provider.toUpperCase()} API key not configured` };
+  }
   
   if (!userPrompt || typeof userPrompt !== "string") {
     reply.code(400);
@@ -524,9 +660,6 @@ app.post("/api/chat/complete", async (req, reply) => {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     const systemPrompt = `Du bist ein KI-Assistent für einen Markdown-Editor. Du hilfst beim Schreiben, Formatieren und Verbessern von Markdown-Dokumenten.
 
 INPUT-FORMAT:
@@ -581,26 +714,20 @@ REGELN:
 - Sei präzise und knapp
 - Bei unklaren Anfragen: action=ADVICE, markdown=null`;
 
-    const chatHistory = [
-      { role: "user", parts: [{ text: systemPrompt }] },
-      { role: "model", parts: [{ text: '{"message":"Verstanden! Ich bin bereit, dir beim Markdown-Schreiben zu helfen.","markdown":null,"action":"ADVICE"}' }] },
-      ...history.map(msg => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.content }]
-      }))
-    ];
-
-    const chat = model.startChat({ history: chatHistory });
-
     // Structured input message
     const inputMessage = JSON.stringify({
       prompt: userPrompt,
       document: currentDoc
     });
 
-    const result = await chat.sendMessage(inputMessage);
-    const response = await result.response;
-    let text = response.text();
+    const messages = buildAiMessages(history, inputMessage, systemPrompt);
+    let text = "";
+
+    if (provider === "groq") {
+      text = await requestGroqChatCompletion({ apiKey, model, messages });
+    } else {
+      text = await requestGeminiChatCompletion({ apiKey, model, history, inputMessage, systemPrompt });
+    }
 
     // Extract JSON from markdown code blocks if present
     const jsonMatch = text.match(/```(?:json)?\s*({[\s\S]*?})\s*```/);
@@ -638,18 +765,19 @@ REGELN:
     }
 
   } catch (error) {
-    console.error("=== Gemini API Error ===");
+    console.error("=== AI API Error ===");
+    console.error("Provider:", requestedProviderNormalized || getDefaultAiProvider());
     console.error("Message:", error.message);
     console.error("Stack:", error.stack);
     console.error("Full error:", error);
     console.error("======================");
     
-    if (error.message?.includes("API_KEY_INVALID")) {
+    if (error.message?.includes("API_KEY_INVALID") || error.statusCode === 401) {
       reply.code(503);
       return { error: "Invalid API key" };
     }
     
-    if (error.message?.includes("RATE_LIMIT")) {
+    if (error.message?.includes("RATE_LIMIT") || error.statusCode === 429) {
       reply.code(429);
       return { error: "Rate limit exceeded. Try again later." };
     }
@@ -738,7 +866,6 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" />
   <style>
     ${printCss}
     ${embeddedCss}
@@ -1232,19 +1359,30 @@ const getPdfEngine = async (preferHtmlEngine = false) => {
 
 app.get("/health", async () => ({ ok: true }));
 
+app.get("/api/version", async () => {
+  const pkg = JSON.parse(await fs.promises.readFile(path.join(__dirname, "package.json"), "utf8"));
+  return { version: pkg.version, name: pkg.name };
+});
+
 // Serve static files manually (since we can't use wildcard prefix)
 const serveStatic = async (req, reply, filename) => {
   try {
-    const content = await fs.promises.readFile(path.join(__dirname, "public", filename));
+    const filePath = path.join(__dirname, "public", filename);
+    const content = await fs.promises.readFile(filePath);
+    const stats = await fs.promises.stat(filePath);
     const ext = path.extname(filename);
     const mimeTypes = {
       ".html": "text/html",
       ".js": "application/javascript",
       ".css": "text/css",
       ".json": "application/json",
-      ".svg": "image/svg+xml"
+      ".svg": "image/svg+xml",
+      ".ico": "image/x-icon",
+      ".png": "image/png"
     };
     reply.type(mimeTypes[ext] || "application/octet-stream");
+    reply.header("Cache-Control", "no-cache, must-revalidate");
+    reply.header("Last-Modified", stats.mtime.toUTCString());
     return content;
   } catch (err) {
     reply.code(404);
@@ -1256,6 +1394,9 @@ app.get("/styles.css", async (req, reply) => serveStatic(req, reply, "styles.css
 app.get("/print.css", async (req, reply) => serveStatic(req, reply, "print.css"));
 app.get("/app.js", async (req, reply) => serveStatic(req, reply, "app.js"));
 app.get("/favicon.svg", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
+app.get("/favicon.ico", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
+app.get("/tips.json", async (req, reply) => serveStatic(req, reply, "tips.json"));
+app.get("/tips-en.json", async (req, reply) => serveStatic(req, reply, "tips-en.json"));
 
 app.get("/modules/:filename", async (req, reply) => 
   serveStatic(req, reply, `modules/${req.params.filename}`)
@@ -1450,6 +1591,12 @@ const FANTASY_NAMES = [
 const getRandomFantasyName = () => 
   FANTASY_NAMES[Math.floor(Math.random() * FANTASY_NAMES.length)];
 
+const sanitizeCollabDisplayName = (value) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.length <= 60 ? trimmed : null;
+};
+
 const getAvatarColor = (id) => {
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"];
   const charSum = id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
@@ -1581,8 +1728,7 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
   }
 
   const { displayName, memberId: requestedMemberId } = req.body || {};
-  const sanitizedDisplayName = typeof displayName === "string" && displayName.trim().length > 0 && displayName.trim().length <= 60
-    ? displayName.trim() : null;
+  const sanitizedDisplayName = sanitizeCollabDisplayName(displayName);
   const ts = nowIso();
 
   // Reuse existing identity if the client sends a known memberId for this paste
@@ -1592,10 +1738,12 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
     ).get(requestedMemberId, req.params.id);
 
     if (existing) {
-      db.prepare("UPDATE collab_members SET last_seen = ? WHERE id = ?").run(ts, existing.id);
+      const nextFantasyName = sanitizedDisplayName || existing.fantasy_name;
+      db.prepare("UPDATE collab_members SET fantasy_name = ?, last_seen = ? WHERE id = ?")
+        .run(nextFantasyName, ts, existing.id);
       return {
         memberId: existing.id,
-        fantasyName: existing.fantasy_name,
+        fantasyName: nextFantasyName,
         avatarColor: existing.avatar_color
       };
     }
@@ -1616,13 +1764,57 @@ app.post("/api/pastes/:id/collab/join", async (req, reply) => {
   };
 });
 
-// Get current members (presence)
-app.get("/api/pastes/:id/collab/members", async (req, reply) => {
+app.post("/api/pastes/:id/collab/display-name", async (req, reply) => {
   const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
-  
   if (!paste) {
     reply.code(404);
     return { error: "Paste not found" };
+  }
+
+  const { memberId, displayName } = req.body || {};
+  const sanitizedDisplayName = sanitizeCollabDisplayName(displayName);
+  if (!memberId || typeof memberId !== "string" || !sanitizedDisplayName) {
+    reply.code(400);
+    return { error: "Valid memberId and displayName required" };
+  }
+
+  const member = db.prepare(
+    "SELECT id, session_id, avatar_color FROM collab_members WHERE id = ? AND paste_id = ?"
+  ).get(memberId, req.params.id);
+
+  if (!member) {
+    reply.code(404);
+    return { error: "Member not found" };
+  }
+
+  if (member.session_id !== req.sessionId) {
+    reply.code(403);
+    return { error: "Not authorized" };
+  }
+
+  const ts = nowIso();
+  db.prepare("UPDATE collab_members SET fantasy_name = ?, last_seen = ? WHERE id = ? AND paste_id = ?")
+    .run(sanitizedDisplayName, ts, memberId, req.params.id);
+
+  broadcastToClients(req.params.id, {
+    type: "member-updated",
+    memberId,
+    fantasyName: sanitizedDisplayName,
+    avatarColor: member.avatar_color
+  }, memberId);
+
+  return {
+    memberId,
+    fantasyName: sanitizedDisplayName,
+    avatarColor: member.avatar_color
+  };
+});
+
+// Get current members (presence)
+app.get("/api/pastes/:id/collab/members", async (req, reply) => {
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
   }
 
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -1636,11 +1828,9 @@ app.get("/api/pastes/:id/collab/members", async (req, reply) => {
 
 // Snapshots: Get recent snapshots
 app.get("/api/pastes/:id/collab/snapshots", async (req, reply) => {
-  const paste = db.prepare("SELECT session_id FROM pastes WHERE id = ?").get(req.params.id);
-  
-  if (!paste) {
-    reply.code(404);
-    return { error: "Paste not found" };
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
   }
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -1689,9 +1879,13 @@ app.register(async (fastify) => {
     const ws = connection.socket; // raw WebSocket – has readyState and send()
     const pasteId = req.params.id;
     const memberId = req.query?.memberId || crypto.randomUUID();
-    const member = db.prepare(
-      "SELECT fantasy_name, avatar_color FROM collab_members WHERE id = ? AND paste_id = ?"
-    ).get(memberId, pasteId);
+    const access = getPasteAccess(pasteId, req.sessionId);
+    const member = getOwnedCollabMember(pasteId, memberId, req.sessionId);
+
+    if (!access || !member) {
+      ws.close(1008, "Not authorized");
+      return;
+    }
 
     if (!connectedClients.has(pasteId)) {
       connectedClients.set(pasteId, new Map());
@@ -1704,8 +1898,8 @@ app.register(async (fastify) => {
     broadcastToClients(pasteId, {
       type: "member-joined",
       memberId,
-      fantasyName: member?.fantasy_name || "Anonymous",
-      avatarColor: member?.avatar_color || getAvatarColor(memberId)
+      fantasyName: member.fantasy_name,
+      avatarColor: member.avatar_color
     }, memberId);
 
     ws.on("message", (data) => {
@@ -1810,14 +2004,12 @@ const handleCollabMessage = (pasteId, memberId, message) => {
 
 // Chat threads
 app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
-  const { title } = req.body || {};
-  
-  const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
-  
-  if (!paste) {
-    reply.code(404);
-    return { error: "Paste not found" };
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
   }
+
+  const { title } = req.body || {};
 
   if (!title || typeof title !== "string" || title.length === 0 || title.length > 200) {
     reply.code(400);
@@ -1829,8 +2021,13 @@ app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
   const { memberId: creatorMemberId } = req.body || {};
 
   const creator = creatorMemberId
-    ? db.prepare("SELECT id FROM collab_members WHERE id = ? AND paste_id = ?").get(creatorMemberId, req.params.id)
+    ? getOwnedCollabMember(req.params.id, creatorMemberId, req.sessionId)
     : null;
+
+  if (creatorMemberId && !creator) {
+    reply.code(403);
+    return { error: "Not authorized" };
+  }
 
   db.prepare(
     "INSERT INTO collab_chat_threads (id, paste_id, title, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
@@ -1848,11 +2045,9 @@ app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
 
 // Get chat threads
 app.get("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
-  const paste = db.prepare("SELECT id FROM pastes WHERE id = ?").get(req.params.id);
-  
-  if (!paste) {
-    reply.code(404);
-    return { error: "Paste not found" };
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
   }
 
   const threads = db.prepare(
@@ -1864,6 +2059,11 @@ app.get("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
 
 // Get chat messages for thread
 app.get("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, reply) => {
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
+  }
+
   const { threadId } = req.params;
   
   const thread = db.prepare(
@@ -1887,6 +2087,11 @@ app.get("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, re
 });
 
 app.post("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, reply) => {
+  const access = requirePasteCollabAccess(req, reply);
+  if (!access?.paste) {
+    return access;
+  }
+
   const { threadId } = req.params;
   const { memberId, message } = req.body || {};
 
@@ -1909,13 +2114,11 @@ app.post("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, r
     return { error: "Invalid message" };
   }
 
-  const member = db.prepare(
-    "SELECT id, fantasy_name FROM collab_members WHERE id = ? AND paste_id = ?"
-  ).get(memberId, req.params.id);
+  const member = getOwnedCollabMember(req.params.id, memberId, req.sessionId);
 
   if (!member) {
-    reply.code(404);
-    return { error: "Member not found" };
+    reply.code(403);
+    return { error: "Not authorized" };
   }
 
   const msgId = crypto.randomUUID();

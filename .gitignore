@@ -9,6 +9,7 @@ data/*.sqlite-shm
 data/*.sqlite-wal
 
 tmp/
+*.backup
 
 npm-debug.log*
 *.log

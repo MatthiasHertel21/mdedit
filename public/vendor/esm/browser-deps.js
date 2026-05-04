@@ -1,0 +1,35 @@
+import "../npm/markdown-it/dist/markdown-it.js";
+import markdownItAnchor from "../npm/markdown-it-anchor/dist/markdownItAnchor.mjs";
+import markdownItToc from "../npm/markdown-it-toc-done-right/dist/markdownItTocDoneRight.mjs";
+import mermaid from "../npm/mermaid/dist/mermaid.esm.min.mjs";
+import "../npm/markdown-it-task-lists/dist/markdown-it-task-lists.js";
+import "../npm/markdown-it-multimd-table/dist/markdown-it-multimd-table.js";
+import "../npm/markdown-it-footnote/dist/markdown-it-footnote.js";
+import "../npm/markdown-it-deflist/dist/markdown-it-deflist.js";
+import "../npm/markdown-it-container/dist/markdown-it-container.js";
+import "../npm/markdown-it-emoji/dist/markdown-it-emoji.js";
+import "../npm/markdown-it-sub/dist/markdown-it-sub.js";
+import "../npm/markdown-it-sup/dist/markdown-it-sup.js";
+import "../npm/markdown-it-mark/dist/markdown-it-mark.js";
+import "../npm/markdown-it-abbr/dist/markdown-it-abbr.js";
+import "../npm/markdown-it-attrs/markdown-it-attrs.browser.js";
+import markdownItKatex from "./markdown-it-katex-local.js";
+
+const globalRef = globalThis;
+const markmapGlobal = globalRef.markmap || {};
+
+export { markdownItAnchor, markdownItKatex, markdownItToc, mermaid };
+export const Markmap = markmapGlobal.Markmap;
+export const JSZip = globalRef.JSZip;
+export const MarkdownIt = globalRef.markdownit;
+export const markdownItAbbr = globalRef.markdownitAbbr;
+export const markdownItAttrs = globalRef.markdownItAttrs;
+export const markdownItContainer = globalRef.markdownitContainer;
+export const markdownItDeflist = globalRef.markdownitDeflist;
+export const markdownItEmoji = globalRef.markdownitEmoji;
+export const markdownItFootnote = globalRef.markdownitFootnote;
+export const markdownItMark = globalRef.markdownitMark;
+export const markdownItMultimdTable = globalRef.markdownitMultimdTable;
+export const markdownItSub = globalRef.markdownitSub;
+export const markdownItSup = globalRef.markdownitSup;
+export const markdownItTaskLists = globalRef.markdownitTaskLists;

@@ -100,13 +100,13 @@ export class PasswordDialog {
 
           <div class="permissions-block">
             <h3 data-i18n="userPermissions">Nutzer mit Link dürfen:</h3>
-            <label class="setting">
+            <label class="permission-option" for="canRead">
               <input type="checkbox" id="canRead" checked />
-              <span data-i18n="permissionRead">Lesen</span>
+              <span class="permission-option-label" data-i18n="permissionRead">Lesen</span>
             </label>
-            <label class="setting">
+            <label class="permission-option" for="canWrite">
               <input type="checkbox" id="canWrite" checked />
-              <span data-i18n="permissionWrite">Schreiben</span>
+              <span class="permission-option-label" data-i18n="permissionWrite">Schreiben</span>
             </label>
           </div>
 

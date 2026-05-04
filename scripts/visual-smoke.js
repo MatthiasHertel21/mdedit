@@ -328,6 +328,53 @@ const bookFixture = () => {
   };
 };
 
+const columnFlowFixture = () => {
+  return {
+    id: "column-flow",
+    title: "Column Flow Layout",
+    markers: [
+      { id: "column-intro-anchor", previewPage: 1, pdfPage: 1 },
+      { id: "left-column-anchor", previewPage: 1, pdfPage: 1, previewColumn: 1, pdfColumn: 1, requireColumnParity: true },
+      { id: "right-column-anchor", previewPage: 1, pdfPage: 1, previewColumn: 2, pdfColumn: 2, requireColumnParity: true },
+      { id: "post-columns-anchor", previewPage: 1, pdfPage: 1 }
+    ],
+    expected: {
+      minPages: 2,
+      firstPageHeaderHidden: true,
+      firstPageFooterPattern: /1\s*\/\s*\d+/,
+      requireNoOverflow: true
+    },
+    markdown: [
+      markerStyleBlock,
+      `# Column Flow Contract ${markerSpan("column-intro-anchor")}`,
+      "",
+      "Column-break parity fixture.",
+      "",
+      "<!-- columns:2 gap:18pt rule:true -->",
+      "",
+      markerBlock("left-column-anchor"),
+      "",
+      repeatedParagraphs("Left column text", 2, 4),
+      "",
+      "<!-- column-break -->",
+      "",
+      markerBlock("right-column-anchor"),
+      "",
+      repeatedParagraphs("Right column text", 2, 4),
+      "",
+      "<!-- /columns -->",
+      "",
+      "<!-- page-break -->",
+      "",
+      `## After Columns ${markerSpan("post-columns-anchor")}`,
+      "",
+      repeatedParagraphs("Post-column section", 4, 8),
+      "",
+      baseLayoutBlock
+    ].join("\n")
+  };
+};
+
 const mediaStressFixture = () => {
   const captionTableRows = makeHtmlTableRows(4, "Dataset");
   const tableCaptionText = "Table 1. Deterministic long-table caption for repeat-header verification";
@@ -388,7 +435,7 @@ const mediaStressFixture = () => {
   };
 };
 
-const fixtures = [scientificFixture(), thesisStructureFixture(), bookFixture(), mediaStressFixture()];
+const fixtures = [scientificFixture(), thesisStructureFixture(), bookFixture(), mediaStressFixture(), columnFlowFixture()];
 
 const waitForPagedReady = async (page) => {
   await page.waitForFunction(() => {
@@ -405,6 +452,9 @@ const showPreviewForFixture = async (page, markdown) => {
       await window.printPreview.refresh();
     } else {
       await window.printPreview.show();
+      // The first paged render can settle into an incomplete cold-start state.
+      // Force one explicit refresh so the captured preview reflects the final document.
+      await window.printPreview.refresh();
     }
   }, markdown);
   await waitForPagedReady(page);
@@ -502,9 +552,24 @@ const analyzePreview = async (page, probes = {}) => {
   return page.evaluate((overflowTolerance, probeMap) => {
     const pages = Array.from(document.querySelectorAll(".pagedjs_page"));
     const markers = {};
+    const markerPositions = {};
     const textMatches = {};
     const overflows = [];
     const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const deriveColumn = (markerEl, contentEl, pageEl) => {
+      const columnRoot = markerEl.closest('.md-columns') || contentEl;
+      if (!columnRoot) return 1;
+      const style = getComputedStyle(columnRoot);
+      const count = Math.max(1, Number.parseInt(style.columnCount || columnRoot.dataset.count || '1', 10) || 1);
+      if (count <= 1) return 1;
+      const gap = Number.parseFloat(style.columnGap || columnRoot.dataset.gap || '0') || 0;
+      const rootRect = columnRoot.getBoundingClientRect();
+      const markerRect = markerEl.getBoundingClientRect();
+      const relativeCenter = (markerRect.left - rootRect.left) + (markerRect.width / 2);
+      const columnWidth = (rootRect.width - (gap * (count - 1))) / count;
+      const slotWidth = columnWidth + gap;
+      return Math.min(count, Math.max(1, Math.floor(relativeCenter / slotWidth) + 1));
+    };
     const overflowSelectors = ["pre", "img", "figure", "blockquote", ".md-columns", ".admonition"];
     const pageSummaries = pages.map((pageEl, index) => {
       const content = pageEl.querySelector(".pagedjs_page_content");
@@ -515,6 +580,18 @@ const analyzePreview = async (page, probes = {}) => {
       markerIds.forEach((id) => {
         if (!markers[id]) markers[id] = [];
         markers[id].push(index + 1);
+      });
+      markerEls.forEach((el) => {
+        const id = el.getAttribute('data-layout-marker');
+        if (!id) return;
+        if (!markerPositions[id]) markerPositions[id] = [];
+        const rect = el.getBoundingClientRect();
+        markerPositions[id].push({
+          page: index + 1,
+          x: Number((rect.left - pageEl.getBoundingClientRect().left).toFixed(2)),
+          y: Number((rect.top - pageEl.getBoundingClientRect().top).toFixed(2)),
+          column: deriveColumn(el, content, pageEl)
+        });
       });
 
       Object.entries(probeMap).forEach(([key, text]) => {
@@ -581,6 +658,7 @@ const analyzePreview = async (page, probes = {}) => {
     return {
       totalPages: pages.length,
       markers,
+      markerPositions,
       textMatches,
       overflows,
       pages: pageSummaries
@@ -600,7 +678,7 @@ const renderPdfPagesWithPdfJs = async ({ browser, pdfBuffer, targetWidth, target
         html, body { margin: 0; padding: 0; background: #fff; }
         canvas { display: block; }
       </style>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+      <script src="${baseUrl}/static/vendor/pdfjs/pdf.min.js"></script>
     </head>
     <body>
       <script>
@@ -609,7 +687,7 @@ const renderPdfPagesWithPdfJs = async ({ browser, pdfBuffer, targetWidth, target
           const bytes = new Uint8Array(raw.length);
           for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
 
-          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "${baseUrl}/static/vendor/pdfjs/pdf.worker.min.js";
           const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
           const total = Math.min(count, pdf.numPages);
           const results = [];
@@ -664,7 +742,7 @@ const analyzePdfWithPdfJs = async ({ browser, pdfBuffer, markers, probes = {} })
   <html>
     <head>
       <meta charset="utf-8" />
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+      <script src="${baseUrl}/static/vendor/pdfjs/pdf.min.js"></script>
     </head>
     <body>
       <script>
@@ -674,9 +752,10 @@ const analyzePdfWithPdfJs = async ({ browser, pdfBuffer, markers, probes = {} })
           const bytes = new Uint8Array(raw.length);
           for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
 
-          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "${baseUrl}/static/vendor/pdfjs/pdf.worker.min.js";
           const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
           const markerPages = {};
+          const markerPositions = {};
           const textMatches = {};
           const pages = [];
 
@@ -699,6 +778,22 @@ const analyzePdfWithPdfJs = async ({ browser, pdfBuffer, markers, probes = {} })
               }
             });
 
+            textContent.items.forEach((item) => {
+              const normalizedItem = normalize(item.str || "");
+              Object.entries(markerMap).forEach(([id, token]) => {
+                if (markerPositions[id]) return;
+                if (!normalizedItem || !normalizedItem.includes(normalize(token))) return;
+                const x = Number((item.transform?.[4] || 0).toFixed(2));
+                const y = Number((viewport.height - (item.transform?.[5] || 0)).toFixed(2));
+                markerPositions[id] = {
+                  page: p,
+                  x,
+                  y,
+                  column: x < (viewport.width / 2) ? 1 : 2
+                };
+              });
+            });
+
             Object.entries(probeMap).forEach(([key, text]) => {
               if (!textMatches[key]) textMatches[key] = [];
               if (searchableText.includes(text)) {
@@ -707,7 +802,7 @@ const analyzePdfWithPdfJs = async ({ browser, pdfBuffer, markers, probes = {} })
             });
           }
 
-          return { totalPages: pdf.numPages, pages, markerPages, textMatches };
+          return { totalPages: pdf.numPages, pages, markerPages, markerPositions, textMatches };
         };
       </script>
     </body>
@@ -913,6 +1008,13 @@ const buildPreviewAssertions = (fixture, preview) => {
   for (const marker of fixture.markers) {
     const pages = preview.markers[marker.id] || [];
     assertions.push(...assertMarkerPages("preview", { [marker.id]: pages[0] ?? null }, marker));
+    if (Number.isInteger(marker.previewColumn)) {
+      const position = preview.markerPositions?.[marker.id]?.[0] || null;
+      assertions.push(createAssertion(`preview:marker:${marker.id}:column`, position?.column === marker.previewColumn, {
+        expected: marker.previewColumn,
+        actual: position?.column ?? null
+      }));
+    }
   }
 
   Object.entries(fixture.expected.textProbes || {}).forEach(([key, probe]) => {
@@ -942,6 +1044,13 @@ const buildPdfAssertions = (fixture, pdf) => {
 
   for (const marker of fixture.markers) {
     assertions.push(...assertMarkerPages("pdf", pdf.analysis.markerPages, marker));
+    if (Number.isInteger(marker.pdfColumn)) {
+      const position = pdf.analysis.markerPositions?.[marker.id] || null;
+      assertions.push(createAssertion(`pdf:marker:${marker.id}:column`, position?.column === marker.pdfColumn, {
+        expected: marker.pdfColumn,
+        actual: position?.column ?? null
+      }));
+    }
   }
 
   Object.entries(fixture.expected.textProbes || {}).forEach(([key, probe]) => {
@@ -972,6 +1081,15 @@ const buildParityAssertions = (fixture, preview, pdf) => {
       expected: previewPage,
       actual: pdfPage
     }));
+
+    if (marker.requireColumnParity) {
+      const previewColumn = preview.markerPositions?.[marker.id]?.[0]?.column ?? null;
+      const pdfColumn = pdf.analysis.markerPositions?.[marker.id]?.column ?? null;
+      assertions.push(createAssertion(`parity:marker:${marker.id}:column`, previewColumn !== null && previewColumn === pdfColumn, {
+        expected: previewColumn,
+        actual: pdfColumn
+      }));
+    }
   }
 
   return assertions;

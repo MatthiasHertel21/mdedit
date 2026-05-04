@@ -3,22 +3,24 @@
  * Handles Markdown-it configuration, plugins, and Mermaid rendering
  */
 
-import MarkdownIt from "https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm";
-import markdownItTaskLists from "https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/+esm";
-import markdownItMultimdTable from "https://cdn.jsdelivr.net/npm/markdown-it-multimd-table@4.2.3/+esm";
-import markdownItFootnote from "https://cdn.jsdelivr.net/npm/markdown-it-footnote@3.0.3/+esm";
-import markdownItDeflist from "https://cdn.jsdelivr.net/npm/markdown-it-deflist@2.1.0/+esm";
-import markdownItContainer from "https://cdn.jsdelivr.net/npm/markdown-it-container@3.0.0/+esm";
-import markdownItKatex from "https://cdn.jsdelivr.net/npm/markdown-it-katex@2.0.3/+esm";
-import mermaid from "https://esm.sh/mermaid@10.9.0";
-import markdownItEmoji from "https://cdn.jsdelivr.net/npm/markdown-it-emoji@3.0.0/+esm";
-import markdownItSub from "https://cdn.jsdelivr.net/npm/markdown-it-sub@2.0.0/+esm";
-import markdownItSup from "https://cdn.jsdelivr.net/npm/markdown-it-sup@2.0.0/+esm";
-import markdownItMark from "https://cdn.jsdelivr.net/npm/markdown-it-mark@3.0.1/+esm";
-import markdownItAbbr from "https://cdn.jsdelivr.net/npm/markdown-it-abbr@1.0.4/+esm";
-import markdownItAnchor from "https://cdn.jsdelivr.net/npm/markdown-it-anchor@8.6.7/+esm";
-import markdownItToc from "https://cdn.jsdelivr.net/npm/markdown-it-toc-done-right@4.2.0/+esm";
-import markdownItAttrs from "https://cdn.jsdelivr.net/npm/markdown-it-attrs@4.1.6/+esm";
+import {
+  MarkdownIt,
+  markdownItAbbr,
+  markdownItAnchor,
+  markdownItAttrs,
+  markdownItContainer,
+  markdownItDeflist,
+  markdownItEmoji,
+  markdownItFootnote,
+  markdownItKatex,
+  markdownItMark,
+  markdownItMultimdTable,
+  markdownItSub,
+  markdownItSup,
+  markdownItTaskLists,
+  markdownItToc,
+  mermaid
+} from "/static/vendor/esm/browser-deps.js";
 
 let mermaidReady = false;
 
@@ -34,16 +36,16 @@ export const initMermaid = (previewPreset = "scientific") => {
   const bg = getCssVarValue("--bg", "#f9fcfe");
   
   const presetMap = {
-    scientific: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
-    compact: { fontSize: 11, nodePadding: 6, fontFamily: "Inter, system-ui, -apple-system, sans-serif" },
+    scientific: { fontSize: 13, nodePadding: 10, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" },
+    compact: { fontSize: 11, nodePadding: 6, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" },
     literary: { fontSize: 14, nodePadding: 12, fontFamily: "Georgia, Times New Roman, serif" },
-    custom: { fontSize: 13, nodePadding: 10, fontFamily: "Inter, system-ui, -apple-system, sans-serif" }
+    custom: { fontSize: 13, nodePadding: 10, fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" }
   };
   const presetVars = presetMap[previewPreset] || presetMap.scientific;
   
   mermaid.initialize({
     startOnLoad: false,
-    securityLevel: "loose",
+    securityLevel: "strict",
     theme: "base",
     themeVariables: {
       primaryColor: accentLight,
@@ -64,6 +66,65 @@ const escapeHtml = (text) => {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+};
+
+const sanitizeRenderedHtml = (html) => {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+
+  const blockedTags = new Set([
+    "script",
+    "iframe",
+    "object",
+    "embed",
+    "link",
+    "meta",
+    "base",
+    "form",
+    "input",
+    "button",
+    "textarea",
+    "select",
+    "option"
+  ]);
+
+  const safeUrlPattern = /^(?:https?:|mailto:|tel:|\/|#|\.?\/)/i;
+  const safeImageUrlPattern = /^(?:https?:|data:image\/|blob:|\/|\.?\/)/i;
+
+  const elements = template.content.querySelectorAll("*");
+  elements.forEach((element) => {
+    const tagName = element.tagName.toLowerCase();
+    if (blockedTags.has(tagName)) {
+      element.remove();
+      return;
+    }
+
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim();
+
+      if (name.startsWith("on") || name === "srcdoc" || name === "style") {
+        element.removeAttribute(attribute.name);
+        return;
+      }
+
+      if (name === "href" || name === "xlink:href") {
+        if (!safeUrlPattern.test(value)) {
+          element.removeAttribute(attribute.name);
+        }
+        return;
+      }
+
+      if (name === "src") {
+        const pattern = tagName === "img" ? safeImageUrlPattern : safeUrlPattern;
+        if (!pattern.test(value)) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+    });
+  });
+
+  return template.innerHTML;
 };
 
 export const healMermaidSyntax = (code) => {
@@ -169,7 +230,7 @@ const addAdmonition = (instance, type, title) => {
 
 export const buildMarkdownIt = (settings) => {
   const instance = MarkdownIt({
-    html: true,
+    html: false,
     linkify: settings.gfm,
     breaks: false,
     typographer: settings.typographer
@@ -279,3 +340,7 @@ export const buildMarkdownIt = (settings) => {
 
   return instance;
 };
+
+export const renderMarkdownToHtml = (instance, text) => sanitizeRenderedHtml(
+  instance.render(String(text || ""))
+);

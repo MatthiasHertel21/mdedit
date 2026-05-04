@@ -22,6 +22,12 @@ export class PresenceManager {
     this.render();
   }
 
+  updateMember(member) {
+    const existing = this.members.get(member.id) || {};
+    this.members.set(member.id, { ...existing, ...member });
+    this.render();
+  }
+
   // Remove member
   removeMember(memberId) {
     this.members.delete(memberId);

@@ -10,5 +10,4 @@ data.sqlite*
 .vscode
 .DS_Store
 test-*.md
-backlog.md
-example.md
+docs

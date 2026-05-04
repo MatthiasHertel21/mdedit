@@ -345,36 +345,36 @@
   {
     "id": 50,
     "category": "features",
-    "title": "Spaces organisieren",
-    "text": "Klicke auf den Space-Namen über der History, um die Spaces-Übersicht zu öffnen und Dokumente zwischen Spaces zu verschieben.",
+    "title": "Ordner organisieren",
+    "text": "Klicke auf den Ordnernamen über der History, um die Ordner-Übersicht zu öffnen und Dokumente zwischen Ordnern zu verschieben.",
     "example": null
   },
   {
     "id": 51,
     "category": "shortcuts",
-    "title": "Zwischen Spaces wechseln",
-    "text": "Nutze Ctrl+↑ und Ctrl+↓ um schnell zwischen deinen Spaces zu wechseln.",
+    "title": "Zwischen Ordnern wechseln",
+    "text": "Nutze Ctrl+↑ und Ctrl+↓ um schnell zwischen deinen Ordnern zu wechseln.",
     "example": null
   },
   {
     "id": 52,
     "category": "features",
-    "title": "Dokumente in Spaces sortieren",
-    "text": "In der Spaces-Übersicht kannst du Dokumente per Drag & Drop innerhalb eines Space neu ordnen oder zwischen Spaces verschieben.",
+    "title": "Dokumente in Ordnern sortieren",
+    "text": "In der Ordner-Übersicht kannst du Dokumente per Drag & Drop innerhalb eines Ordners neu ordnen oder zwischen Ordnern verschieben.",
     "example": null
   },
   {
     "id": 53,
     "category": "features",
-    "title": "Space-Namen bearbeiten",
-    "text": "Doppelklicke auf einen Space-Namen in der Übersicht, um ihn direkt zu bearbeiten. Der Standard-Space kann nicht umbenannt werden.",
+    "title": "Ordnernamen bearbeiten",
+    "text": "Doppelklicke auf einen Ordnernamen in der Übersicht, um ihn direkt zu bearbeiten. Der Standardordner kann nicht umbenannt werden.",
     "example": null
   },
   {
     "id": 54,
     "category": "features",
-    "title": "Neuen Space erstellen",
-    "text": "Klicke in der Spaces-Übersicht auf das '+'-Symbol, um einen neuen Space zur Organisation deiner Dokumente zu erstellen.",
+    "title": "Neuen Ordner erstellen",
+    "text": "Klicke in der Ordner-Übersicht auf das '+'-Symbol, um einen neuen Ordner zur Organisation deiner Dokumente zu erstellen.",
     "example": null
   },
   {
@@ -406,10 +406,45 @@
     "example": null
   },
   {
-    "id": 59,
+    "id": 60,
+    "category": "shortcuts",
+    "title": "Hilfe & Tipps per Tastatur",
+    "text": "Drücke **F1** um die Hilfe zu öffnen, und **F2** um jederzeit einen neuen Tipp zu sehen – auch wenn der Start-Tipp deaktiviert ist.",
+    "example": null
+  },
+  {
+    "id": 61,
+    "category": "shortcuts",
+    "title": "Layout-Editor per Tastatur",
+    "text": "Öffne den Layout-Editor direkt mit **Ctrl+Shift+L** ohne die Maus zu benutzen.",
+    "example": null
+  },
+  {
+    "id": 62,
+    "category": "shortcuts",
+    "title": "KI-Assistent per Tastatur",
+    "text": "**Alt+Leertaste** öffnet oder schließt den KI-Assistenten sofort. Ideal für schnellen Wechsel zwischen Schreiben und KI.",
+    "example": null
+  },
+  {
+    "id": 63,
+    "category": "shortcuts",
+    "title": "Ordner-Übersicht per Tastatur",
+    "text": "**Ctrl+0** öffnet die Ordner-Übersicht. Von dort kannst du Dokumente zwischen Ordnern verschieben.",
+    "example": null
+  },
+  {
+    "id": 64,
     "category": "features",
-    "title": "Bilder direkt einfügen",
-    "text": "Füge Bilder direkt aus der Zwischenablage oder per Drag & Drop ein. Die App lädt sie hoch und setzt automatisch den passenden Markdown-Bildlink ein.",
+    "title": "Visueller Layout-Editor",
+    "text": "Der Layout-Editor (Palette-Symbol in der Vorschau oder Ctrl+Shift+L) erlaubt es, Seitenformat, Schriften, Ränder und Spalten per Klick einzustellen.",
+    "example": null
+  },
+  {
+    "id": 65,
+    "category": "features",
+    "title": "Zusammenarbeit in Echtzeit",
+    "text": "Teile ein Dokument per Kollaborations-Link und schreibe gemeinsam mit anderen. Cursor und Änderungen werden in Echtzeit synchronisiert.",
     "example": null
   }
 ]
