@@ -1,27 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="logoLockupTitle">
-  <title id="logoLockupTitle">mdedit.io logo</title>
-  <defs>
-    <linearGradient id="lockupBlue" x1="32" y1="28" x2="202" y2="194" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1d8ff2"/>
-      <stop offset="1" stop-color="#0b82c5"/>
-    </linearGradient>
-    <linearGradient id="lockupPanel" x1="148" y1="64" x2="198" y2="154" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#b9dcfb"/>
-      <stop offset="1" stop-color="#8ebdea"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(8 10)">
-    <rect x="122" y="48" width="34" height="132" rx="8" fill="url(#lockupPanel)" opacity="0.95"/>
-    <rect x="142" y="60" width="28" height="108" rx="8" fill="#d6eafb" opacity="0.9"/>
-    <path d="M44 42c0-8.837 7.163-16 16-16h76.192c5.105 0 10.018 1.951 13.735 5.454l16.108 15.175A19.999 19.999 0 0 1 172 61.186v46.733h-18V68.217a9 9 0 0 0-2.84-6.549l-13.843-13.04A9 9 0 0 0 131.157 46H62v125.522l68.958-10.905 2.813 17.779-75.456 11.932C49.887 191.662 44 185.15 44 176.66V42Z" fill="url(#lockupBlue)"/>
-    <path d="M70 75h54v45H70z" fill="#ffffff"/>
-    <path d="M74.5 110V80h8.88l8.96 14.88L101.3 80h8.82v30h-7.62V92.3l-7.8 12.84h-4.92L82.06 92.3V110H74.5Z" fill="#111827"/>
-    <rect x="68" y="122" width="53" height="8" rx="4" fill="url(#lockupBlue)"/>
-    <rect x="68" y="138" width="45" height="8" rx="4" fill="url(#lockupBlue)" opacity="0.96"/>
-    <path d="M119 122h49.5c4.418 0 8 3.582 8 8v6h20.186c7.127 0 10.696 8.618 5.657 13.657l-27.029 27.029c-3.124 3.124-8.19 3.124-11.314 0s-3.124-8.19 0-11.314L177.372 152H176.5v2c0 4.418-3.582 8-8 8H119c-4.418 0-8-3.582-8-8v-24c0-4.418 3.582-8 8-8Zm57.5 16v-2H127v10h49.5v-2c0-4.418 3.582-8 8-8h2.872L176.5 138Z" fill="url(#lockupBlue)"/>
-  </g>
-  <g font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="800" font-size="92">
-    <text x="250" y="126" fill="#111827" letter-spacing="-3">mdedit</text>
-    <text x="533" y="126" fill="#0b82c5" letter-spacing="-3">.io</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">mdedit.io logo lockup</title>
+  <desc id="desc">The mdedit.io logo lockup with the blue icon and the mdedit.io wordmark.</desc>
+  <rect x="0" y="0" width="1400" height="420" fill="#ffffff"/>
+
+  <!-- back panel -->
+  <rect x="207" y="74" width="62" height="118" rx="13" fill="#B7D9F7"/>
+  <rect x="203" y="196" width="62" height="58" rx="13" fill="#B7D9F7"/>
+
+  <!-- front document outline -->
+  <path d="M81 82
+           L190 82
+           Q204 82 204 96
+           L204 162
+           Q204 172 214 172
+           L247 172
+           Q257 172 257 182
+           Q257 187 253 190
+           L214 229
+           Q209 234 201 234
+           L195 234
+           Q185 234 185 224
+           L185 197
+           Q185 187 175 187
+           L145 187
+           Q131 187 131 173
+           L131 112
+           Q131 103 125 97
+           Q119 90 111 90
+           Q81 90 81 117
+           L81 238
+           Q81 253 94 257
+           Q108 260 123 257
+           L205 240
+           Q219 237 219 224
+           L219 207
+           Q219 197 229 197
+           L258 197
+           Q273 197 273 182
+           Q273 176 270 172
+           L225 122
+           Q216 112 216 102
+           L216 95
+           Q216 82 203 82
+           Z"
+        fill="none" stroke="#0089CF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- MD text -->
+  <text x="114" y="136" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="800" fill="#000000">MD</text>
+
+  <!-- text lines -->
+  <line x1="111" y1="166" x2="191" y2="166" stroke="#0089CF" stroke-width="10" stroke-linecap="round"/>
+  <line x1="111" y1="194" x2="180" y2="194" stroke="#0089CF" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- arrow -->
+  <path d="M211 169 H289" fill="none" stroke="#0089CF" stroke-width="12" stroke-linecap="round"/>
+  <path d="M257 137 L289 169 L257 201" fill="none" stroke="#0089CF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- wordmark -->
+  <text x="360" y="205" font-family="Arial, Helvetica, sans-serif" font-size="132" font-weight="700" fill="#000000" letter-spacing="-4">mdedit</text>
+  <text x="885" y="205" font-family="Arial, Helvetica, sans-serif" font-size="132" font-weight="700" fill="#0089CF" letter-spacing="-4">.io</text>
 </svg>

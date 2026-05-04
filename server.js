@@ -55,9 +55,13 @@ const IMAGE_CONFIG = {
   ASSETS_DIR: path.join(process.env.DATA_DIR || __dirname, 'assets')
 };
 
+const AI_PROVIDER_PRIORITY = ["groq", "gemini", "openai", "claude"];
+
 const AI_DEFAULT_MODELS = {
-  groq: "openai/gpt-oss-120b",
-  gemini: "gemini-2.5-flash"
+  groq: "llama-3.3-70b-versatile",
+  gemini: "gemini-2.5-flash",
+  openai: "gpt-4.1",
+  claude: "claude-3-7-sonnet-latest"
 };
 
 const SUPPORTED_AI_PROVIDERS = new Set(Object.keys(AI_DEFAULT_MODELS));
@@ -65,6 +69,8 @@ const SUPPORTED_AI_PROVIDERS = new Set(Object.keys(AI_DEFAULT_MODELS));
 const getServerAiKey = (provider) => {
   if (provider === "groq") return process.env.GROQ_API_KEY || "";
   if (provider === "gemini") return process.env.GEMINI_API_KEY || "";
+  if (provider === "openai") return process.env.OPENAI_API_KEY || "";
+  if (provider === "claude") return process.env.ANTHROPIC_API_KEY || "";
   return "";
 };
 
@@ -77,8 +83,9 @@ const normalizeAiProvider = (provider) => {
 const getDefaultAiProvider = () => {
   const configured = normalizeAiProvider(process.env.DEFAULT_AI_PROVIDER);
   if (configured && getServerAiKey(configured)) return configured;
-  if (getServerAiKey("groq")) return "groq";
-  if (getServerAiKey("gemini")) return "gemini";
+  for (const provider of AI_PROVIDER_PRIORITY) {
+    if (getServerAiKey(provider)) return provider;
+  }
   return configured || "groq";
 };
 
@@ -90,10 +97,63 @@ const getDefaultAiModel = (provider) => {
   return AI_DEFAULT_MODELS[provider];
 };
 
+const AI_MAX_HISTORY_MESSAGES = 8;
+const AI_MAX_HISTORY_CHARS = 4000;
+
+const normalizeAiHistoryContent = (role, content) => {
+  const raw = typeof content === "string" ? content : JSON.stringify(content);
+  if (!raw) return "";
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (role === "user") {
+      const prompt = typeof parsed?.prompt === "string" ? parsed.prompt : raw;
+      const documentPreview = typeof parsed?.document === "string" && parsed.document.trim()
+        ? `\nDocument excerpt:\n${parsed.document.slice(0, 500)}`
+        : "";
+      return `${prompt.slice(0, 800)}${documentPreview}`;
+    }
+
+    const message = typeof parsed?.message === "string" ? parsed.message : raw;
+    const action = typeof parsed?.action === "string" ? `\nAction: ${parsed.action}` : "";
+    return `${message.slice(0, 800)}${action}`;
+  } catch {
+    return raw.slice(0, 800);
+  }
+};
+
+const trimAiHistory = (history) => {
+  if (!Array.isArray(history) || history.length === 0) return [];
+
+  const trimmed = [];
+  let totalChars = 0;
+
+  for (const msg of [...history].reverse()) {
+    if (!msg || (msg.role !== "user" && msg.role !== "assistant")) continue;
+
+    const content = normalizeAiHistoryContent(msg.role, msg.content);
+
+    if (!content) continue;
+
+    const normalized = content.length > 1000
+      ? `${content.slice(0, 1000)}\n...[truncated]`
+      : content;
+
+    if (trimmed.length >= AI_MAX_HISTORY_MESSAGES) break;
+    if (totalChars + normalized.length > AI_MAX_HISTORY_CHARS) break;
+
+    trimmed.push({ role: msg.role, content: normalized });
+    totalChars += normalized.length;
+  }
+
+  return trimmed.reverse();
+};
+
 const buildAiMessages = (history, inputMessage, systemPrompt) => {
   const conversation = [
     { role: "system", content: systemPrompt },
-    ...history.map((msg) => ({
+    ...trimAiHistory(history).map((msg) => ({
       role: msg.role === "user" ? "user" : "assistant",
       content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content)
     })),
@@ -103,8 +163,28 @@ const buildAiMessages = (history, inputMessage, systemPrompt) => {
   return conversation;
 };
 
-const requestGroqChatCompletion = async ({ apiKey, model, messages }) => {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+const AI_EDIT_INTENT_PATTERN = /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints)/i;
+const AI_CHAT_ONLY_PATTERN = /^(wer bist du|who are you|was bist du|what are you|was kannst du|what can you do|wie funktioniert|how does this work|hilfe|help|erklär|explain|warum|why|wieso|weshalb|what is|was ist|how to|wie kann ich)/i;
+
+const shouldForceAdviceResponse = (prompt) => {
+  if (typeof prompt !== "string") return false;
+
+  const normalized = prompt.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const looksLikeQuestion = normalized.includes("?") || AI_CHAT_ONLY_PATTERN.test(normalized);
+  const hasEditIntent = AI_EDIT_INTENT_PATTERN.test(normalized);
+
+  return looksLikeQuestion && !hasEditIntent;
+};
+
+const shouldAllowDocumentChange = (prompt) => {
+  if (typeof prompt !== "string") return false;
+  return AI_EDIT_INTENT_PATTERN.test(prompt.trim().toLowerCase());
+};
+
+const requestOpenAiCompatibleChatCompletion = async ({ apiKey, model, messages, endpoint, providerName }) => {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -127,14 +207,22 @@ const requestGroqChatCompletion = async ({ apiKey, model, messages }) => {
   }
 
   if (!response.ok) {
-    const message = payload?.error?.message || raw || "Groq request failed";
+    const message = payload?.error?.message || raw || `${providerName} request failed`;
     const error = new Error(message);
     error.statusCode = response.status;
     throw error;
-  }
+  };
 
   return payload?.choices?.[0]?.message?.content || "";
 };
+
+const requestGroqChatCompletion = async ({ apiKey, model, messages }) => requestOpenAiCompatibleChatCompletion({
+  apiKey,
+  model,
+  messages,
+  endpoint: "https://api.groq.com/openai/v1/chat/completions",
+  providerName: "Groq"
+});
 
 const requestGeminiChatCompletion = async ({ apiKey, model, history, inputMessage, systemPrompt }) => {
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -152,6 +240,61 @@ const requestGeminiChatCompletion = async ({ apiKey, model, history, inputMessag
   const result = await chat.sendMessage(inputMessage);
   const response = await result.response;
   return response.text();
+};
+
+const requestOpenAiChatCompletion = async ({ apiKey, model, messages }) => requestOpenAiCompatibleChatCompletion({
+  apiKey,
+  model,
+  messages,
+  endpoint: "https://api.openai.com/v1/chat/completions",
+  providerName: "OpenAI"
+});
+
+const requestClaudeChatCompletion = async ({ apiKey, model, history, inputMessage, systemPrompt }) => {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model,
+      system: systemPrompt,
+      max_tokens: 2500,
+      temperature: 0.2,
+      messages: [
+        ...history.map((msg) => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content)
+        })),
+        { role: "user", content: inputMessage }
+      ]
+    })
+  });
+
+  const raw = await response.text();
+  let payload = null;
+
+  try {
+    payload = raw ? JSON.parse(raw) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message = payload?.error?.message || raw || "Claude request failed";
+    const error = new Error(message);
+    error.statusCode = response.status;
+    throw error;
+  }
+
+  return Array.isArray(payload?.content)
+    ? payload.content
+      .filter((block) => block?.type === "text" && typeof block.text === "string")
+      .map((block) => block.text)
+      .join("\n")
+    : "";
 };
 
 const app = Fastify({
@@ -447,9 +590,10 @@ app.post("/api/pastes/:id/share", async (req, reply) => {
     reply.code(400);
     return { error: "shared must be boolean" };
   }
+  const sharedAt = shared ? nowIso() : null;
   const res = db.prepare(
-    "UPDATE pastes SET shared = ? WHERE id = ? AND session_id = ?"
-  ).run(shared ? 1 : 0, req.params.id, req.sessionId);
+    "UPDATE pastes SET shared = ?, shared_at = ? WHERE id = ? AND session_id = ?"
+  ).run(shared ? 1 : 0, sharedAt, req.params.id, req.sessionId);
   if (res.changes === 0) {
     reply.code(404);
     return { error: "Not found" };
@@ -712,6 +856,7 @@ REGELN:
 - Antworte IMMER mit gültigem JSON
 - Behalte Markdown-Formatierung bei (##, **, -, etc.)
 - Sei präzise und knapp
+- Reine Chat-, Meta- oder Hilfefragen wie "Wer bist du?", "Was kannst du?" oder "Wie funktioniert das?" sind IMMER action=ADVICE und markdown=null
 - Bei unklaren Anfragen: action=ADVICE, markdown=null`;
 
     // Structured input message
@@ -725,8 +870,12 @@ REGELN:
 
     if (provider === "groq") {
       text = await requestGroqChatCompletion({ apiKey, model, messages });
+    } else if (provider === "openai") {
+      text = await requestOpenAiChatCompletion({ apiKey, model, messages });
+    } else if (provider === "claude") {
+      text = await requestClaudeChatCompletion({ apiKey, model, history: trimAiHistory(history), inputMessage, systemPrompt });
     } else {
-      text = await requestGeminiChatCompletion({ apiKey, model, history, inputMessage, systemPrompt });
+      text = await requestGeminiChatCompletion({ apiKey, model, history: trimAiHistory(history), inputMessage, systemPrompt });
     }
 
     // Extract JSON from markdown code blocks if present
@@ -745,13 +894,26 @@ REGELN:
         throw new Error("Invalid response format");
       }
       
+      const requestedAction = typeof parsedResponse.action === "string"
+        ? parsedResponse.action.trim().toUpperCase()
+        : "ADVICE";
+      const forceAdvice = shouldForceAdviceResponse(userPrompt);
+      const allowDocumentChange = shouldAllowDocumentChange(userPrompt);
+      const normalizedAction = forceAdvice || (requestedAction !== "ADVICE" && !allowDocumentChange)
+        ? "ADVICE"
+        : requestedAction;
+      const normalizedMarkdown = forceAdvice
+        || normalizedAction === "ADVICE"
+        ? null
+        : parsedResponse.markdown || parsedResponse.content || null;
+
       // Normalize response format
       return {
         message: parsedResponse.message,
-        markdown: parsedResponse.markdown || parsedResponse.content || null,
-        action: parsedResponse.action,
+        markdown: normalizedMarkdown,
+        action: normalizedAction,
         // Legacy field for backward compatibility
-        content: parsedResponse.markdown || parsedResponse.content || null
+        content: normalizedMarkdown
       };
       
     } catch (parseError) {
@@ -790,6 +952,254 @@ REGELN:
 const deriveTitle = (markdown) => {
   const match = markdown.match(/^#{1,6}\s+(.+)$/m);
   return match ? match[1].trim() : "Untitled";
+};
+
+const escapeHtmlText = (value) => String(value)
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
+
+const formatNumber = (value) => new Intl.NumberFormat("de-DE").format(Number(value || 0));
+
+const formatBytes = (bytes) => {
+  const value = Number(bytes || 0);
+  if (!Number.isFinite(value) || value <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+  const scaled = value / 1024 ** exponent;
+  return `${scaled >= 10 || exponent === 0 ? scaled.toFixed(0) : scaled.toFixed(1)} ${units[exponent]}`;
+};
+
+const getDiskSpaceStats = () => {
+  try {
+    const stats = fs.statfsSync(process.env.DATA_DIR || __dirname);
+    const blockSize = stats.bsize || stats.frsize || 4096;
+    const totalBytes = Number(stats.blocks || 0) * blockSize;
+    const freeBytes = Number(stats.bavail || 0) * blockSize;
+    const usedBytes = Math.max(totalBytes - freeBytes, 0);
+    return { totalBytes, usedBytes, freeBytes };
+  } catch (err) {
+    app.log.warn({ err: err.message }, "Could not determine disk space stats");
+    return { totalBytes: 0, usedBytes: 0, freeBytes: 0 };
+  }
+};
+
+const getDirectorySizeBytes = async (dirPath) => {
+  try {
+    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    let total = 0;
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        total += await getDirectorySizeBytes(fullPath);
+      } else if (entry.isFile()) {
+        total += (await fs.promises.stat(fullPath)).size;
+      }
+    }
+    return total;
+  } catch {
+    return 0;
+  }
+};
+
+const getStatsCountsForWindow = (sinceIso = null) => {
+  const users = sinceIso
+    ? db.prepare("SELECT COUNT(*) as count FROM sessions WHERE last_seen >= ?").get(sinceIso).count
+    : db.prepare("SELECT COUNT(*) as count FROM sessions").get().count;
+
+  const sessions = sinceIso
+    ? db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= ?").get(sinceIso).count
+    : db.prepare("SELECT COUNT(*) as count FROM sessions").get().count;
+
+  const documents = sinceIso
+    ? db.prepare("SELECT COUNT(*) as count FROM pastes WHERE created_at >= ?").get(sinceIso).count
+    : db.prepare("SELECT COUNT(*) as count FROM pastes").get().count;
+
+  const sharedPermalinks = sinceIso
+    ? db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared = 1 AND shared_at IS NOT NULL AND shared_at >= ?").get(sinceIso).count
+    : db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared = 1").get().count;
+
+  return { users, sessions, documents, sharedPermalinks };
+};
+
+const renderStatsPage = async () => {
+  const now = Date.now();
+  const windows = [
+    { key: "24h", label: "Letzte 24 Stunden", sinceIso: new Date(now - 24 * 60 * 60 * 1000).toISOString() },
+    { key: "30d", label: "Letzte 30 Tage", sinceIso: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString() },
+    { key: "all", label: "Gesamt", sinceIso: null }
+  ];
+
+  const windowRows = windows.map((window) => ({
+    ...window,
+    counts: getStatsCountsForWindow(window.sinceIso)
+  }));
+
+  const markdownBytes = db.prepare("SELECT SUM(LENGTH(markdown)) as total FROM pastes").get().total || 0;
+  const imageBytes = db.prepare("SELECT SUM(size_bytes) as total FROM images").get().total || 0;
+  const dataDir = process.env.DATA_DIR || __dirname;
+  const appDataBytes = await getDirectorySizeBytes(dataDir);
+  const assetBytesOnDisk = await getDirectorySizeBytes(IMAGE_CONFIG.ASSETS_DIR);
+  const disk = getDiskSpaceStats();
+
+  const rowsHtml = windowRows.map((row) => `
+    <tr>
+      <th scope="row">${escapeHtmlText(row.label)}</th>
+      <td>${formatNumber(row.counts.users)}</td>
+      <td>${formatNumber(row.counts.sessions)}</td>
+      <td>${formatNumber(row.counts.documents)}</td>
+      <td>${formatNumber(row.counts.sharedPermalinks)}</td>
+    </tr>
+  `).join("");
+
+  return `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mdedit.io Stats</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f8fb;
+      --panel: #ffffff;
+      --text: #18222d;
+      --muted: #66737f;
+      --border: #cfdbe6;
+      --accent: #0089cf;
+      --accent-soft: #d9eefb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+    h1, h2 { margin: 0 0 14px; }
+    p { margin: 0; color: var(--muted); }
+    .hero {
+      margin-bottom: 24px;
+      padding: 22px 24px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 20px 50px rgba(18, 40, 56, 0.08);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 10px 30px rgba(18, 40, 56, 0.05);
+    }
+    .metric {
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 700;
+      margin-top: 8px;
+      color: var(--accent);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    td { font-size: 15px; }
+    tbody th {
+      color: var(--text);
+      font-size: 15px;
+      width: 28%;
+    }
+    .hint {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 14px;
+    }
+    code {
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0, 137, 207, 0.12);
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>Server-Statistiken</h1>
+      <p>Benutzer = Sessions mit Aktivität im Zeitraum. Sessions = neu angelegte Browser-Sessions im Zeitraum. Geteilte Permalinks = aktuell freigegebene Dokumente.</p>
+      <div class="hint">Aufruf direkt über <code>/stats</code>.</div>
+    </section>
+
+    <section class="card" style="margin-bottom: 24px;">
+      <h2>Nutzung</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Zeitraum</th>
+            <th>Benutzer</th>
+            <th>Sessions</th>
+            <th>Dokumente</th>
+            <th>Geteilte Permalinks</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Inhalt</h2>
+        <p>Logische Nutzdaten in der Anwendung</p>
+        <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
+        <p style="margin-top: 10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
+      </article>
+      <article class="card">
+        <h2>App-Daten</h2>
+        <p>Plattenplatz des Datenverzeichnisses inklusive DB, WAL, Bilder und Secrets</p>
+        <div class="metric">${escapeHtmlText(formatBytes(appDataBytes))}</div>
+        <p style="margin-top: 10px;">Asset-Verzeichnis: <strong>${escapeHtmlText(formatBytes(assetBytesOnDisk))}</strong><br>Datenpfad: <code>${escapeHtmlText(dataDir)}</code></p>
+      </article>
+      <article class="card">
+        <h2>Freier Plattenplatz</h2>
+        <p>Verfügbar auf dem Volume des Datenverzeichnisses</p>
+        <div class="metric">${escapeHtmlText(formatBytes(disk.freeBytes))}</div>
+        <p style="margin-top: 10px;">Belegt: <strong>${escapeHtmlText(formatBytes(disk.usedBytes))}</strong><br>Gesamt: <strong>${escapeHtmlText(formatBytes(disk.totalBytes))}</strong></p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>`;
 };
 
 const stripAtPageRules = (cssText) => {
@@ -1359,6 +1769,11 @@ const getPdfEngine = async (preferHtmlEngine = false) => {
 
 app.get("/health", async () => ({ ok: true }));
 
+app.get("/stats", async (req, reply) => {
+  reply.type("text/html; charset=utf-8");
+  return renderStatsPage();
+});
+
 app.get("/api/version", async () => {
   const pkg = JSON.parse(await fs.promises.readFile(path.join(__dirname, "package.json"), "utf8"));
   return { version: pkg.version, name: pkg.name };
@@ -1394,7 +1809,7 @@ app.get("/styles.css", async (req, reply) => serveStatic(req, reply, "styles.css
 app.get("/print.css", async (req, reply) => serveStatic(req, reply, "print.css"));
 app.get("/app.js", async (req, reply) => serveStatic(req, reply, "app.js"));
 app.get("/favicon.svg", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
-app.get("/favicon.ico", async (req, reply) => serveStatic(req, reply, "favicon.svg"));
+app.get("/favicon.ico", async (req, reply) => serveStatic(req, reply, "brand/mdedit-icon.png"));
 app.get("/tips.json", async (req, reply) => serveStatic(req, reply, "tips.json"));
 app.get("/tips-en.json", async (req, reply) => serveStatic(req, reply, "tips-en.json"));
 
@@ -2146,6 +2561,7 @@ const start = async () => {
   try {
     const port = Number(process.env.PORT || 3210);
     await app.listen({ port, host: "0.0.0.0" });
+    app.log.info({ statsUrl: "/stats" }, 'Stats endpoint ready');
     pruneDatabase();
     setInterval(pruneDatabase, 6 * 60 * 60 * 1000); // every 6 hours
   } catch (err) {

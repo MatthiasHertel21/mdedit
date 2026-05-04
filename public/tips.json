@@ -31,7 +31,7 @@
     "id": 4,
     "category": "features",
     "title": "Vorschau-Presets",
-    "text": "Wechsle zwischen Wissenschaftlich, Kompakt, Literarisch und Dokument. Das Preset Dokument nutzt die Layoutvorgaben aus dem Markdown oder das in den Einstellungen gewählte Standardlayout.",
+    "text": "Wechsle zwischen **Wissenschaftlich**, **Kompakt**, **Literarisch** und **Dokument**.\n\n- **Dokument** nutzt Layoutvorgaben direkt aus dem Markdown\n- alternativ greift das in den Einstellungen gewählte Standardlayout\n- ideal für drucknahe Vorschau und PDF-Export",
     "example": null
   },
   {
@@ -66,7 +66,7 @@
     "id": 9,
     "category": "features",
     "title": "Baumansicht",
-    "text": "Nutze die Outline-Baumansicht, um schnell durch große Dokumente zu navigieren.",
+    "text": "Nutze die **Outline-Baumansicht**, um schnell durch große Dokumente zu navigieren.\n\nTipp: Besonders hilfreich bei langen Dokumenten mit vielen Überschriften und Unterkapiteln.",
     "example": null
   },
   {
@@ -101,7 +101,7 @@
     "id": 14,
     "category": "features",
     "title": "Seitenansicht",
-    "text": "Aktiviere die Seitenansicht für eine Druck-/PDF-ähnliche Vorschau mit Seitenumbrüchen. Sie verwendet die Dokument-Layoutregeln statt der normalen Bildschirm-Presets.",
+    "text": "Aktiviere die **Seitenansicht** für eine drucknahe Vorschau mit Seitenumbrüchen.\n\nSie verwendet die Dokument-Layoutregeln statt der normalen Bildschirm-Presets und ist damit die beste Kontrolle vor dem PDF-Export.",
     "example": null
   },
   {
@@ -198,8 +198,8 @@
   {
     "id": 28,
     "category": "features",
-    "title": "Dark Mode",
-    "text": "Wechsle zwischen hellem und dunklem Theme in den Einstellungen.",
+    "title": "Starthinweise",
+    "text": "Aktiviere oder deaktiviere die Tipps zum Start in den Einstellungen.",
     "example": null
   },
   {
@@ -270,14 +270,14 @@
     "category": "mermaid",
     "title": "Mermaid: State-Diagramm",
     "text": "Zeige Zustandsübergänge mit `stateDiagram-v2`. Zustände: `state Name`, Übergänge: `-->`.",
-    "example": "```mermaid\nstateDiagram-v2\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Active --> [*]\n```"
+    "example": "```mermaid\nstateDiagram-v2\n  direction LR\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Idle --> [*]\n```"
   },
   {
     "id": 40,
     "category": "mermaid",
     "title": "Mermaid: ER-Diagramm",
     "text": "Modelliere Entitäten mit `erDiagram`. Beziehungen: `||--o{` (1:n), `}o--o{` (n:m).",
-    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ LINE-ITEM : contains\n  CUSTOMER {\n    string name\n    string email\n  }\n```"
+    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ ITEM : contains\n  CUSTOMER {\n    string customer_id\n    string name\n  }\n  ORDER {\n    string order_id\n    string status\n  }\n  ITEM {\n    string sku\n    int quantity\n  }\n```"
   },
   {
     "id": 41,
@@ -381,7 +381,7 @@
     "id": 55,
     "category": "shortcuts",
     "title": "KI-Assistent schnell öffnen",
-    "text": "Drücke Alt+Leertaste um den KI-Assistenten zu öffnen oder zu schließen.",
+    "text": "Drücke Alt+Leertaste um den KI-Assistenten zu öffnen oder zu schließen. Falls dein Browser oder Linux-Fenstermanager das Menü öffnet, nutze stattdessen Ctrl+Space. In Mermaid-Codeblöcken bleibt Ctrl+Space für Auto-Completion reserviert.",
     "example": null
   },
   {
@@ -423,7 +423,7 @@
     "id": 62,
     "category": "shortcuts",
     "title": "KI-Assistent per Tastatur",
-    "text": "**Alt+Leertaste** öffnet oder schließt den KI-Assistenten sofort. Ideal für schnellen Wechsel zwischen Schreiben und KI.",
+    "text": "**Alt+Leertaste** öffnet oder schließt den KI-Assistenten sofort. Falls das auf deinem System das Browser- oder Fenstermenü öffnet, nutze **Ctrl+Space** als Alternative. In Mermaid-Codeblöcken bleibt **Ctrl+Space** für Auto-Completion reserviert.",
     "example": null
   },
   {

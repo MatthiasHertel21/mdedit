@@ -877,7 +877,33 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 };
 
-const sanitizeRenderedHtml = (html) => {
+const sanitizeInlineStyle = (styleValue) => {
+  const allowedProperties = new Set([
+    "color",
+    "background-color",
+    "font-weight",
+    "font-style",
+    "text-decoration"
+  ]);
+
+  return String(styleValue || "")
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separatorIndex = entry.indexOf(":");
+      if (separatorIndex === -1) return null;
+      const property = entry.slice(0, separatorIndex).trim().toLowerCase();
+      const value = entry.slice(separatorIndex + 1).trim();
+      if (!allowedProperties.has(property)) return null;
+      if (!value || /url\s*\(|expression\s*\(|javascript:/i.test(value)) return null;
+      return `${property}: ${value}`;
+    })
+    .filter(Boolean)
+    .join("; ");
+};
+
+const sanitizeRenderedHtml = (html, options = {}) => {
   const template = document.createElement("template");
   template.innerHTML = String(html || "");
 
@@ -890,7 +916,6 @@ const sanitizeRenderedHtml = (html) => {
     "meta",
     "base",
     "form",
-    "input",
     "button",
     "textarea",
     "select",
@@ -903,6 +928,23 @@ const sanitizeRenderedHtml = (html) => {
   const elements = template.content.querySelectorAll("*");
   elements.forEach((element) => {
     const tagName = element.tagName.toLowerCase();
+    const isSafeCheckboxInput =
+      options.allowDisabledCheckboxes &&
+      tagName === "input" &&
+      element.getAttribute("type")?.toLowerCase() === "checkbox";
+
+    if (isSafeCheckboxInput) {
+      const isChecked = element.hasAttribute("checked");
+      const isDisabled = element.hasAttribute("disabled");
+      Array.from(element.attributes).forEach((attribute) => {
+        element.removeAttribute(attribute.name);
+      });
+      element.setAttribute("type", "checkbox");
+      if (isChecked) element.setAttribute("checked", "");
+      if (isDisabled || true) element.setAttribute("disabled", "");
+      return;
+    }
+
     if (blockedTags.has(tagName)) {
       element.remove();
       return;
@@ -912,8 +954,23 @@ const sanitizeRenderedHtml = (html) => {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim();
 
-      if (name.startsWith("on") || name === "srcdoc" || name === "style") {
+      if (name.startsWith("on") || name === "srcdoc") {
         element.removeAttribute(attribute.name);
+        return;
+      }
+
+      if (name === "style") {
+        if (!options.allowInlineStyles) {
+          element.removeAttribute(attribute.name);
+          return;
+        }
+
+        const sanitizedStyle = sanitizeInlineStyle(value);
+        if (sanitizedStyle) {
+          element.setAttribute("style", sanitizedStyle);
+        } else {
+          element.removeAttribute(attribute.name);
+        }
         return;
       }
 
@@ -943,6 +1000,11 @@ const toSafeFilename = (value, fallback) => {
 
 const healMermaidSyntax = (code) => {
   let healed = code;
+  const firstMeaningfulLine = String(code || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean) || "";
+  const isFlowLikeDiagram = /^(graph|flowchart|stateDiagram(?:-v2)?)/i.test(firstMeaningfulLine);
   
   // Kommentare korrigieren: # in %% umwandeln (Mermaid Syntax)
   healed = healed.replace(/#(.*)$/gm, (match, comment) => {
@@ -957,80 +1019,78 @@ const healMermaidSyntax = (code) => {
   healed = healed.replace(/\berdiagram\b/gi, "erDiagram");
   healed = healed.replace(/\bstatediagram\b/gi, "stateDiagram");
   
-  // WICHTIG: Labels mit Sonderzeichen in Quotes setzen
-  // Mermaid hat Probleme mit Klammern, Doppelpunkten, etc. in Labels
-  healed = healed.replace(/-->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
-    const trimmed = label.trim();
-    // Wenn Label Klammern, Doppelpunkt oder Sonderzeichen enthält, in Quotes setzen
-    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
-      return `-->|"${trimmed}"|`;
-    }
-    return `-->|${trimmed}|`;
-  });
-  healed = healed.replace(/->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
-    const trimmed = label.trim();
-    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
-      return `->|"${trimmed}"|`;
-    }
-    return `->|${trimmed}|`;
-  });
-  healed = healed.replace(/---\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
-    const trimmed = label.trim();
-    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
-      return `---|"${trimmed}"|`;
-    }
-    return `---|${trimmed}|`;
-  });
-  healed = healed.replace(/-\.\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
-    const trimmed = label.trim();
-    if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
-      return `-.|"${trimmed}"|`;
-    }
-    return `-.|${trimmed}|`;
-  });
-  
-  // Fehlende Leerzeichen nach Pfeilen hinzufügen (nur wenn kein | folgt)
-  healed = healed.replace(/-->([^\s\-|])/g, "--> $1");
-  healed = healed.replace(/->([^\s\-|])/g, "-> $1");
-  healed = healed.replace(/---([^\s\-|])/g, "--- $1");
-  healed = healed.replace(/==([^\s=|])/g, "== $1");
-  healed = healed.replace(/-\.([^\s\.|])/g, "-. $1");
-  
-  // Node-Labels mit Sonderzeichen in Quotes setzen
-  // Behandle NodeID[Label], NodeID(Label), NodeID{Label}, NodeID>Label]
-  healed = healed.replace(/(\w+)\[([^\]]+)\]/g, (match, id, label) => {
-    // Wenn Label Sonderzeichen hat und nicht schon in Quotes ist
-    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
-      return `${id}["${label}"]`;
-    }
-    return match;
-  });
-  healed = healed.replace(/(\w+)\(([^)]+)\)/g, (match, id, label) => {
-    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
-      return `${id}("${label}")`;
-    }
-    return match;
-  });
-  healed = healed.replace(/(\w+)\{([^}]+)\}/g, (match, id, label) => {
-    if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
-      return `${id}{"${label}"}`;
-    }
-    return match;
-  });
-  
-  // Ungültige Zeichen in Node-IDs ersetzen (nur alphanumerisch + Unterstrich erlaubt)
-  const lines = healed.split('\n');
-  const processedLines = lines.map(line => {
-    // Flowchart node definitions: NodeID[Label] oder NodeID(Label) etc.
-    if (line.match(/^\s*[\w-]+[\[\(\{<]/)) {
-      return line.replace(/^(\s*)([\w.-]+)([\[\(\{<])/, (match, spaces, id, bracket) => {
-        const cleanId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
-        return spaces + cleanId + bracket;
-      });
-    }
-    return line;
-  });
-  healed = processedLines.join('\n');
+  if (isFlowLikeDiagram) {
+    // WICHTIG: Labels mit Sonderzeichen in Quotes setzen
+    // Mermaid hat Probleme mit Klammern, Doppelpunkten, etc. in Labels
+    healed = healed.replace(/-->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+      const trimmed = label.trim();
+      if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+        return `-->|"${trimmed}"|`;
+      }
+      return `-->|${trimmed}|`;
+    });
+    healed = healed.replace(/->\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+      const trimmed = label.trim();
+      if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+        return `->|"${trimmed}"|`;
+      }
+      return `->|${trimmed}|`;
+    });
+    healed = healed.replace(/---\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+      const trimmed = label.trim();
+      if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+        return `---|"${trimmed}"|`;
+      }
+      return `---|${trimmed}|`;
+    });
+    healed = healed.replace(/-\.\s*\|\s*([^|]+?)\s*\|/g, (match, label) => {
+      const trimmed = label.trim();
+      if (/[():&/]/.test(trimmed) && !/^".*"$/.test(trimmed)) {
+        return `-.|"${trimmed}"|`;
+      }
+      return `-.|${trimmed}|`;
+    });
+
+    // Fehlende Leerzeichen nach Pfeilen hinzufügen (nur wenn kein | folgt)
+    healed = healed.replace(/-->([^\s\-|])/g, "--> $1");
+    healed = healed.replace(/->([^\s\-|])/g, "-> $1");
+    healed = healed.replace(/---([^\s\-|])/g, "--- $1");
+    healed = healed.replace(/==([^\s=|])/g, "== $1");
+    healed = healed.replace(/-\.([^\s\.|])/g, "-. $1");
+
+    // Node-Labels mit Sonderzeichen in Quotes setzen
+    healed = healed.replace(/(\w+)\[([^\]]+)\]/g, (match, id, label) => {
+      if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+        return `${id}["${label}"]`;
+      }
+      return match;
+    });
+    healed = healed.replace(/(\w+)\(([^)]+)\)/g, (match, id, label) => {
+      if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+        return `${id}("${label}")`;
+      }
+      return match;
+    });
+    healed = healed.replace(/(\w+)\{([^}]+)\}/g, (match, id, label) => {
+      if (/[():&/]/.test(label) && !/^".*"$/.test(label)) {
+        return `${id}{"${label}"}`;
+      }
+      return match;
+    });
+
+    // Ungültige Zeichen in Node-IDs ersetzen (nur alphanumerisch + Unterstrich erlaubt)
+    const lines = healed.split('\n');
+    const processedLines = lines.map(line => {
+      if (line.match(/^\s*[\w-]+[\[\(\{<]/)) {
+        return line.replace(/^(\s*)([\w.-]+)([\[\(\{<])/, (match, spaces, id, bracket) => {
+          const cleanId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
+          return spaces + cleanId + bracket;
+        });
+      }
+      return line;
+    });
+    healed = processedLines.join('\n');
+  }
   
   // Leere Zeilen am Ende entfernen
   healed = healed.trim();
@@ -1038,10 +1098,10 @@ const healMermaidSyntax = (code) => {
   return healed;
 };
 
-const renderMermaid = async () => {
+const renderMermaid = async (root = document) => {
   if (!activeSettings.mermaid) return;
   initMermaid();
-  const mermaidBlocks = document.querySelectorAll(".mermaid");
+  const mermaidBlocks = root.querySelectorAll(".mermaid");
   for (const block of mermaidBlocks) {
     if (block.hasAttribute("data-processed")) continue;
     const originalContent = block.textContent;
@@ -2366,50 +2426,86 @@ const loadTips = async (force = false) => {
   return tipsData;
 };
 
+const parseMermaidTipExample = (example) => {
+  const trimmed = String(example || "").trim();
+  const match = trimmed.match(/^```mermaid\n([\s\S]*?)\n```$/i);
+  return match ? match[1].trim() : null;
+};
+
+const renderTipExample = (example) => {
+  if (!example) return "";
+
+  const exampleText = String(example).trim();
+  const mermaidCode = parseMermaidTipExample(exampleText);
+  if (mermaidCode) {
+    return `
+      <div class="tip-example tip-example-split tip-example-mermaid">
+        <div class="tip-example-pane tip-example-source">
+          <div class="tip-example-label">Beispiel</div>
+          <pre><code>${escapeHtml(exampleText)}</code></pre>
+        </div>
+        <div class="tip-example-pane tip-example-preview">
+          <div class="tip-example-label">Vorschau</div>
+          <div class="mermaid">${escapeHtml(mermaidCode)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const renderedPreview = sanitizeRenderedHtml(md.render(exampleText), {
+    allowDisabledCheckboxes: true,
+    allowInlineStyles: true
+  });
+
+  return `
+    <div class="tip-example tip-example-split">
+      <div class="tip-example-pane tip-example-source">
+        <div class="tip-example-label">Beispiel</div>
+        <pre><code>${escapeHtml(exampleText)}</code></pre>
+      </div>
+      <div class="tip-example-pane tip-example-preview">
+        <div class="tip-example-label">Vorschau</div>
+        <div class="tip-example-rendered">${renderedPreview}</div>
+      </div>
+    </div>
+  `;
+};
+
 const displayRandomTip = async () => {
   // Load tips if not already loaded
   await loadTips();
   
   if (tipsData.length === 0) return;
-  
-  // Select random tip
-  const randomTip = tipsData[Math.floor(Math.random() * tipsData.length)];
-  
-  // Get tip elements
-  const tipTitleEl = document.getElementById("randomTipTitle");
-  const tipTextEl = document.getElementById("randomTipText");
-  const tipIconEl = document.getElementById("randomTipIcon");
-  
-  // Set category icon
-  const categoryIcons = {
-    markdown: "fa-book",
-    shortcuts: "fa-keyboard",
-    features: "fa-star",
-    mermaid: "fa-diagram-project"
-  };
-  
-  if (tipIconEl) {
-    tipIconEl.className = `fa-solid ${categoryIcons[randomTip.category] || "fa-lightbulb"}`;
+
+  const tipContainerEl = document.getElementById("randomTipContainer");
+  if (!tipContainerEl) return;
+
+  const tipPool = [...tipsData];
+  for (let index = tipPool.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [tipPool[index], tipPool[randomIndex]] = [tipPool[randomIndex], tipPool[index]];
   }
-  
-  // Set tip content
-  if (tipTitleEl) tipTitleEl.textContent = randomTip.title;
-  if (tipTextEl) {
-    // Clear previous content
-    tipTextEl.innerHTML = "";
-    
-    // Add text
-    const textNode = document.createTextNode(randomTip.text);
-    tipTextEl.appendChild(textNode);
-    
-    // Add example if available
-    if (randomTip.example) {
-      const exampleEl = document.createElement("pre");
-      exampleEl.style.cssText = "margin-top: 12px; padding: 10px; background: var(--bg-lighter); border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap;";
-      exampleEl.textContent = randomTip.example;
-      tipTextEl.appendChild(exampleEl);
-    }
-  }
+
+  const selectedTips = tipPool.slice(0, 1);
+  tipContainerEl.innerHTML = selectedTips.map((tip, index) => {
+    const renderedText = sanitizeRenderedHtml(md.render(String(tip.text || "").trim()));
+    const tipSectionLabel = t("randomTip") || "Tipp";
+    const tipTitle = escapeHtml(String(tip.title || "").trim());
+    const renderedExample = renderTipExample(tip.example);
+
+    return `
+      <div class="tip-item">
+        <div class="tip-text">
+          <strong>${escapeHtml(tipSectionLabel)}</strong>
+          ${tipTitle ? `<div class="tip-item-title">${tipTitle}</div>` : ""}
+          <div>${renderedText}</div>
+          ${renderedExample}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  await renderMermaid(tipContainerEl);
 };
 
 const showTipsModal = async () => {
@@ -5657,9 +5753,32 @@ const toggleAiChat = () => {
   setView(currentView === "chat" ? "preview" : "chat");
 };
 
-// Alt+Space shortcut for AI chat
+const isMermaidAutocompleteContext = () => {
+  if (!editorView || !activeSettings.mermaidCompletion) return false;
+  const wrapper = editorView.getWrapperElement?.();
+  if (!wrapper || !wrapper.contains(document.activeElement)) return false;
+
+  const cursor = editorView.getCursor();
+  for (let lineIndex = cursor.line; lineIndex >= 0; lineIndex -= 1) {
+    const line = editorView.getLine(lineIndex).trim();
+    if (line.startsWith("```mermaid")) {
+      return true;
+    }
+    if (line === "```") {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+// Alt+Space conflicts with browser/window menus on some Linux setups,
+// so Ctrl+Space is supported as a fallback outside Mermaid autocomplete.
 document.addEventListener("keydown", (e) => {
-  if (e.altKey && e.code === "Space") {
+  const isAltSpace = e.altKey && !e.ctrlKey && !e.metaKey && e.code === "Space";
+  const isCtrlSpace = e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.code === "Space";
+  const shouldToggleWithCtrlSpace = isCtrlSpace && !isMermaidAutocompleteContext();
+  if (isAltSpace || shouldToggleWithCtrlSpace) {
     e.preventDefault();
     toggleAiChat();
   }

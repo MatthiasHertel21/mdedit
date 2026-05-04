@@ -12,6 +12,7 @@ export class AIChat {
     this.input = document.getElementById('aiChatInput');
     this.sendBtn = document.getElementById('aiChatSendBtn');
     this.newChatBtn = document.getElementById('newChatBtn');
+    this.clearChatBtn = document.getElementById('clearAiChatBtn');
     this.sessionSelect = document.getElementById('aiChatSessionSelect');
     this.undoBtn = document.getElementById('undoAiChangeBtn');
     this.isProcessing = false;
@@ -65,6 +66,7 @@ export class AIChat {
       }
     });
     this.newChatBtn?.addEventListener('click', () => this.startNewSession());
+    this.clearChatBtn?.addEventListener('click', () => this.clearCurrentSession());
     this.sessionSelect?.addEventListener('change', (e) => this.switchSession(e.target.value));
     if (this.undoBtn) {
       this.undoBtn.addEventListener('click', () => this.undo());
@@ -142,6 +144,33 @@ export class AIChat {
     this.input?.focus();
   }
 
+  clearCurrentSession() {
+    if (this.isProcessing) {
+      this.showToast('Bitte warte, bis die aktuelle Anfrage abgeschlossen ist.', 'info');
+      return;
+    }
+
+    const session = this.getCurrentSession();
+    if (!session) {
+      return;
+    }
+
+    this.history = [];
+    this.messageLog = [];
+    this.undoStack = [];
+    session.history = [];
+    session.messageLog = [];
+
+    if (this.undoBtn) {
+      this.undoBtn.style.display = 'none';
+    }
+
+    this.renderCurrentSession();
+    this.persistState();
+    this.showToast('Chatverlauf geleert', 'success');
+    this.input?.focus();
+  }
+
   showWelcomeMessage() {
     if (this.history.length === 0) {
       this.messagesContainer.innerHTML = `
@@ -158,13 +187,22 @@ export class AIChat {
   }
 
   getAiRequestConfig() {
-    const providerControls = [
-      { provider: 'groq', enabledId: 'aiGroqEnabled', modelId: 'aiGroqModel', keyId: 'aiGroqKey' },
-      { provider: 'gemini', enabledId: 'aiGeminiEnabled', modelId: 'aiGeminiModel', keyId: 'aiGeminiKey' }
-    ];
+    const supportedProviders = new Map([
+      ['groq', { provider: 'groq', enabledId: 'aiGroqEnabled', modelId: 'aiGroqModel', keyId: 'aiGroqKey' }],
+      ['gemini', { provider: 'gemini', enabledId: 'aiGeminiEnabled', modelId: 'aiGeminiModel', keyId: 'aiGeminiKey' }],
+      ['openai', { provider: 'openai', enabledId: 'aiOpenAIEnabled', modelId: 'aiOpenAIModel', keyId: 'aiOpenAIKey' }],
+      ['claude', { provider: 'claude', enabledId: 'aiClaudeEnabled', modelId: 'aiClaudeModel', keyId: 'aiClaudeKey' }]
+    ]);
 
-    const selected = providerControls.find(({ enabledId }) => document.getElementById(enabledId)?.checked)
-      || providerControls[0];
+    const providerControls = Array.from(document.querySelectorAll('.ai-provider-row input[data-ai-provider]'))
+      .map((input) => supportedProviders.get(input.dataset.aiProvider))
+      .filter(Boolean);
+
+    const selected = providerControls.find(({ enabledId }) => document.getElementById(enabledId)?.checked);
+
+    if (!selected) {
+      return null;
+    }
 
     const model = document.getElementById(selected.modelId)?.value?.trim();
     const apiKey = document.getElementById(selected.keyId)?.value?.trim();
@@ -195,6 +233,12 @@ export class AIChat {
       // Get current markdown content
       const currentDoc = window.editor ? window.editor.getValue() : '';
       const aiConfig = this.getAiRequestConfig();
+
+      if (!aiConfig) {
+        this.removeLoadingMessage(loadingId);
+        this.showToast(window.t?.('aiProviderSelectRequired') || 'Bitte aktiviere mindestens einen KI-Anbieter.', 'error');
+        return;
+      }
       
       console.log('AI Chat - Sending request:', {
         provider: aiConfig.provider,
@@ -246,12 +290,12 @@ export class AIChat {
       this.persistState();
 
       // Handle the response
-      this.handleAIResponse(data);
+      this.handleAIResponse(data, message);
 
     } catch (error) {
       console.error('Chat error:', error);
       this.removeLoadingMessage(loadingId);
-      this.addErrorMessage(error.message);
+      this.addErrorMessage(this.getReadableErrorMessage(error, aiConfig));
     } finally {
       this.isProcessing = false;
       this.sendBtn.disabled = false;
@@ -259,11 +303,19 @@ export class AIChat {
     }
   }
 
-  handleAIResponse(data) {
+  handleAIResponse(data, userPrompt = '') {
     const { action, markdown, message } = data;
     
     // Use new 'markdown' field, fallback to legacy 'content' field
     const content = markdown || data.content;
+    const willApply = this.shouldAutoApplyResponse(userPrompt, action, content);
+    const displayMessage = this.buildAssistantDisplayMessage({
+      message,
+      action,
+      content,
+      applied: willApply,
+      editorAvailable: !!window.editor
+    });
     
     console.log('AI Chat - Handling response:', {
       action,
@@ -272,16 +324,72 @@ export class AIChat {
       message: message ? message.substring(0, 50) + '...' : null
     });
 
-    // Add assistant message (without action buttons)
-    this.addMessage('assistant', message || 'Fertig!');
+    // Add assistant message with action/result context
+    this.addMessage('assistant', displayMessage);
 
     // Auto-apply action if needed
-    if (action && action !== 'ADVICE' && content && window.editor) {
+    if (willApply) {
       console.log('AI Chat - Auto-applying action:', action);
       this.applyAction(action, content);
     } else if (!window.editor && action !== 'ADVICE') {
       console.warn('AI Chat - No editor available for applying action');
     }
+  }
+
+  shouldAutoApplyResponse(userPrompt, action, content) {
+    if (!action || action === 'ADVICE' || !content || !window.editor) {
+      return false;
+    }
+
+    return this.hasDocumentChangeIntent(userPrompt);
+  }
+
+  hasDocumentChangeIntent(userPrompt) {
+    if (typeof userPrompt !== 'string') {
+      return false;
+    }
+
+    return /(schreib|erstell|erzeuge|formuliere|füge|fasse|ergänz|überarbeite|verbessere|korrigier|wandle|übersetze|generier|append|insert|prepend|replace|rewrite|summari[sz]e|summary|heading|title|add|update|edit|draft|outline|überschrift|titel|zusammenfassung|gliederung|einleitung|fazit|stichpunkte|bulletpoints)/i.test(userPrompt.trim());
+  }
+
+  buildAssistantDisplayMessage({ message, action, content, applied, editorAvailable }) {
+    const baseMessage = (message || 'Fertig!').trim();
+
+    if (!action || action === 'ADVICE') {
+      return baseMessage;
+    }
+
+    const status = applied
+      ? 'Ins Dokument übernommen.'
+      : editorAvailable
+        ? 'Keine Änderung übernommen.'
+        : 'Editor nicht verfügbar, daher nicht übernommen.';
+
+    const sections = [
+      baseMessage,
+      '---',
+      `**Aktion:** ${this.getActionLabel(action)}`,
+      `**Status:** ${status}`
+    ];
+
+    if (content) {
+      sections.push('', '**Vorschau:**');
+      sections.push('```markdown');
+      sections.push(this.getContentPreview(content));
+      sections.push('```');
+    }
+
+    return sections.join('\n');
+  }
+
+  getContentPreview(content) {
+    const trimmed = String(content || '').trim();
+    const maxLength = 1200;
+    const preview = trimmed.length > maxLength
+      ? `${trimmed.slice(0, maxLength)}\n...`
+      : trimmed;
+
+    return preview.replace(/```/g, '`` `');
   }
 
   applyAction(action, content) {
@@ -463,6 +571,21 @@ export class AIChat {
     
     this.messagesContainer.appendChild(errorDiv);
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  getReadableErrorMessage(error, aiConfig) {
+    const rawMessage = error?.message || String(error || 'API error');
+
+    if (rawMessage === 'AI service unavailable') {
+      const providerLabel = aiConfig?.provider ? aiConfig.provider.toUpperCase() : 'AI';
+      return `${providerLabel} ist derzeit nicht erreichbar oder nicht korrekt konfiguriert.`;
+    }
+
+    if (rawMessage === 'Invalid API key') {
+      return 'Der API-Key ist ungueltig oder gesperrt.';
+    }
+
+    return rawMessage;
   }
 
   showToast(message, type = 'info', duration = 3000) {

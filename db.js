@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS pastes (
   markdown TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
+  shared_at TEXT,
   FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
 
@@ -52,6 +53,15 @@ const hasShared = checkShared.get().count > 0;
 if (!hasShared) {
   db.exec("ALTER TABLE pastes ADD COLUMN shared INTEGER NOT NULL DEFAULT 0");
   console.log("✅ Migration: Added 'shared' column to pastes table");
+}
+
+const checkSharedAt = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('pastes') WHERE name='shared_at'");
+const hasSharedAt = checkSharedAt.get().count > 0;
+
+if (!hasSharedAt) {
+  db.exec("ALTER TABLE pastes ADD COLUMN shared_at TEXT");
+  db.exec("UPDATE pastes SET shared_at = created_at WHERE shared = 1 AND shared_at IS NULL");
+  console.log("✅ Migration: Added 'shared_at' column to pastes table");
 }
 
 // Migration: Create images table if it doesn't exist
@@ -147,6 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_pastes_session_id ON pastes(session_id);
 CREATE INDEX IF NOT EXISTS idx_pastes_session_updated ON pastes(session_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pastes_session_created ON pastes(session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pastes_shared ON pastes(shared, id);
+CREATE INDEX IF NOT EXISTS idx_pastes_shared_at ON pastes(shared, shared_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_last_seen ON sessions(last_seen);
 CREATE INDEX IF NOT EXISTS idx_images_paste_id ON images(paste_id);
 `);

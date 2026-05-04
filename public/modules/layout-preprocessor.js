@@ -3,6 +3,30 @@
  * Converts layout commands (::: syntax and HTML comments) to HTML markers
  */
 
+const createLayoutToken = (name, attrs = {}) => {
+  const serialized = Object.entries(attrs)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(';');
+  return `[[MDLAYOUT:${name}${serialized ? `;${serialized}` : ''}]]`;
+};
+
+const parseLayoutToken = (value) => {
+  const match = String(value || '').trim().match(/^\[\[MDLAYOUT:([a-z-]+)(?:;([^\]]+))?\]\]$/i);
+  if (!match) return null;
+
+  const attrs = {};
+  if (match[2]) {
+    match[2].split(';').forEach((entry) => {
+      const [key, rawValue = ''] = entry.split('=');
+      if (!key) return;
+      attrs[key] = rawValue;
+    });
+  }
+
+  return { name: match[1].toLowerCase(), attrs };
+};
+
 export class LayoutPreprocessor {
   constructor() {
     this.tableCounter = 0;
@@ -36,12 +60,12 @@ export class LayoutPreprocessor {
   processPageBreaks(markdown) {
     return markdown
       // HTML comment syntax
-      .replace(/<!--\s*page-break\s*-->/gi, '<div class="page-break"></div>')
+      .replace(/<!--\s*page-break\s*-->/gi, createLayoutToken('page-break'))
       // ::: syntax (with or without hyphen)
-      .replace(/^\s*:::\s*page-?break\s*$/gim, '<div class="page-break"></div>')
+      .replace(/^\s*:::\s*page-?break\s*$/gim, createLayoutToken('page-break'))
       // Combined: <!-- page-break odd -->
       .replace(/<!--\s*page-break\s+(odd|even|right|left)\s*-->/gi, 
-               '<div class="page-break" data-break="$1"></div>');
+               (match, type) => createLayoutToken('page-break', { break: type }));
   }
 
   /**
@@ -51,9 +75,9 @@ export class LayoutPreprocessor {
   processColumnBreaks(markdown) {
     return markdown
       // HTML comment syntax
-      .replace(/<!--\s*column-break\s*-->/gi, '<div class="column-break"></div>')
+      .replace(/<!--\s*column-break\s*-->/gi, createLayoutToken('column-break'))
       // ::: syntax
-      .replace(/^\s*:::\s*column-?break\s*$/gim, '<div class="column-break"></div>');
+      .replace(/^\s*:::\s*column-?break\s*$/gim, createLayoutToken('column-break'));
   }
 
   /**
@@ -71,12 +95,12 @@ export class LayoutPreprocessor {
       (match, count, gap, rule) => {
         const gapValue = gap || '20pt';
         const ruleEnabled = rule === 'true';
-        return `<div class="md-columns" data-count="${count}" data-gap="${gapValue}" data-rule="${ruleEnabled}">`;
+        return createLayoutToken('columns-open', { count, gap: gapValue, rule: ruleEnabled });
       }
     );
 
     // Closing tag
-    result = result.replace(/<!--\s*\/columns\s*-->/gi, '</div>');
+    result = result.replace(/<!--\s*\/columns\s*-->/gi, createLayoutToken('columns-close'));
 
     // ::: syntax: ::: columns{count=2 gap=20pt rule=true}
     result = result.replace(
@@ -84,7 +108,7 @@ export class LayoutPreprocessor {
       (match, count, gap, rule) => {
         const gapValue = gap || '20pt';
         const ruleEnabled = rule === 'true';
-        return `<div class="md-columns" data-count="${count}" data-gap="${gapValue}" data-rule="${ruleEnabled}">`;
+        return createLayoutToken('columns-open', { count, gap: gapValue, rule: ruleEnabled });
       }
     );
 
@@ -94,11 +118,11 @@ export class LayoutPreprocessor {
     result = result.replace(/^\s*:::\s*$/gm, (match, offset, string) => {
       // Check if we're inside a columns block
       const before = string.substring(0, offset);
-      const columnsOpen = (before.match(/<div class="md-columns"/g) || []).length;
-      const columnsClose = (before.match(/<\/div><!--columns-close-->/g) || []).length;
+      const columnsOpen = (before.match(/\[\[MDLAYOUT:columns-open/g) || []).length;
+      const columnsClose = (before.match(/\[\[MDLAYOUT:columns-close\]\]/g) || []).length;
       
       if (columnsOpen > columnsClose) {
-        return '</div><!--columns-close-->';
+        return createLayoutToken('columns-close');
       }
       return match;
     });
@@ -113,9 +137,9 @@ export class LayoutPreprocessor {
   processChapters(markdown) {
     return markdown
       // HTML comment syntax
-      .replace(/<!--\s*chapter\s*-->/gi, '<div class="chapter-marker"></div>')
+      .replace(/<!--\s*chapter\s*-->/gi, createLayoutToken('chapter'))
       // ::: syntax
-      .replace(/^\s*:::\s*chapter\s*$/gim, '<div class="chapter-marker"></div>');
+      .replace(/^\s*:::\s*chapter\s*$/gim, createLayoutToken('chapter'));
   }
 
   /**
@@ -130,7 +154,7 @@ export class LayoutPreprocessor {
       /<!--\s*section:(\S+)(?:\s+columns:(\d+))?\s*-->/gi,
       (match, type, cols) => {
         const columns = cols || '1';
-        return `<div class="section-break" data-type="${type}" data-columns="${columns}"></div>`;
+        return createLayoutToken('section', { type, columns });
       }
     );
 
@@ -139,7 +163,7 @@ export class LayoutPreprocessor {
       /^\s*:::\s*section\{type=(\S+)(?:\s+columns=(\d+))?\}\s*$/gim,
       (match, type, cols) => {
         const columns = cols || '1';
-        return `<div class="section-break" data-type="${type}" data-columns="${columns}"></div>`;
+        return createLayoutToken('section', { type, columns });
       }
     );
 
@@ -156,13 +180,13 @@ export class LayoutPreprocessor {
     // HTML comment syntax: <!-- table:compact -->
     result = result.replace(
       /<!--\s*table:(\w+)\s*-->/gi,
-      '<div class="table-layout-marker" data-layout="$1"></div>'
+      (match, layout) => createLayoutToken('table', { layout })
     );
 
     // ::: syntax: ::: table{layout=compact}
     result = result.replace(
       /^\s*:::\s*table\{layout=(\w+)\}\s*$/gim,
-      '<div class="table-layout-marker" data-layout="$1"></div>'
+      (match, layout) => createLayoutToken('table', { layout })
     );
 
     return result;
@@ -178,17 +202,17 @@ export class LayoutPreprocessor {
     // HTML comment syntax
     result = result.replace(
       /<!--\s*title-page\s*-->/gi,
-      '<div class="title-page-marker" data-start="true"></div>'
+      createLayoutToken('title-page', { start: true })
     );
     result = result.replace(
       /<!--\s*\/title-page\s*-->/gi,
-      '<div class="title-page-marker" data-end="true"></div>'
+      createLayoutToken('title-page', { end: true })
     );
 
     // ::: syntax
     result = result.replace(
       /^\s*:::\s*title-?page\s*$/gim,
-      '<div class="title-page-marker" data-start="true"></div>'
+      createLayoutToken('title-page', { start: true })
     );
 
     return result;
@@ -201,9 +225,9 @@ export class LayoutPreprocessor {
   processBlankPages(markdown) {
     return markdown
       // HTML comment syntax
-      .replace(/<!--\s*blank-page\s*-->/gi, '<div class="blank-page-marker"></div>')
+      .replace(/<!--\s*blank-page\s*-->/gi, createLayoutToken('blank-page'))
       // ::: syntax
-      .replace(/^\s*:::\s*blank-?page\s*$/gim, '<div class="blank-page-marker"></div>');
+      .replace(/^\s*:::\s*blank-?page\s*$/gim, createLayoutToken('blank-page'));
   }
 
   /**
@@ -212,6 +236,9 @@ export class LayoutPreprocessor {
   postProcessHTML(html) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+
+    this.hydrateLayoutTokens(doc);
+    this.wrapColumnBlocks(doc);
 
     // Apply column styles
     this.applyColumnStyles(doc);
@@ -226,6 +253,85 @@ export class LayoutPreprocessor {
     this.cleanupMarkers(doc);
 
     return doc.body.innerHTML;
+  }
+
+  hydrateLayoutTokens(doc) {
+    Array.from(doc.body.querySelectorAll('p')).forEach((paragraph) => {
+      if (paragraph.childElementCount > 0) return;
+
+      const token = parseLayoutToken(paragraph.textContent || '');
+      if (!token) return;
+
+      const marker = doc.createElement('div');
+
+      switch (token.name) {
+        case 'page-break':
+          marker.className = 'page-break';
+          if (token.attrs.break) marker.dataset.break = token.attrs.break;
+          break;
+        case 'column-break':
+          marker.className = 'column-break';
+          break;
+        case 'columns-open':
+          marker.className = 'md-columns-token-start';
+          marker.dataset.count = token.attrs.count || '2';
+          marker.dataset.gap = token.attrs.gap || '20pt';
+          marker.dataset.rule = token.attrs.rule || 'false';
+          break;
+        case 'columns-close':
+          marker.className = 'md-columns-token-end';
+          break;
+        case 'chapter':
+          marker.className = 'chapter-marker';
+          break;
+        case 'section':
+          marker.className = 'section-break';
+          marker.dataset.type = token.attrs.type || 'continuous';
+          marker.dataset.columns = token.attrs.columns || '1';
+          break;
+        case 'table':
+          marker.className = 'table-layout-marker';
+          marker.dataset.layout = token.attrs.layout || 'default';
+          break;
+        case 'title-page':
+          marker.className = 'title-page-marker';
+          if (token.attrs.start === 'true') marker.dataset.start = 'true';
+          if (token.attrs.end === 'true') marker.dataset.end = 'true';
+          break;
+        case 'blank-page':
+          marker.className = 'blank-page-marker';
+          break;
+        default:
+          return;
+      }
+
+      paragraph.replaceWith(marker);
+    });
+  }
+
+  wrapColumnBlocks(doc) {
+    Array.from(doc.querySelectorAll('.md-columns-token-start')).forEach((start) => {
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'md-columns';
+      wrapper.dataset.count = start.dataset.count || '2';
+      wrapper.dataset.gap = start.dataset.gap || '20pt';
+      wrapper.dataset.rule = start.dataset.rule || 'false';
+
+      let sibling = start.nextSibling;
+      while (sibling) {
+        const nextSibling = sibling.nextSibling;
+        if (sibling.nodeType === Node.ELEMENT_NODE && sibling.classList.contains('md-columns-token-end')) {
+          sibling.remove();
+          break;
+        }
+        wrapper.appendChild(sibling);
+        sibling = nextSibling;
+      }
+
+      start.replaceWith(wrapper);
+    });
+
+    doc.querySelectorAll('.md-columns-token-end').forEach((el) => el.remove());
   }
 
   applyColumnStyles(doc) {

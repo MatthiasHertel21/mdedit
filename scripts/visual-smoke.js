@@ -42,8 +42,8 @@ const resolveChromium = () => {
 const hasPdfToPpm = () => runOk("pdftoppm", ["-h"]);
 
 const markerText = (id) => `[[LAYOUT-MARKER:${id}]]`;
-const markerSpan = (id) => `<span class="layout-test-marker" data-layout-marker="${id}">${markerText(id)}</span>`;
-const markerBlock = (id) => `<p class="layout-test-marker-block">${markerSpan(id)}</p>`;
+const markerSpan = (id) => markerText(id);
+const markerBlock = (id) => markerText(id);
 const normalizeSearchText = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 const repeatedParagraphs = (label, count, sentences = 12) => {
@@ -52,25 +52,7 @@ const repeatedParagraphs = (label, count, sentences = 12) => {
   return Array.from({ length: count }, () => paragraph).join("\n\n");
 };
 
-const markerStyleBlock = [
-  "<style>",
-  ".layout-test-marker {",
-  "  display: inline;",
-  "  font-size: 0.6pt;",
-  "  line-height: 0.6pt;",
-  "  color: rgba(255, 255, 255, 0.02);",
-  "  letter-spacing: 0;",
-  "}",
-  ".layout-test-marker-block {",
-  "  display: block;",
-  "  margin: 0;",
-  "  font-size: 0.6pt;",
-  "  line-height: 0.6pt;",
-  "  color: rgba(255, 255, 255, 0.02);",
-  "}",
-  "</style>",
-  ""
-].join("\n");
+const markerStyleBlock = "";
 
 const inlineFigureSvg = encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
@@ -85,10 +67,9 @@ const inlineFigureSvg = encodeURIComponent(`
 `.trim());
 
 const inlineFigureHtml = (markerId, captionMarkerId) => [
-  "<figure>",
-  `  <img src="data:image/svg+xml;charset=utf-8,${inlineFigureSvg}" alt="Deterministic layout test figure" />`,
-  `  <figcaption>Deterministic figure for layout verification ${captionMarkerId ? markerSpan(captionMarkerId) : ""} ${markerSpan(markerId)}</figcaption>`,
-  "</figure>",
+  `![Deterministic layout test figure](data:image/svg+xml;charset=utf-8,${inlineFigureSvg})`,
+  "",
+  `*Deterministic figure for layout verification ${captionMarkerId ? markerSpan(captionMarkerId) : ""} ${markerSpan(markerId)}*`,
   ""
 ].join("\n");
 
@@ -376,7 +357,6 @@ const columnFlowFixture = () => {
 };
 
 const mediaStressFixture = () => {
-  const captionTableRows = makeHtmlTableRows(4, "Dataset");
   const tableCaptionText = "Table 1. Deterministic long-table caption for repeat-header verification";
   const repeatedHeaderText = "ColA ColB ColC";
   const longMarkdownRows = makeSimpleMarkdownRows(90, "Dataset");
@@ -418,7 +398,7 @@ const mediaStressFixture = () => {
       "",
       "<!-- table:scientific -->",
       "",
-      makeHtmlTable({ caption: `${tableCaptionText} ${markerSpan("table-caption-anchor")}`, rows: captionTableRows }),
+      `*${tableCaptionText} ${markerSpan("table-caption-anchor")}*`,
       "",
       "| ColA | ColB | ColC |",
       "|---|---|---|",
@@ -458,6 +438,77 @@ const showPreviewForFixture = async (page, markdown) => {
     }
   }, markdown);
   await waitForPagedReady(page);
+  await page.evaluate(() => {
+    const styleId = "layout-runner-marker-style";
+    let style = document.getElementById(styleId);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .layout-test-marker {
+          display: inline;
+          font-size: 0.6pt;
+          line-height: 0.6pt;
+          color: rgba(255, 255, 255, 0.02);
+          letter-spacing: 0;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const tokenPattern = /\[\[LAYOUT-MARKER:([a-z0-9_-]+)\]\]/gi;
+    const pagesRoot = document.querySelector(".pagedjs_pages") || document.body;
+    const walker = document.createTreeWalker(pagesRoot, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const text = node.nodeValue || "";
+        if (!text || !tokenPattern.test(text)) {
+          tokenPattern.lastIndex = 0;
+          return NodeFilter.FILTER_REJECT;
+        }
+        tokenPattern.lastIndex = 0;
+        const parent = node.parentElement;
+        if (!parent) return NodeFilter.FILTER_REJECT;
+        if (parent.closest("[data-layout-marker]")) return NodeFilter.FILTER_REJECT;
+        if (["SCRIPT", "STYLE", "TEXTAREA"].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    const textNodes = [];
+    while (walker.nextNode()) {
+      textNodes.push(walker.currentNode);
+    }
+
+    textNodes.forEach((node) => {
+      const text = node.nodeValue || "";
+      tokenPattern.lastIndex = 0;
+      let match = tokenPattern.exec(text);
+      if (!match) return;
+
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      while (match) {
+        if (match.index > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+
+        const marker = document.createElement("span");
+        marker.className = "layout-test-marker";
+        marker.dataset.layoutMarker = match[1];
+        marker.textContent = match[0];
+        fragment.appendChild(marker);
+
+        lastIndex = match.index + match[0].length;
+        match = tokenPattern.exec(text);
+      }
+
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      }
+
+      node.parentNode?.replaceChild(fragment, node);
+    });
+  });
 };
 
 const normalizePreviewForCapture = async (page) => {
@@ -669,66 +720,55 @@ const analyzePreview = async (page, probes = {}) => {
 const renderPdfPagesWithPdfJs = async ({ browser, pdfBuffer, targetWidth, targetHeight, count }) => {
   const page = await browser.newPage();
   await page.setViewport({ width: targetWidth, height: targetHeight, deviceScaleFactor: 1 });
-
-  const html = `<!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <style>
-        html, body { margin: 0; padding: 0; background: #fff; }
-        canvas { display: block; }
-      </style>
-      <script src="${baseUrl}/static/vendor/pdfjs/pdf.min.js"></script>
-    </head>
-    <body>
-      <script>
-        window.__renderPdf = async function(base64, targetWidth, targetHeight, count) {
-          const raw = atob(base64);
-          const bytes = new Uint8Array(raw.length);
-          for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
-
-          pdfjsLib.GlobalWorkerOptions.workerSrc = "${baseUrl}/static/vendor/pdfjs/pdf.worker.min.js";
-          const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-          const total = Math.min(count, pdf.numPages);
-          const results = [];
-
-          for (let p = 1; p <= total; p += 1) {
-            const page = await pdf.getPage(p);
-            const viewport = page.getViewport({ scale: 1 });
-            const scale = targetWidth / viewport.width;
-            const scaled = page.getViewport({ scale });
-
-            const renderCanvas = document.createElement("canvas");
-            renderCanvas.width = Math.round(scaled.width);
-            renderCanvas.height = Math.round(scaled.height);
-            const renderCtx = renderCanvas.getContext("2d", { alpha: false });
-            renderCtx.fillStyle = "#ffffff";
-            renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
-
-            await page.render({ canvasContext: renderCtx, viewport: scaled }).promise;
-
-            const finalCanvas = document.createElement("canvas");
-            finalCanvas.width = targetWidth;
-            finalCanvas.height = targetHeight;
-            const finalCtx = finalCanvas.getContext("2d", { alpha: false });
-            finalCtx.fillStyle = "#ffffff";
-            finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-            finalCtx.drawImage(renderCanvas, 0, 0);
-
-            results.push(finalCanvas.toDataURL("image/png"));
-          }
-
-          return results;
-        };
-      </script>
-    </body>
-  </html>`;
-
-  await page.setContent(html, { waitUntil: "load" });
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await page.addScriptTag({ url: `${baseUrl}/static/vendor/pdfjs/pdf.min.js` });
 
   const base64 = pdfBuffer.toString("base64");
   const dataUrls = await page.evaluate(
-    (payload) => window.__renderPdf(payload.base64, payload.targetWidth, payload.targetHeight, payload.count),
+    async (payload) => {
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.background = "#fff";
+      document.body.innerHTML = "";
+      document.body.style.margin = "0";
+      document.body.style.background = "#fff";
+
+      const raw = atob(payload.base64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = payload.workerSrc;
+      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const total = Math.min(payload.count, pdf.numPages);
+      const results = [];
+
+      for (let p = 1; p <= total; p += 1) {
+        const pdfPage = await pdf.getPage(p);
+        const viewport = pdfPage.getViewport({ scale: 1 });
+        const scale = payload.targetWidth / viewport.width;
+        const scaled = pdfPage.getViewport({ scale });
+
+        const renderCanvas = document.createElement("canvas");
+        renderCanvas.width = Math.round(scaled.width);
+        renderCanvas.height = Math.round(scaled.height);
+        const renderCtx = renderCanvas.getContext("2d", { alpha: false });
+        renderCtx.fillStyle = "#ffffff";
+        renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+
+        await pdfPage.render({ canvasContext: renderCtx, viewport: scaled }).promise;
+
+        const finalCanvas = document.createElement("canvas");
+        finalCanvas.width = payload.targetWidth;
+        finalCanvas.height = payload.targetHeight;
+        const finalCtx = finalCanvas.getContext("2d", { alpha: false });
+        finalCtx.fillStyle = "#ffffff";
+        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        finalCtx.drawImage(renderCanvas, 0, 0);
+
+        results.push(finalCanvas.toDataURL("image/png"));
+      }
+
+      return results;
+    },
     { base64, targetWidth, targetHeight, count }
   );
 
@@ -738,84 +778,73 @@ const renderPdfPagesWithPdfJs = async ({ browser, pdfBuffer, targetWidth, target
 
 const analyzePdfWithPdfJs = async ({ browser, pdfBuffer, markers, probes = {} }) => {
   const page = await browser.newPage();
-  const html = `<!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <script src="${baseUrl}/static/vendor/pdfjs/pdf.min.js"></script>
-    </head>
-    <body>
-      <script>
-        window.__analyzePdf = async function(base64, markerMap, probeMap) {
-          const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
-          const raw = atob(base64);
-          const bytes = new Uint8Array(raw.length);
-          for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
-
-          pdfjsLib.GlobalWorkerOptions.workerSrc = "${baseUrl}/static/vendor/pdfjs/pdf.worker.min.js";
-          const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-          const markerPages = {};
-          const markerPositions = {};
-          const textMatches = {};
-          const pages = [];
-
-          for (let p = 1; p <= pdf.numPages; p += 1) {
-            const page = await pdf.getPage(p);
-            const viewport = page.getViewport({ scale: 1 });
-            const textContent = await page.getTextContent();
-            const joinedText = textContent.items.map((item) => item.str).join("");
-            const searchableText = normalize(joinedText);
-            pages.push({
-              page: p,
-              width: Number(viewport.width.toFixed(2)),
-              height: Number(viewport.height.toFixed(2)),
-              textSample: joinedText.replace(/\s+/g, " ").trim().slice(0, 400)
-            });
-
-            Object.entries(markerMap).forEach(([id, token]) => {
-              if (!markerPages[id] && joinedText.includes(token)) {
-                markerPages[id] = p;
-              }
-            });
-
-            textContent.items.forEach((item) => {
-              const normalizedItem = normalize(item.str || "");
-              Object.entries(markerMap).forEach(([id, token]) => {
-                if (markerPositions[id]) return;
-                if (!normalizedItem || !normalizedItem.includes(normalize(token))) return;
-                const x = Number((item.transform?.[4] || 0).toFixed(2));
-                const y = Number((viewport.height - (item.transform?.[5] || 0)).toFixed(2));
-                markerPositions[id] = {
-                  page: p,
-                  x,
-                  y,
-                  column: x < (viewport.width / 2) ? 1 : 2
-                };
-              });
-            });
-
-            Object.entries(probeMap).forEach(([key, text]) => {
-              if (!textMatches[key]) textMatches[key] = [];
-              if (searchableText.includes(text)) {
-                textMatches[key].push(p);
-              }
-            });
-          }
-
-          return { totalPages: pdf.numPages, pages, markerPages, markerPositions, textMatches };
-        };
-      </script>
-    </body>
-  </html>`;
-
-  await page.setContent(html, { waitUntil: "load" });
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await page.addScriptTag({ url: `${baseUrl}/static/vendor/pdfjs/pdf.min.js` });
   const base64 = pdfBuffer.toString("base64");
   const markerMap = Object.fromEntries(markers.map((marker) => [marker.id, markerText(marker.id)]));
   const probeMap = Object.fromEntries(Object.entries(probes).map(([key, value]) => [key, value.text.toLowerCase().replace(/[^a-z0-9]+/g, "")]));
-  const analysis = await page.evaluate((payload) => window.__analyzePdf(payload.base64, payload.markerMap, payload.probeMap), {
+  const analysis = await page.evaluate(async (payload) => {
+    const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const raw = atob(payload.base64);
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = payload.workerSrc;
+    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    const markerPages = {};
+    const markerPositions = {};
+    const textMatches = {};
+    const pages = [];
+
+    for (let p = 1; p <= pdf.numPages; p += 1) {
+      const pdfPage = await pdf.getPage(p);
+      const viewport = pdfPage.getViewport({ scale: 1 });
+      const textContent = await pdfPage.getTextContent();
+      const joinedText = textContent.items.map((item) => item.str).join("");
+      const searchableText = normalize(joinedText);
+      pages.push({
+        page: p,
+        width: Number(viewport.width.toFixed(2)),
+        height: Number(viewport.height.toFixed(2)),
+        textSample: joinedText.replace(/\s+/g, " ").trim().slice(0, 400)
+      });
+
+      Object.entries(payload.markerMap).forEach(([id, token]) => {
+        if (!markerPages[id] && joinedText.includes(token)) {
+          markerPages[id] = p;
+        }
+      });
+
+      textContent.items.forEach((item) => {
+        const normalizedItem = normalize(item.str || "");
+        Object.entries(payload.markerMap).forEach(([id, token]) => {
+          if (markerPositions[id]) return;
+          if (!normalizedItem || !normalizedItem.includes(normalize(token))) return;
+          const x = Number((item.transform?.[4] || 0).toFixed(2));
+          const y = Number((viewport.height - (item.transform?.[5] || 0)).toFixed(2));
+          markerPositions[id] = {
+            page: p,
+            x,
+            y,
+            column: x < (viewport.width / 2) ? 1 : 2
+          };
+        });
+      });
+
+      Object.entries(payload.probeMap).forEach(([key, text]) => {
+        if (!textMatches[key]) textMatches[key] = [];
+        if (searchableText.includes(text)) {
+          textMatches[key].push(p);
+        }
+      });
+    }
+
+    return { totalPages: pdf.numPages, pages, markerPages, markerPositions, textMatches };
+  }, {
     base64,
     markerMap,
-    probeMap
+    probeMap,
+    workerSrc: `${baseUrl}/static/vendor/pdfjs/pdf.worker.min.js`
   });
   await page.close();
   return analysis;

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">mdedit.io icon</title>
+  <desc id="desc">A blue document-outline icon with MD, text lines, a right arrow and a light-blue background panel.</desc>
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#ffffff"/>
+  <!-- back panel -->
+  <rect x="256" y="132" width="88" height="168" rx="18" fill="#B7D9F7"/>
+  <rect x="250" y="304" width="88" height="84" rx="18" fill="#B7D9F7"/>
+
+  <!-- front document outline -->
+  <path d="M132 142
+           L252 142
+           Q272 142 272 162
+           L272 254
+           Q272 268 284 268
+           L332 268
+           Q346 268 346 282
+           Q346 289 341 294
+           L291 344
+           Q284 351 274 351
+           L266 351
+           Q252 351 252 337
+           L252 300
+           Q252 286 238 286
+           L196 286
+           Q176 286 176 266
+           L176 178
+           Q176 166 168 158
+           Q160 150 148 150
+           Q132 150 132 166
+           L132 358
+           Q132 378 150 383
+           Q169 388 190 384
+           L304 360
+           Q322 356 322 338
+           L322 314
+           Q322 300 336 300
+           L376 300
+           Q396 300 396 280
+           Q396 272 392 266
+           L330 196
+           Q318 182 318 168
+           L318 160
+           Q318 142 300 142
+           Z"
+        fill="none" stroke="#0089CF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- MD text -->
+  <text x="172" y="215" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" fill="#000000">MD</text>
+
+  <!-- text lines -->
+  <line x1="170" y1="258" x2="258" y2="258" stroke="#0089CF" stroke-width="14" stroke-linecap="round"/>
+  <line x1="170" y1="295" x2="245" y2="295" stroke="#0089CF" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- arrow -->
+  <path d="M286 263 H366" fill="none" stroke="#0089CF" stroke-width="18" stroke-linecap="round"/>
+  <path d="M344 231 L392 279 L344 327" fill="none" stroke="#0089CF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

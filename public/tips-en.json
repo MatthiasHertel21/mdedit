@@ -31,7 +31,7 @@
     "id": 4,
     "category": "features",
     "title": "Preview presets",
-    "text": "Switch between Scientific, Compact, Literary, and Document. The Document preset uses layout rules from the Markdown file or the default document layout selected in settings.",
+    "text": "Switch between **Scientific**, **Compact**, **Literary**, and **Document**.\n\n- **Document** uses layout rules directly from your Markdown file\n- otherwise it falls back to the default document layout from settings\n- ideal for print-like preview and PDF export",
     "example": null
   },
   {
@@ -66,7 +66,7 @@
     "id": 9,
     "category": "features",
     "title": "Outline tree",
-    "text": "Use the outline tree view to quickly navigate large documents.",
+    "text": "Use the **outline tree view** to move quickly through large documents.\n\nTip: It is especially useful for long documents with many headings and sub-sections.",
     "example": null
   },
   {
@@ -101,7 +101,7 @@
     "id": 14,
     "category": "features",
     "title": "Page view",
-    "text": "Enable page view for a print/PDF-like preview with page breaks. It uses document layout rules instead of the normal screen presets.",
+    "text": "Enable **page view** for a print-like preview with visible page breaks.\n\nIt uses document layout rules instead of the normal screen presets, so it is the best final check before PDF export.",
     "example": null
   },
   {
@@ -198,8 +198,8 @@
   {
     "id": 28,
     "category": "features",
-    "title": "Dark mode",
-    "text": "Switch between light and dark themes in the settings.",
+    "title": "Startup tips",
+    "text": "Enable or disable startup tips in the settings.",
     "example": null
   },
   {
@@ -270,14 +270,14 @@
     "category": "mermaid",
     "title": "Mermaid: State diagram",
     "text": "Show state transitions with `stateDiagram-v2`. States: `state Name`, transitions: `-->`.",
-    "example": "```mermaid\nstateDiagram-v2\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Active --> [*]\n```"
+    "example": "```mermaid\nstateDiagram-v2\n  direction LR\n  [*] --> Idle\n  Idle --> Active: Start\n  Active --> Idle: Stop\n  Idle --> [*]\n```"
   },
   {
     "id": 40,
     "category": "mermaid",
     "title": "Mermaid: ER diagram",
     "text": "Model entities with `erDiagram`. Relationships: `||--o{` (1:n), `}o--o{` (n:m).",
-    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ LINE-ITEM : contains\n  CUSTOMER {\n    string name\n    string email\n  }\n```"
+    "example": "```mermaid\nerDiagram\n  CUSTOMER ||--o{ ORDER : places\n  ORDER ||--|{ ITEM : contains\n  CUSTOMER {\n    string customer_id\n    string name\n  }\n  ORDER {\n    string order_id\n    string status\n  }\n  ITEM {\n    string sku\n    int quantity\n  }\n```"
   },
   {
     "id": 41,
@@ -381,7 +381,7 @@
     "id": 55,
     "category": "shortcuts",
     "title": "Quick open AI assistant",
-    "text": "Press Alt+Space to open or close the AI assistant.",
+    "text": "Press Alt+Space to open or close the AI assistant. If your browser or Linux window manager opens a menu instead, use Ctrl+Space as a fallback. Inside Mermaid code blocks, Ctrl+Space stays reserved for auto-completion.",
     "example": null
   },
   {
@@ -423,7 +423,7 @@
     "id": 62,
     "category": "shortcuts",
     "title": "AI assistant via keyboard",
-    "text": "**Alt+Space** opens or closes the AI assistant instantly — great for quickly switching between writing and AI.",
+    "text": "**Alt+Space** opens or closes the AI assistant instantly. If that opens the browser or window menu on your system, use **Ctrl+Space** instead. Inside Mermaid code blocks, **Ctrl+Space** stays reserved for auto-completion.",
     "example": null
   },
   {

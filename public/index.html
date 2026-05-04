@@ -10,13 +10,13 @@
     <meta property="og:title" content="mdedit.io" />
     <meta property="og:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
     <meta property="og:url" content="https://mdedit.io/" />
-    <meta property="og:image" content="https://mdedit.io/favicon.svg" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/mdedit-icon.png" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="mdedit.io" />
     <meta name="twitter:description" content="Browserbasierter Markdown-Editor mit Live-Vorschau, Outline, Mermaid, KaTeX und Export nach Markdown, DOCX und PDF." />
-    <meta name="twitter:image" content="https://mdedit.io/favicon.svg" />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/mdedit-icon.png" />
     <meta name="application-name" content="mdedit.io" />
-    <meta name="theme-color" content="#0b82c5" />
+    <meta name="theme-color" content="#0089cf" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -43,16 +43,16 @@
     <script src="/static/vendor/pagedjs/paged.js"></script>
     <script src="/static/vendor/d3/d3.min.js"></script>
     <script src="/static/vendor/npm/markmap-view/dist/browser/index.js"></script>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <link rel="shortcut icon" href="/static/brand/mdedit-icon.png" type="image/png" />
   </head>
   <body>
     <div class="app">
       <aside class="sidebar collapsed" id="sidebar">
         <div class="sidebar-top">
           <a class="sidebar-brand" href="/" aria-label="mdedit.io Startseite">
-            <img class="sidebar-brand-icon" src="/static/brand/logo-icon.svg" alt="" aria-hidden="true" />
-            <img class="sidebar-brand-wordmark" src="/static/brand/logo-lockup.svg" alt="mdedit.io" />
+            <img class="sidebar-brand-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+            <img class="sidebar-brand-wordmark" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
           </a>
           <input id="historySearch" class="search sidebar-search" type="text" placeholder="Suchen" data-i18n-placeholder="search" />
         </div>
@@ -93,9 +93,9 @@
                     <i class="fa-solid fa-share-nodes"></i>
                   </button>
                   <div id="shareMenu" class="share-menu-panel hidden">
-                    <button id="permalinkBtn" class="share-menu-item" title="Permalink kopieren" aria-label="Permalink kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
+                    <button id="permalinkBtn" class="share-menu-item" title="Colaboration-Link kopieren" aria-label="Colaboration-Link kopieren" data-i18n-title="permalink" data-i18n-aria="permalink">
                       <i class="fa-solid fa-link"></i>
-                      <span data-i18n="permalink">Permalink kopieren</span>
+                      <span data-i18n="permalink">Colaboration-Link kopieren</span>
                     </button>
                     <button id="copyMdBtn" class="share-menu-item" title="Markdown kopieren" aria-label="Markdown kopieren" data-i18n-title="copyMd" data-i18n-aria="copyMd">
                       <i class="fa-regular fa-copy"></i>
@@ -164,7 +164,7 @@
                       <button id="previewTreeToggle" class="header-icon view-toggle-btn" data-view="tree" title="Baum" aria-label="Baum" data-i18n-title="tree" data-i18n-aria="tree">
                         <i class="fa-solid fa-network-wired"></i>
                       </button>
-                      <button id="aiChatToggle" class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent (Alt+Space)" aria-label="KI-Assistent" data-i18n-title="aiChat" data-i18n-aria="aiChat">
+                      <button id="aiChatToggle" class="header-icon view-toggle-btn" data-view="chat" title="KI-Assistent (Alt+Space / Ctrl+Space)" aria-label="KI-Assistent" data-i18n-title="aiChat" data-i18n-aria="aiChat">
                         <i class="fa-solid fa-robot"></i>
                       </button>
                     </div>
@@ -231,6 +231,9 @@
                       <i class="fa-solid fa-rotate-left"></i>
                     </button>
                     <select id="aiChatSessionSelect" class="ai-chat-session-select hidden" aria-label="Chat auswählen"></select>
+                    <button id="clearAiChatBtn" class="header-icon" title="Chatverlauf leeren" aria-label="Aktuellen Chatverlauf leeren">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
                     <button id="newChatBtn" class="header-icon" title="Neuer Chat" aria-label="Neuer Chat">
                       <i class="fa-solid fa-plus"></i>
                     </button>
@@ -282,33 +285,38 @@
     <div id="tipsOverlay" class="modal-overlay hidden"></div>
     <div id="tipsModal" class="modal hidden">
       <div class="modal-header">
-        <div>
-          <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
-          <p style="font-size:12px;color:var(--muted,#888);margin:2px 0 0;"><kbd>F2</kbd> <span data-i18n="tipsF2Hint">jederzeit erneut öffnen</span> &nbsp;·&nbsp; <kbd>F1</kbd> <span data-i18n="tipsF1Hint">Hilfe öffnen</span></p>
+        <div class="tips-header-intro">
+          <img class="tips-brand-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <div class="tips-header-copy">
+            <span class="tips-brand-name">mdedit.io</span>
+            <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+          </div>
         </div>
         <button id="tipsClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="modal-body">
-        <div class="tips-content">
-          <div id="randomTipContainer" class="tip-item">
-            <div class="tip-icon"><i id="randomTipIcon" class="fa-solid fa-lightbulb"></i></div>
+        <div id="randomTipContainer" class="tips-content" aria-live="polite">
+          <div class="tip-item">
             <div class="tip-text">
-              <strong id="randomTipTitle">Tipp</strong>
-              <p id="randomTipText">Drücken Sie F2 für einen zufälligen Tipp</p>
+              <strong>Tipp</strong>
+              <div>Drücken Sie F2 für zufällige Tipps.</div>
             </div>
           </div>
         </div>
         <div class="tips-footer">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="tips-footer-actions">
             <label class="tips-checkbox">
               <input type="checkbox" id="dontShowTipsAgain" />
               <span data-i18n="dontShowAgain">Beim nächsten Start nicht mehr anzeigen</span>
             </label>
-            <button id="nextTipBtn" class="btn-primary" style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
-              <i class="fa-solid fa-arrow-right"></i> <span data-i18n="nextTip">Nächster Tipp</span>
-            </button>
+            <div class="tips-footer-buttons">
+              <a id="tipsHelpLink" class="btn-secondary tips-help-link" href="/help.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
+              <button id="nextTipBtn" class="btn-primary tips-next-btn">
+                <i class="fa-solid fa-arrow-right"></i> <span data-i18n="nextTip">Nächster Tipp</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -801,10 +809,34 @@
         </div>
         <div class="tab-panel" data-tab-panel="ai">
           <div class="ai-providers">
+            <div class="setting-description" data-i18n="aiProviderPriorityHint">Der erste aktive Anbieter in dieser Liste wird verwendet.</div>
+            <div class="setting-description" data-i18n="aiApiKeyDesc">Eigenen API-Key eingeben oder Server-Standard nutzen. Fuer staerkere Modelle ist oft ein eigener Key noetig.</div>
+
+            <!-- Groq -->
+            <div class="ai-provider-row">
+              <label class="switch">
+                <input type="checkbox" id="aiGroqEnabled" data-ai-provider="groq" checked />
+                <span class="slider"></span>
+              </label>
+              <div class="ai-provider-info">
+                <div class="ai-provider-name">Groq</div>
+              </div>
+              <div class="ai-provider-controls">
+                <select id="aiGroqModel" class="ai-model-select">
+                  <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
+                  <option value="llama-3.3-70b-versatile" selected>Llama 3.3 70B Versatile</option>
+                  <option value="qwen/qwen3-32b">Qwen 3 32B</option>
+                </select>
+                <form class="ai-key-form" onsubmit="return false;">
+                  <input type="password" id="aiGroqKey" class="ai-key-input" placeholder="gsk_..." autocomplete="off" />
+                </form>
+              </div>
+            </div>
+            
             <!-- Google Gemini -->
             <div class="ai-provider-row">
               <label class="switch">
-                <input type="checkbox" id="aiGeminiEnabled" data-ai-provider="gemini" />
+                <input type="checkbox" id="aiGeminiEnabled" data-ai-provider="gemini" checked />
                 <span class="slider"></span>
               </label>
               <div class="ai-provider-info">
@@ -833,33 +865,12 @@
               </div>
               <div class="ai-provider-controls">
                 <select id="aiOpenAIModel" class="ai-model-select">
+                  <option value="gpt-4.1" selected>GPT-4.1</option>
                   <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
-                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
                 </select>
                 <form class="ai-key-form" onsubmit="return false;">
                   <input type="password" id="aiOpenAIKey" class="ai-key-input" placeholder="sk-..." autocomplete="off" />
-                </form>
-              </div>
-            </div>
-            
-            <!-- Groq -->
-            <div class="ai-provider-row">
-              <label class="switch">
-                <input type="checkbox" id="aiGroqEnabled" data-ai-provider="groq" checked />
-                <span class="slider"></span>
-              </label>
-              <div class="ai-provider-info">
-                <div class="ai-provider-name">Groq</div>
-              </div>
-              <div class="ai-provider-controls">
-                <select id="aiGroqModel" class="ai-model-select">
-                  <option value="openai/gpt-oss-120b" selected>GPT OSS 120B</option>
-                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-                  <option value="qwen/qwen3-32b">Qwen 3 32B</option>
-                </select>
-                <form class="ai-key-form" onsubmit="return false;">
-                  <input type="password" id="aiGroqKey" class="ai-key-input" placeholder="gsk_..." autocomplete="off" />
                 </form>
               </div>
             </div>
@@ -875,9 +886,9 @@
               </div>
               <div class="ai-provider-controls">
                 <select id="aiClaudeModel" class="ai-model-select">
-                  <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                  <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                  <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                  <option value="claude-3-7-sonnet-latest" selected>Claude 3.7 Sonnet</option>
+                  <option value="claude-3-5-sonnet-latest">Claude 3.5 Sonnet</option>
+                  <option value="claude-3-5-haiku-latest">Claude 3.5 Haiku</option>
                 </select>
                 <form class="ai-key-form" onsubmit="return false;">
                   <input type="password" id="aiClaudeKey" class="ai-key-input" placeholder="sk-ant-..." autocomplete="off" />
@@ -889,7 +900,7 @@
         <div class="tab-panel" data-tab-panel="about">
           <div class="about-layout">
             <div class="about-brand-column">
-              <img class="about-brand-lockup" src="/static/brand/logo-lockup.svg" alt="mdedit.io" />
+              <img class="about-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
               <p class="about-brand-text">Clear. Focused. Share Anywhere.</p>
             </div>
             <div class="about-content-column">
@@ -897,7 +908,9 @@
               <p class="about-imprint">
                 <strong>Matthias Hertel</strong><br>
                 Dresden, Deutschland<br>
-                matthias.hertel@gmail.com
+                Kontakt: <a href="mailto:matthias.hertel@gmail.com" style="color: var(--link, #0089cf);">matthias.hertel@gmail.com</a><br>
+                Privates, nicht-kommerzielles Projekt.<br>
+                Verantwortlich für den Inhalt: Matthias Hertel.
               </p>
               <p class="about-version" style="margin-top:12px;font-size:13px;color:var(--muted,#888);">
                 <span data-i18n="aboutVersion">Version</span>: <span id="appVersion">–</span>
@@ -908,6 +921,10 @@
 
               <h4 class="about-subtitle" data-i18n="aboutLicense">Lizenz</h4>
               <p class="about-text" data-i18n="aboutLicenseText">Der Quellcode dieser Anwendung steht unter der Apache License 2.0. Dokumentation und Website-Inhalte stehen, sofern nicht anders angegeben, unter CC BY 4.0. Name, Domain, Logos, Icons und sonstige Brand-Assets sind nicht automatisch mitlizenziert.</p>
+              <p class="about-text">Repository: <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener noreferrer" style="color: var(--link, #0089cf);">github.com/MatthiasHertel21/mdedit</a></p>
+
+              <h4 class="about-subtitle" data-i18n="aboutUse">Use & Liability</h4>
+              <p class="about-text" data-i18n="aboutUseText">Use of this application is at your own risk. No guarantee is provided for availability, error-free operation, suitability for a particular purpose, or permanent data retention. Users are solely responsible for content they create, upload, share, or export. Liability for damages caused by slight negligence is excluded to the extent permitted by law; claims arising from intent, gross negligence, or injury to life, body, or health remain unaffected.</p>
             </div>
           </div>
         </div>
