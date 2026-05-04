@@ -10,8 +10,8 @@
 #   1. Optionally bumps the version in package.json
 #   2. Builds the Docker image from /home/ga/md tagged as mdedit-app:<version>
 #   3. Tags it as mdedit-app:latest
-#   4. Syncs public/ into /home/ga/mdedit/public/
-#   5. Restarts the production container
+#   4. Syncs the tracked production compose file into /home/ga/mdedit
+#   5. Restarts the production container using the freshly built image
 
 set -euo pipefail
 
@@ -64,15 +64,15 @@ fi
 echo "  Building image $IMAGE_NAME:$NEW_VERSION ..."
 docker build -t "$IMAGE_NAME:$NEW_VERSION" -t "$IMAGE_NAME:latest" .
 
-# ── Sync public/ to production ────────────────────────────────────────────────
-echo "  Syncing public/ → $PROD_DIR/public/ ..."
-rsync -a --delete "$DEV_DIR/public/" "$PROD_DIR/public/"
+# ── Sync tracked production config ────────────────────────────────────────────
+echo "  Syncing tracked production compose file ..."
+install -m 644 "$DEV_DIR/deploy/docker-compose.prod.yml" "$PROD_DIR/docker-compose.yml"
 
 # ── Restart production container ──────────────────────────────────────────────
 echo "  Restarting production container ..."
 cd "$PROD_DIR"
 docker compose pull --ignore-buildable 2>/dev/null || true
-docker compose up -d
+docker compose up -d --force-recreate
 
 # ── Health check ─────────────────────────────────────────────────────────────
 echo "  Waiting for health check ..."
