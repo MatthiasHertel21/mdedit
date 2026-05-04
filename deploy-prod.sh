@@ -18,14 +18,8 @@ PROD_DIR="${PROD_DIR:-}"
 IMAGE_NAME="${IMAGE_NAME:-mdedit-app}"
 PROD_COMPOSE_FILE="${PROD_COMPOSE_FILE:-${PROD_DIR:+$PROD_DIR/docker-compose.yml}}"
 PROD_HEALTH_URL="${PROD_HEALTH_URL:-http://localhost:3211/health}"
-
-cd "$DEV_DIR"
-
-NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
-if [[ "$NODE_MAJOR" -lt 20 ]]; then
-  echo "✗ Node 20+ is required for release checks and current production dependencies. Found: $(node -v)"
-  exit 1
-fi
+FALLBACK_DIR="${FALLBACK_DIR:-}"
+FALLBACK_USE_SUDO="${FALLBACK_USE_SUDO:-0}"
 
 # ── Help ─────────────────────────────────────────────────────────────────────
 if [[ "${1:-}" == "--help" ]]; then
@@ -37,7 +31,25 @@ if [[ "${1:-}" == "--help" ]]; then
   echo "  PROD_COMPOSE_FILE  Optional. Defaults to \$PROD_DIR/docker-compose.yml."
   echo "  PROD_HEALTH_URL    Optional. Defaults to http://localhost:3211/health."
   echo "  IMAGE_NAME         Optional. Defaults to mdedit-app."
+  echo "  FALLBACK_DIR       Optional. If set, copies entry-page fallback files for nginx/proxy use."
+  echo "  FALLBACK_USE_SUDO  Optional. Set to 1 to copy fallback files via sudo."
   exit 0
+fi
+
+cd "$DEV_DIR"
+
+run_fallback_cmd() {
+  if [[ "$FALLBACK_USE_SUDO" == "1" ]]; then
+    sudo "$@"
+  else
+    "$@"
+  fi
+}
+
+NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
+if [[ "$NODE_MAJOR" -lt 20 ]]; then
+  echo "✗ Node 20+ is required for release checks and current production dependencies. Found: $(node -v)"
+  exit 1
 fi
 
 if [[ -z "$PROD_DIR" ]]; then
@@ -79,6 +91,16 @@ fi
 # ── Build Docker image ────────────────────────────────────────────────────────
 echo "  Building image $IMAGE_NAME:$NEW_VERSION ..."
 docker build -t "$IMAGE_NAME:$NEW_VERSION" -t "$IMAGE_NAME:latest" .
+
+# ── Optional: sync static fallback assets ─────────────────────────────────────
+if [[ -n "$FALLBACK_DIR" ]]; then
+  echo "  Syncing fallback assets to $FALLBACK_DIR ..."
+  run_fallback_cmd install -d "$FALLBACK_DIR"
+  run_fallback_cmd install -m 644 "$DEV_DIR/public/index.html" "$FALLBACK_DIR/index.html"
+  run_fallback_cmd install -m 644 "$DEV_DIR/public/help.html" "$FALLBACK_DIR/help.html"
+  run_fallback_cmd install -m 644 "$DEV_DIR/public/help-en.html" "$FALLBACK_DIR/help-en.html"
+  run_fallback_cmd install -m 644 "$DEV_DIR/public/brand/mdedit-icon.png" "$FALLBACK_DIR/mdedit-icon.png"
+fi
 
 # ── Restart production container ──────────────────────────────────────────────
 echo "  Restarting production container ..."
