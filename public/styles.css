@@ -2158,6 +2158,7 @@ section {
     box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
     overflow-y: auto;
     opacity: 0;
+    pointer-events: none;
   }
 
   .sidebar.collapsed {
@@ -2168,6 +2169,7 @@ section {
   .app.mobile-sidebar-open .sidebar {
     transform: translateY(0);
     opacity: 1;
+    pointer-events: auto;
   }
 
   .mobile-sidebar-backdrop {
@@ -2203,10 +2205,15 @@ section {
     width: 100%;
   }
 
-  .mobile-topbar-actions > .header-icon {
+  .mobile-topbar-actions > .header-icon,
+  .mobile-overflow-menu > .header-icon {
     min-width: 42px;
     min-height: 42px;
     padding: 0;
+  }
+
+  .mobile-overflow-menu {
+    display: flex;
   }
 
   .mobile-topbar-space {
@@ -2319,7 +2326,8 @@ section {
     gap: 6px;
   }
 
-  .mobile-topbar-actions > .header-icon {
+  .mobile-topbar-actions > .header-icon,
+  .mobile-overflow-menu > .header-icon {
     min-width: 40px;
     min-height: 40px;
   }
