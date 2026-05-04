@@ -1,5 +1,7 @@
 # G2M Answers
 
+> Internal working notes. This file captures strategy thinking and draft positioning, not binding product promises or public documentation.
+
 Stand: 3. Mai 2026
 
 Diese Antworten basieren auf dem aktuellen Repo, den UI-Texten, den Konzeptdokumenten und deinen nachgereichten GTM-Antworten. Wo sich Aussagen direkt aus Code oder Doku ableiten lassen, formuliere ich sie als belastbare Arbeitsantwort. Wo Produktstrategie, Branding oder Vermarktung nicht aus dem Repo hervorgehen, markiere ich das als offene Rueckfrage statt zu raten.

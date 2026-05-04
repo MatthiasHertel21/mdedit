@@ -1,5 +1,7 @@
 # Backlog (Use Cases)
 
+> Internal planning notes. This backlog is a working list of ideas and priorities, not a committed public roadmap.
+
 ## Hoch
 - **UC-001 – Echtzeit-Kollaboration**
   - *Als* Autor
