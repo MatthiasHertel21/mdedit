@@ -99,6 +99,7 @@ const getDefaultAiModel = (provider) => {
 
 const AI_MAX_HISTORY_MESSAGES = 8;
 const AI_MAX_HISTORY_CHARS = 4000;
+const STATS_PAGE_ENABLED = process.env.ENABLE_STATS_PAGE === "1";
 
 const normalizeAiHistoryContent = (role, content) => {
   const raw = typeof content === "string" ? content : JSON.stringify(content);
@@ -1274,7 +1275,6 @@ const renderStatsPage = async () => {
     <section class="hero">
       <h1>Server-Statistiken</h1>
       <p>Aktive App-Sessions = Sessions mit Dokument- oder Kollaborationsaktivität im Zeitraum. Browser-Sessions = neu angelegte, app-relevante Sessions. Dokumente = neu angelegte Dokumente. Freigaben = erstmals freigegebene Permalinks.</p>
-      <div class="hint">Aufruf direkt über <code>/stats</code>.</div>
     </section>
 
     <section class="card" style="margin-bottom: 24px;">
@@ -1886,6 +1886,10 @@ const getPdfEngine = async (preferHtmlEngine = false) => {
 app.get("/health", async () => ({ ok: true }));
 
 app.get("/stats", async (req, reply) => {
+  if (!STATS_PAGE_ENABLED) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
   reply.type("text/html; charset=utf-8");
   return renderStatsPage();
 });
@@ -2677,7 +2681,9 @@ const start = async () => {
   try {
     const port = Number(process.env.PORT || 3210);
     await app.listen({ port, host: "0.0.0.0" });
-    app.log.info({ statsUrl: "/stats" }, 'Stats endpoint ready');
+    if (STATS_PAGE_ENABLED) {
+      app.log.info({ statsUrl: "/stats" }, "Stats endpoint ready");
+    }
     pruneDatabase();
     setInterval(pruneDatabase, 6 * 60 * 60 * 1000); // every 6 hours
   } catch (err) {

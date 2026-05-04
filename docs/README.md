@@ -18,12 +18,6 @@
 - [Citations Implementation Plan](concepts/citations-implementation-plan.md)
 - [Citations UX Concept](concepts/citations-ux-concept.md)
 
-## Planning and Strategy
-
-- [Backlog](planning/backlog.md)
-- [GTM Questions](strategy/g2m-questions.md)
-- [GTM Answers](strategy/g2m-answers.md)
-
 ## Examples and Testing
 
 - [Example Document](examples/example.md)

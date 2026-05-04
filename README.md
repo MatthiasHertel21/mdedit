@@ -7,7 +7,6 @@ Browser-based Markdown editor with live preview, document structure view, and ex
 - Operations and deployment docs: `docs/operations/`
 - Architecture and engineering notes: `docs/engineering/`
 - Product and feature concepts: `docs/concepts/`
-- Strategy and GTM material: `docs/strategy/`
 - Examples and test material: `docs/examples/`, `docs/testing/`
 
 You can find an overview in [docs/README.md](docs/README.md).
