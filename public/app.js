@@ -65,6 +65,7 @@ const previewPresetKey = "md-preview-preset";
 const customCssKey = "md-custom-css";
 const layoutEditorKey = "md-layout-editor";
 const localeKey = "md-locale";
+const tipsIntroSeenKey = "md-tips-intro-seen";
 
 const normalizePasteId = (value) => {
   if (typeof value === "number") return value;
@@ -1209,6 +1210,7 @@ const elements = {
   sharePdfBtn: document.getElementById("sharePdfBtn"),
   copyNodeMdBtn: document.getElementById("copyNodeMdBtn"),
   copyNodeTextBtn: document.getElementById("copyNodeTextBtn"),
+  deleteCurrentPasteBtn: document.getElementById("deleteCurrentPasteBtn"),
   shareBtn: document.getElementById("shareBtn"),
   shareMenu: document.getElementById("shareMenu"),
   previewTreeToggle: document.getElementById("previewTreeToggle"),
@@ -1248,8 +1250,13 @@ const elements = {
   tipsModal: document.getElementById("tipsModal"),
   tipsOverlay: document.getElementById("tipsOverlay"),
   tipsClose: document.getElementById("tipsClose"),
+  tipsIntroCard: document.getElementById("tipsIntroCard"),
+  randomTipContainer: document.getElementById("randomTipContainer"),
+  tipsFooter: document.getElementById("tipsFooter"),
   dontShowTipsAgain: document.getElementById("dontShowTipsAgain"),
   nextTipBtn: document.getElementById("nextTipBtn"),
+  tipsDemoBtn: document.getElementById("tipsDemoBtn"),
+  tipsStartBtn: document.getElementById("tipsStartBtn"),
   resetAllDataBtn: document.getElementById("resetAllDataBtn"),
   workspaceSelect: document.getElementById("workspaceSelect"),
   newWorkspaceBtn: document.getElementById("newWorkspaceBtn"),
@@ -1338,6 +1345,11 @@ let lastStatsText = "";
 let imageManager = null;
 let previewSyncHighlightTimeout = null;
 let suppressCollabBroadcast = false;
+
+const updateDocumentActionButtons = () => {
+  const hasSavedDocument = Boolean(currentPasteId);
+  elements.deleteCurrentPasteBtn?.classList.toggle("hidden", !hasSavedDocument);
+};
 
 const sidebarPinModeKey = "sidebarPinMode";
 const sidebarCollapsedKey = "sidebarCollapsed";
@@ -1475,6 +1487,95 @@ const setEditorScrollTop = (value) => {
   if (editorView) editorView.scrollTo(null, value);
 };
 
+const DEMO_MARKDOWN_BY_LOCALE = {
+  de: `# mdedit.io Demo-Dokument
+
+mdedit.io ist derzeit in der Public Beta. Dieses kurze Dokument zeigt, wofuer der Editor besonders nuetzlich ist, wenn Sie laengere Markdown-Texte schreiben.
+
+## Warum Nutzer ihn verwenden
+
+- Live-Vorschau direkt neben dem Editor
+- Outline fuer laengere Dokumente
+- Mermaid-Diagramme und KaTeX
+- KI-Assistent und Zusammenarbeit
+- PDF- und DOCX-Export
+
+## Ein einfacher Ablauf
+
+1. Mit Ueberschriften strukturieren
+2. In Markdown formulieren
+3. Exportieren, sobald das Layout passt
+
+## Mermaid
+
+\`\`\`mermaid
+flowchart LR
+  Entwurf[In Markdown schreiben] --> Vorschau[Live-Vorschau pruefen]
+  Vorschau --> Teilen[Teilen oder gemeinsam bearbeiten]
+  Teilen --> Export[Als PDF oder DOCX exportieren]
+\`\`\`
+
+## KaTeX
+
+Inline-Mathematik funktioniert zum Beispiel so: $E = mc^2$.
+
+$$
+f(x) = \\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx
+$$
+
+## Hinweis zur Zusammenarbeit
+
+Nutzen Sie den Teilen-Button, wenn Sie einen Link fuer Review oder kollaboratives Bearbeiten erzeugen moechten.
+
+## Naechster Schritt
+
+Ersetzen Sie diesen Text durch Ihr eigenes Dokument und schreiben Sie direkt weiter.`,
+  en: `# mdedit.io demo document
+
+mdedit.io is currently in public beta. This short document shows what the editor is good at when you work on longer Markdown texts.
+
+## Why people use it
+
+- Live preview next to the editor
+- Outline for long documents
+- Mermaid diagrams and KaTeX
+- AI assistant and collaboration
+- PDF and DOCX export
+
+## Quick structure
+
+1. Start with headings
+2. Draft in Markdown
+3. Export when the layout looks right
+
+## Mermaid
+
+\`\`\`mermaid
+flowchart LR
+  Draft[Write in Markdown] --> Preview[Check live preview]
+  Preview --> Share[Share or collaborate]
+  Share --> Export[Export to PDF or DOCX]
+\`\`\`
+
+## KaTeX
+
+Inline math works like $E = mc^2$.
+
+$$
+f(x) = \\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx
+$$
+
+## Collaboration note
+
+Use the share button when you want to create a link for review or collaborative editing.
+
+## Next step
+
+Replace this text with your own document and keep writing.`
+};
+
+const getDemoMarkdown = () => DEMO_MARKDOWN_BY_LOCALE[currentLocale] || DEMO_MARKDOWN_BY_LOCALE.en;
+
 let lastToast = { text: "", at: 0 };
 
 const showToast = (message, type = "info", duration = 2400) => {
@@ -1539,6 +1640,17 @@ let currentLocale = getLocale();
 
 const t = (key) => translations[currentLocale]?.[key] || translations.en?.[key] || key;
 
+const getTipsUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/tips.json" : "/tips-en.json";
+
+const getHelpUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/help.html" : "/help-en.html";
+
+const updateHelpLinks = () => {
+  const helpUrl = getHelpUrl();
+  if (elements.tipsHelpLink) {
+    elements.tipsHelpLink.href = helpUrl;
+  }
+};
+
 const applyTranslations = async () => {
   await loadTranslations(currentLocale);
   if (currentLocale !== "en") {
@@ -1562,6 +1674,7 @@ const applyTranslations = async () => {
     const key = `preset${previewPreset[0].toUpperCase()}${previewPreset.slice(1)}`;
     elements.previewPresetLabel.textContent = t(key);
   }
+  updateHelpLinks();
 };
 
 const applyTheme = (theme) => {
@@ -2406,7 +2519,7 @@ const saveLayoutEditorValues = () => {
 const loadTips = async (force = false) => {
   const locale = currentLocale || getLocale();
   if (!force && tipsData.length > 0 && tipsLoadedLocale === locale) return tipsData;
-  const tipUrl = locale === "en" ? "/tips-en.json" : "/tips.json";
+  const tipUrl = getTipsUrl(locale);
   try {
     const response = await fetch(tipUrl);
     if (response.ok) {
@@ -2509,18 +2622,25 @@ const displayRandomTip = async () => {
 };
 
 const showTipsModal = async () => {
-  await loadTips();
-  
-  // Don't show modal if no tips are available
-  if (tipsData.length === 0) {
-    return;
+  const isFirstTipsVisit = !localStorage.getItem(tipsIntroSeenKey);
+  document.getElementById("tipsFirstVisitBadge")?.classList.toggle("hidden", !isFirstTipsVisit);
+  elements.tipsIntroCard?.classList.toggle("hidden", !isFirstTipsVisit);
+  elements.randomTipContainer?.classList.toggle("hidden", isFirstTipsVisit);
+  elements.tipsFooter?.classList.toggle("hidden", isFirstTipsVisit);
+
+  if (!isFirstTipsVisit) {
+    await loadTips();
+    await displayRandomTip();
   }
-  
-  await displayRandomTip();
+
+  if (isFirstTipsVisit) {
+    localStorage.setItem(tipsIntroSeenKey, "1");
+  }
   
   // Show modal
   elements.tipsModal?.classList.remove("hidden");
   elements.tipsOverlay?.classList.remove("hidden");
+  elements.tipsStartBtn?.focus();
 };
 
 const closeTipsModal = () => {
@@ -4017,9 +4137,11 @@ const deletePaste = async (id) => {
   
   if (currentPasteId === id) {
     currentPasteId = null;
+    currentPasteIsShared = false;
     lastSavedMarkdown = "";
     setMarkdown("");
   }
+  updateDocumentActionButtons();
   await loadHistory();
 };
 
@@ -4029,6 +4151,7 @@ const loadPaste = async (id) => {
   const data = await res.json();
   currentPasteId = data.id;
   currentPasteIsShared = !!data.shared;
+  updateDocumentActionButtons();
   // Loading an existing paste must not trigger "new document" state.
   clearedForNew = false;
   localStorage.setItem("lastPasteId", data.id);
@@ -4103,6 +4226,7 @@ const createOrUpdatePaste = async () => {
       const data = await res.json();
       currentPasteId = data.id;
       currentPasteIsShared = false;
+      updateDocumentActionButtons();
 
       // Initialize image manager for new paste
       try {
@@ -4426,14 +4550,33 @@ const stripMarkdown = (markdown) => markdown
 
 const resetEditor = () => {
   currentPasteId = null;
+  currentPasteIsShared = false;
   lastSavedMarkdown = "";
   setMarkdown("");
   selectedNodeId = null;
   refreshHeadingData();
   renderPreview();
   renderTree();
+  updateDocumentActionButtons();
   scheduleRenderHistory();
   setStatus(t("newDoc"), "success");
+};
+
+const loadDemoDocument = () => {
+  currentPasteId = null;
+  currentPasteIsShared = false;
+  lastSavedMarkdown = "";
+  clearedForNew = false;
+  setMarkdown(getDemoMarkdown());
+  selectedNodeId = null;
+  refreshHeadingData();
+  renderPreview();
+  renderTree();
+  updateDocumentActionButtons();
+  scheduleRenderHistory();
+  closeTipsModal();
+  editorView?.focus();
+  setStatus(t("demoLoaded"), "success");
 };
 
 const debounce = (fn, delay) => {
@@ -5729,6 +5872,11 @@ document.addEventListener("selectionchange", handleSelectionChange);
 // Actions
 
 elements.newPasteBtn.addEventListener("click", resetEditor);
+elements.deleteCurrentPasteBtn?.addEventListener("click", async () => {
+  if (!currentPasteId) return;
+  await deletePaste(currentPasteId);
+  setStatus(t("delete"), "success");
+});
 elements.historySearch.addEventListener("input", renderHistory);
 elements.previewDocxBtn.addEventListener("click", () => exportFile("docx"));
 document.querySelectorAll(".view-toggle-btn").forEach((btn) => {
@@ -6686,6 +6834,8 @@ elements.clearSyncBtn?.addEventListener("click", async () => {
 elements.tipsClose?.addEventListener("click", closeTipsModal);
 elements.tipsOverlay?.addEventListener("click", closeTipsModal);
 elements.nextTipBtn?.addEventListener("click", displayRandomTip);
+elements.tipsDemoBtn?.addEventListener("click", loadDemoDocument);
+elements.tipsStartBtn?.addEventListener("click", closeTipsModal);
 elements.currentSpaceName?.addEventListener("click", openSpacesOverview);
 elements.spacesClose?.addEventListener("click", closeSpacesOverview);
 elements.spacesOverlay?.addEventListener("click", closeSpacesOverview);
@@ -6698,6 +6848,8 @@ elements.mermaidAddEdge?.addEventListener("click", () => {
   setMermaidEdgeMode(!mermaidEdgeMode);
 });
 elements.mermaidDeleteSelected?.addEventListener("click", deleteSelectedMermaidNode);
+
+updateDocumentActionButtons();
 elements.mermaidZoomIn?.addEventListener("click", () => zoomMermaidCanvas(0.1));
 elements.mermaidZoomOut?.addEventListener("click", () => zoomMermaidCanvas(-0.1));
 elements.mermaidZoomReset?.addEventListener("click", resetMermaidZoom);
@@ -6833,7 +6985,7 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "F1") {
     event.preventDefault();
-    window.open("/help.html", "_blank", "noopener");
+    window.open(getHelpUrl(), "_blank", "noopener");
   }
   if (event.key === "F2") {
     event.preventDefault();

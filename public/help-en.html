@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>mdedit.io Help</title>
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f9fcfe;
+        --panel: #ffffff;
+        --text: #1f2933;
+        --muted: #637381;
+        --border: #e1e7ec;
+        --primary: #22536b;
+        --accent: #0089cf;
+        --accent-light: #d9eefb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #f9fcfe 0%, #f3f8fb 100%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code, pre, kbd {
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef7fc;
+        color: #0d4f73;
+        font-size: 0.92em;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 14px;
+        overflow: auto;
+        border-radius: 10px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 13px;
+      }
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+      kbd {
+        padding: 2px 6px;
+        border: 1px solid #d2d9df;
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 12px;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(225, 231, 236, 0.9);
+      }
+      .header-inner {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .header-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+      }
+      .header-copy {
+        min-width: 0;
+      }
+      .header-copy h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+        color: var(--primary);
+      }
+      .header-copy p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .shell {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 28px 24px 56px;
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        gap: 24px;
+      }
+      .toc {
+        position: sticky;
+        top: 88px;
+        align-self: start;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        color: var(--primary);
+      }
+      .toc-grid {
+        display: grid;
+        gap: 8px;
+      }
+      .toc a {
+        display: block;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: #f6fafc;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .toc a:hover {
+        background: var(--accent-light);
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .content {
+        min-width: 0;
+      }
+      .intro {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      .intro p + p {
+        margin-top: 10px;
+      }
+      section {
+        scroll-margin-top: 92px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      section h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        color: var(--accent);
+      }
+      section > p {
+        margin: 0 0 14px;
+        color: var(--muted);
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        background: #fbfdfe;
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        color: var(--primary);
+      }
+      .card p,
+      .card li {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .card ul {
+        margin: 8px 0 0 18px;
+      }
+      .compact-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .compact-table th,
+      .compact-table td {
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+      .compact-table th {
+        background: #f8fafc;
+        color: var(--primary);
+      }
+      .jump-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .jump-links a {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-light);
+        font-size: 13px;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .toc {
+          position: static;
+        }
+        .feature-grid,
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .header-inner,
+        .shell {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        section,
+        .intro,
+        .toc {
+          padding: 16px;
+        }
+        .header-copy h1 {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <img class="header-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+        <div class="header-copy">
+          <h1>Markdown Help &amp; Feature Reference</h1>
+          <p>All important mdedit.io features in one place, with jump links, syntax examples, and notes on layout, AI, and collaboration.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="toc" aria-label="Table of contents">
+        <h2>Table of contents</h2>
+        <nav class="toc-grid">
+          <a href="#overview">Overview</a>
+          <a href="#editor">Editor &amp; navigation</a>
+          <a href="#share">Sharing &amp; export</a>
+          <a href="#collab">Collaboration</a>
+          <a href="#ai">AI assistant</a>
+          <a href="#markdown">Basic Markdown</a>
+          <a href="#gfm">GitHub Flavored Markdown (GFM)</a>
+          <a href="#mermaid">Mermaid diagrams</a>
+          <a href="#math">Math with KaTeX</a>
+          <a href="#extended">Extended syntax</a>
+          <a href="#layout">Layout, print &amp; images</a>
+          <a href="#shortcuts">Keyboard shortcuts</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <section id="overview" class="intro">
+          <p><strong>mdedit.io</strong> is a browser-based Markdown editor with live preview, outline tree, Mermaid, KaTeX, a layout editor, PDF/DOCX export, optional collaboration, and an integrated AI panel.</p>
+          <p>This page is intentionally compact: use the table of contents on the left or jump directly to the most common topics.</p>
+          <div class="jump-links">
+            <a href="#markdown">Markdown syntax</a>
+            <a href="#layout">Layout &amp; print</a>
+            <a href="#collab">Collaboration</a>
+            <a href="#ai">AI</a>
+            <a href="#shortcuts">Shortcuts</a>
+          </div>
+        </section>
+
+        <section id="editor">
+          <h2>Editor &amp; navigation</h2>
+          <p>The main workspace consists of a sidebar, the Markdown editor, and a right-hand area for preview, outline view, and AI chat.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Sidebar, history, and workspaces</h3>
+              <ul>
+                <li>The sidebar shows document history and the current workspace.</li>
+                <li>Use search to filter documents in the history.</li>
+                <li>Workspaces separate groups of documents and can be renamed, exported, and deleted.</li>
+                <li>The sidebar can be pinned or collapsed.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Preview, outline, and page view</h3>
+              <ul>
+                <li>The preview renders Markdown, Mermaid, and KaTeX live.</li>
+                <li>The outline view visualizes the document structure as a graph or outline tree.</li>
+                <li>Page view shows a print-like paged preview with visible page breaks.</li>
+                <li>Preview presets: Scientific, Compact, Literary, and Document.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="share">
+          <h2>Sharing &amp; export</h2>
+          <p>The share menu in the editor header lets you copy content, download files, and share a link to the current document.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Function</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Permalink</td>
+                <td>Creates a shareable link to the current document.</td>
+              </tr>
+              <tr>
+                <td>Copy Markdown / Word</td>
+                <td>Copies either Markdown or formatted text directly to the clipboard.</td>
+              </tr>
+              <tr>
+                <td>Download Markdown / DOCX / PDF</td>
+                <td>Exports the current document in the main output formats.</td>
+              </tr>
+              <tr>
+                <td>ZIP export</td>
+                <td>Exports a workspace or all local data, including assets, as a ZIP archive.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="collab">
+          <h2>Collaboration</h2>
+          <p>Shared documents can be edited together. Presence, display name, and optional password protection are integrated into both the UI and the settings.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>What is visible</h3>
+              <ul>
+                <li>Presence indicators show who is currently active in the document.</li>
+                <li>The collaboration display name is set in the settings.</li>
+                <li>A password can be set for shared documents.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Important notes</h3>
+              <ul>
+                <li>The <strong>Allow shared editing</strong> option controls whether you automatically join shared documents.</li>
+                <li>Sharing and collaboration are designed to work together cleanly: create the link first, then edit together.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="ai">
+          <h2>AI assistant</h2>
+          <p>The AI assistant lives in a third panel next to preview and outline. It can work with the current document context and manage multiple chat sessions.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>In the workspace</h3>
+              <ul>
+                <li>Open and close it with the panel toggle, <kbd>Alt</kbd>+<kbd>Space</kbd>, or <kbd>Ctrl</kbd>+<kbd>Space</kbd>.</li>
+                <li>Inside Mermaid code blocks, <kbd>Ctrl</kbd>+<kbd>Space</kbd> remains reserved for auto-completion.</li>
+                <li>Multiple chats per document are supported.</li>
+                <li>Changes made by AI can be undone.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>In settings</h3>
+              <ul>
+                <li>Models and API access for multiple providers are managed in the <strong>AI Models</strong> tab.</li>
+                <li>Each provider is enabled individually.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="markdown">
+          <h2>Basic Markdown</h2>
+          <p>The core syntax follows classic Markdown for text, headings, lists, links, images, and code.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Typical elements</h3>
+              <pre><code># Heading
+
+- Item 1
+- Item 2
+
+[Link](https://example.com)
+![Image](image.png)</code></pre>
+            </article>
+            <article class="card">
+              <h3>Code and quotes</h3>
+              <pre><code>`inline`
+
+```js
+console.log("Hello")
+```
+
+> Quote</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="gfm">
+          <h2>GitHub Flavored Markdown (GFM)</h2>
+          <p><strong>GFM</strong> stands for <strong>GitHub Flavored Markdown</strong>. In mdedit.io this mainly includes tables, task lists, automatic links, and strikethrough.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Element</th>
+                <th>Example</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Task lists</td>
+                <td><code>- [ ] Open</code>, <code>- [x] Done</code></td>
+                <td>Useful for checklists and planning documents.</td>
+              </tr>
+              <tr>
+                <td>Tables</td>
+                <td><code>| A | B |</code></td>
+                <td>Also supports alignment and more advanced table plugins.</td>
+              </tr>
+              <tr>
+                <td>Autolinks</td>
+                <td><code>https://example.com</code></td>
+                <td>Web addresses are linked automatically.</td>
+              </tr>
+              <tr>
+                <td>Strikethrough</td>
+                <td><code>~~obsolete~~</code></td>
+                <td>Useful for review workflows and status marking.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="mermaid">
+          <h2>Mermaid diagrams</h2>
+          <p>Mermaid is rendered directly from code blocks. There is also a visual Mermaid editor with preview, properties, and zoom.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Supported diagram types</h3>
+              <p>Flowchart, Sequence, State, Class, Entity Relationship, Gantt, Journey, Pie, Mindmap, Timeline, QuadrantChart, GitGraph, and Requirement Diagram.</p>
+            </article>
+            <article class="card">
+              <h3>Example</h3>
+              <pre><code>```mermaid
+flowchart TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Continue]
+```</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="math">
+          <h2>Math with KaTeX</h2>
+          <p>Formulas can be written inline or as blocks and are rendered with KaTeX.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Inline</h3>
+              <pre><code>$E=mc^2$</code></pre>
+            </article>
+            <article class="card">
+              <h3>Block</h3>
+              <pre><code>$$
+\int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
+$$</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="extended">
+          <h2>Extended syntax</h2>
+          <p>In addition to basic Markdown and GFM, mdedit.io includes extra plugins for more structured documents.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Example</th>
+                <th>Use</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Footnotes</td>
+                <td><code>Text[^1]</code> and <code>[^1]: Footnote</code></td>
+                <td>Sources, explanations, and annotations.</td>
+              </tr>
+              <tr>
+                <td>Definition lists</td>
+                <td><code>Term\n: Definition</code></td>
+                <td>Glossaries and term lists.</td>
+              </tr>
+              <tr>
+                <td>Admonitions</td>
+                <td><code>::: warning</code> ... <code>:::</code></td>
+                <td>Note, warning, and tip callout boxes.</td>
+              </tr>
+              <tr>
+                <td>Emoji</td>
+                <td><code>:rocket:</code></td>
+                <td>Short visual markers in text.</td>
+              </tr>
+              <tr>
+                <td>Subscript / superscript</td>
+                <td><code>H~2~O</code>, <code>x^2^</code></td>
+                <td>Formulas and scientific notation.</td>
+              </tr>
+              <tr>
+                <td>Mark</td>
+                <td><code>==Important==</code></td>
+                <td>Highlight text.</td>
+              </tr>
+              <tr>
+                <td>Abbreviations</td>
+                <td><code>*[HTML]: HyperText Markup Language</code></td>
+                <td>Tooltips for abbreviations.</td>
+              </tr>
+              <tr>
+                <td>TOC</td>
+                <td><code>[[toc]]</code></td>
+                <td>Automatic table of contents inside the document.</td>
+              </tr>
+              <tr>
+                <td>Attributes</td>
+                <td><code>### Title {#id}</code></td>
+                <td>IDs, classes, and attributes directly in Markdown.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="layout">
+          <h2>Layout, print &amp; images</h2>
+          <p>For print-oriented documents, mdedit.io combines Markdown with document-local layout rules, preview presets, and paged preview.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Layout features</h3>
+              <ul>
+                <li>The Document preset uses layout rules directly from the Markdown file.</li>
+                <li>The layout editor controls margins, typography, tables, and visual rules.</li>
+                <li>Columns are supported with <code>:::: columns</code> plus break markers for row, column, section, and page.</li>
+                <li>Page view provides print- and PDF-like rendering.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Images</h3>
+              <ul>
+                <li>Images can be inserted into the editor by paste or drag and drop.</li>
+                <li>The app stores the asset and inserts the matching Markdown image link.</li>
+                <li>Assets are included in ZIP exports.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="shortcuts">
+          <h2>Keyboard shortcuts</h2>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Shortcut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><kbd>F1</kbd></td><td>Open help</td></tr>
+              <tr><td><kbd>F2</kbd></td><td>Show a random tip</td></tr>
+              <tr><td><kbd>Escape</kbd></td><td>Close a modal or the settings</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>Space</kbd> / <kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>Open or close the AI assistant</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Open the layout editor</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>→</kbd> / <kbd>Ctrl</kbd>+<kbd>←</kbd></td><td>Switch between workspaces</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>↓</kbd></td><td>Move through documents in the history</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Open the folder or workspace overview</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>Mermaid auto-completion in the editor inside Mermaid code blocks</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

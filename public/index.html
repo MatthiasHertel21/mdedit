@@ -88,6 +88,9 @@
                 <span data-i18n="markdown">Markdown</span>
               </div>
               <div class="header-icons">
+                <button id="deleteCurrentPasteBtn" class="header-icon hidden" title="Löschen" aria-label="Löschen" data-i18n-title="delete" data-i18n-aria="delete">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
                 <div class="share-menu">
                   <button id="shareBtn" class="header-icon" title="Teilen" aria-label="Teilen">
                     <i class="fa-solid fa-share-nodes"></i>
@@ -289,6 +292,7 @@
           <img class="tips-brand-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
           <div class="tips-header-copy">
             <span class="tips-brand-name">mdedit.io</span>
+            <span id="tipsFirstVisitBadge" class="tips-beta-badge tips-header-badge hidden" data-i18n="tipsBetaBadge">Public beta</span>
             <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
           </div>
         </div>
@@ -297,6 +301,15 @@
         </button>
       </div>
       <div class="modal-body">
+        <section id="tipsIntroCard" class="tips-intro-card" aria-label="mdedit.io intro">
+          <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">A no-account Markdown editor for longer documents</h3>
+          <p class="tips-intro-text" data-i18n="tipsIntroText">Live preview · Outline · Mermaid · KaTeX · AI assistant · Collaboration · PDF/DOCX export</p>
+          <div class="tips-cta-row">
+            <button id="tipsDemoBtn" class="tips-cta-btn" type="button" data-i18n="tipsDemoCta">Open demo document</button>
+            <button id="tipsStartBtn" class="tips-cta-btn is-preferred" type="button" data-i18n="tipsStartCta">Start writing</button>
+            <a id="tipsFeedbackLink" class="tips-cta-btn" href="https://github.com/MatthiasHertel21/mdedit/issues/new/choose" target="_blank" rel="noopener noreferrer" data-i18n="tipsFeedbackCta">Give feedback</a>
+          </div>
+        </section>
         <div id="randomTipContainer" class="tips-content" aria-live="polite">
           <div class="tip-item">
             <div class="tip-text">
@@ -305,14 +318,14 @@
             </div>
           </div>
         </div>
-        <div class="tips-footer">
+        <div id="tipsFooter" class="tips-footer">
           <div class="tips-footer-actions">
             <label class="tips-checkbox">
               <input type="checkbox" id="dontShowTipsAgain" />
               <span data-i18n="dontShowAgain">Beim nächsten Start nicht mehr anzeigen</span>
             </label>
             <div class="tips-footer-buttons">
-              <a id="tipsHelpLink" class="btn-secondary tips-help-link" href="/help.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
+              <a id="tipsHelpLink" class="btn-secondary tips-help-link" href="/help-en.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
               <button id="nextTipBtn" class="btn-primary tips-next-btn">
                 <i class="fa-solid fa-arrow-right"></i> <span data-i18n="nextTip">Nächster Tipp</span>
               </button>
@@ -912,6 +925,9 @@
                 Kontakt: <a href="mailto:matthias.hertel@gmail.com" style="color: var(--link, #0089cf);">matthias.hertel@gmail.com</a><br>
                 Unabhaengiges, nicht-kommerzielles Softwareprojekt.<br>
                 Verantwortlich für den Inhalt: Matthias Hertel.
+              </p>
+              <p class="about-text about-feedback-link-row">
+                <a href="https://github.com/MatthiasHertel21/mdedit/issues/new/choose" target="_blank" rel="noopener noreferrer" data-i18n="tipsFeedbackCta">Feedback geben</a>
               </p>
               <p class="about-version" style="margin-top:12px;font-size:13px;color:var(--muted,#888);">
                 <span data-i18n="aboutVersion">Version</span>: <span id="appVersion">–</span>

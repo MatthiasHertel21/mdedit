@@ -27,10 +27,11 @@ services:
       - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-180}
       # Storage quotas and disk-aware cleanup
       - USER_QUOTA_MB=${USER_QUOTA_MB:-50}              # Max markdown size per user session
-      - DISK_WARN_PERCENT=${DISK_WARN_PERCENT:-10}      # Threshold for medium cleanup (5-10%)
-      - DISK_CRITICAL_PERCENT=${DISK_CRITICAL_PERCENT:-5}  # Threshold for aggressive cleanup (<5%)
-      - MAX_PASTES_MEDIUM=${MAX_PASTES_MEDIUM:-200}     # Limit per session when disk >10% used
-      - MAX_PASTES_AGGRESSIVE=${MAX_PASTES_AGGRESSIVE:-50}  # Limit per session when disk >5% used
+      - DISK_WARN_PERCENT=${DISK_WARN_PERCENT:-10}      # Medium cleanup when free disk falls to 10% or less
+      - DISK_CRITICAL_PERCENT=${DISK_CRITICAL_PERCENT:-5}  # Aggressive cleanup and write blocking at 5% free or less
+      - DISK_MIN_FREE_MB=${DISK_MIN_FREE_MB:-1024}      # Absolute minimum free space before writes are rejected
+      - MAX_PASTES_MEDIUM=${MAX_PASTES_MEDIUM:-200}     # Limit per session when free disk is low
+      - MAX_PASTES_AGGRESSIVE=${MAX_PASTES_AGGRESSIVE:-50}  # Stricter limit per session when free disk is critical
       # Image upload settings
       - IMAGE_MAX_SIZE_MB=${IMAGE_MAX_SIZE_MB:-10}       # Max size per single image in MB
       - IMAGE_MAX_TOTAL_MB=${IMAGE_MAX_TOTAL_MB:-50}     # Max total image storage per paste in MB

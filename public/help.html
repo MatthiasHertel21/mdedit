@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Markdown‑Hilfe</title>
+    <title>mdedit.io Hilfe</title>
     <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
     <style>
       :root {
         color-scheme: light;
         --bg: #f9fcfe;
         --panel: #ffffff;
-        --text: #22536b;
+        --text: #1f2933;
         --muted: #637381;
         --border: #e1e7ec;
         --primary: #22536b;
@@ -19,28 +19,603 @@
       }
       * {
         box-sizing: border-box;
-        margin: 0;
-        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
       }
       body {
         margin: 0;
-        background: var(--bg);
+        background: linear-gradient(180deg, #f9fcfe 0%, #f3f8fb 100%);
         color: var(--text);
         font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
         line-height: 1.6;
       }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code, pre, kbd {
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef7fc;
+        color: #0d4f73;
+        font-size: 0.92em;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 14px;
+        overflow: auto;
+        border-radius: 10px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 13px;
+      }
+      pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+      kbd {
+        padding: 2px 6px;
+        border: 1px solid #d2d9df;
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 12px;
+      }
       header {
-        padding: 32px 40px;
-        background: var(--panel);
-        border-bottom: 1px solid var(--border);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(225, 231, 236, 0.9);
       }
-      h1 {
+      .header-inner {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .header-icon {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+      }
+      .header-copy {
+        min-width: 0;
+      }
+      .header-copy h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
         color: var(--primary);
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 8px;
       }
+      .header-copy p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .shell {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 28px 24px 56px;
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        gap: 24px;
+      }
+      .toc {
+        position: sticky;
+        top: 88px;
+        align-self: start;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        color: var(--primary);
+      }
+      .toc-grid {
+        display: grid;
+        gap: 8px;
+      }
+      .toc a {
+        display: block;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: #f6fafc;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .toc a:hover {
+        background: var(--accent-light);
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .content {
+        min-width: 0;
+      }
+      .intro {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      .intro p + p {
+        margin-top: 10px;
+      }
+      section {
+        scroll-margin-top: 92px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 6px 22px rgba(31, 41, 51, 0.05);
+      }
+      section h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        color: var(--accent);
+      }
+      section > p {
+        margin: 0 0 14px;
+        color: var(--muted);
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        background: #fbfdfe;
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        color: var(--primary);
+      }
+      .card p,
+      .card li {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .card ul {
+        margin: 8px 0 0 18px;
+      }
+      .compact-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .compact-table th,
+      .compact-table td {
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+      .compact-table th {
+        background: #f8fafc;
+        color: var(--primary);
+      }
+      .jump-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .jump-links a {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-light);
+        font-size: 13px;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .toc {
+          position: static;
+        }
+        .feature-grid,
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .header-inner,
+        .shell {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        section,
+        .intro,
+        .toc {
+          padding: 16px;
+        }
+        .header-copy h1 {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <img class="header-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+        <div class="header-copy">
+          <h1>Markdown-Hilfe &amp; Feature-Referenz</h1>
+          <p>Alle wichtigen Funktionen von mdedit.io mit Sprungmarken, Syntaxbeispielen und Hinweisen zu Layout, KI und Kollaboration.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="toc" aria-label="Inhaltsverzeichnis">
+        <h2>Inhaltsverzeichnis</h2>
+        <nav class="toc-grid">
+          <a href="#overview">Überblick</a>
+          <a href="#editor">Editor &amp; Navigation</a>
+          <a href="#share">Teilen &amp; Export</a>
+          <a href="#collab">Kollaboration</a>
+          <a href="#ai">KI-Assistent</a>
+          <a href="#markdown">Basis-Markdown</a>
+          <a href="#gfm">GitHub Flavored Markdown (GFM)</a>
+          <a href="#mermaid">Mermaid-Diagramme</a>
+          <a href="#math">Mathe mit KaTeX</a>
+          <a href="#extended">Erweiterte Syntax</a>
+          <a href="#layout">Layout, Druck &amp; Bilder</a>
+          <a href="#shortcuts">Tastenkürzel</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <section id="overview" class="intro">
+          <p><strong>mdedit.io</strong> ist ein browserbasierter Markdown-Editor mit Live-Vorschau, Outline-Baum, Mermaid, KaTeX, Layout-Editor, PDF/DOCX-Export, optionaler Kollaboration und integriertem KI-Panel.</p>
+          <p>Die Seite ist bewusst kompakt aufgebaut: Nutze links das Inhaltsverzeichnis oder springe direkt zu den häufigsten Themen.</p>
+          <div class="jump-links">
+            <a href="#markdown">Markdown-Syntax</a>
+            <a href="#layout">Layout &amp; Druck</a>
+            <a href="#collab">Kollaboration</a>
+            <a href="#ai">KI</a>
+            <a href="#shortcuts">Shortcuts</a>
+          </div>
+        </section>
+
+        <section id="editor">
+          <h2>Editor &amp; Navigation</h2>
+          <p>Die Hauptoberfläche besteht aus Sidebar, Markdown-Editor und rechter Arbeitsfläche für Vorschau, Baumansicht und KI-Chat.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Sidebar, Historie und Workspaces</h3>
+              <ul>
+                <li>Die Sidebar zeigt Dokumenthistorie und den aktuellen Workspace.</li>
+                <li>Über die Suche filterst du Dokumente in der Historie.</li>
+                <li>Workspaces trennen Dokumentgruppen, lassen sich umbenennen, exportieren und löschen.</li>
+                <li>Die Sidebar kann angeheftet oder eingeklappt werden.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Vorschau, Baum und Seitenansicht</h3>
+              <ul>
+                <li>Die Vorschau rendert Markdown, Mermaid und KaTeX live.</li>
+                <li>Die Baumansicht visualisiert die Dokumentstruktur als Netz oder Outline.</li>
+                <li>Die Seitenansicht zeigt eine drucknahe Paged-Preview mit Seitenumbrüchen.</li>
+                <li>Preview-Presets: Wissenschaftlich, Kompakt, Literarisch und Dokument.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="share">
+          <h2>Teilen &amp; Export</h2>
+          <p>Über das Share-Menü im Editorkopf lassen sich Inhalte kopieren, herunterladen und als Link teilen.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Funktion</th>
+                <th>Beschreibung</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Permalink</td>
+                <td>Erstellt einen teilbaren Link zum aktuellen Dokument.</td>
+              </tr>
+              <tr>
+                <td>Markdown / Word kopieren</td>
+                <td>Kopiert Markdown oder formatierten Text direkt in die Zwischenablage.</td>
+              </tr>
+              <tr>
+                <td>Markdown / DOCX / PDF herunterladen</td>
+                <td>Exportiert das aktuelle Dokument in die wichtigsten Formate.</td>
+              </tr>
+              <tr>
+                <td>ZIP-Export</td>
+                <td>Exportiert einen Workspace oder alle lokalen Daten inklusive Assets als ZIP.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="collab">
+          <h2>Kollaboration</h2>
+          <p>Freigegebene Dokumente können gemeinsam bearbeitet werden. Präsenz, Anzeigename und optionale Passwortsicherung sind in der Oberfläche und in den Einstellungen verankert.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Was sichtbar ist</h3>
+              <ul>
+                <li>Präsenz-Indikatoren zeigen, wer aktuell im Dokument aktiv ist.</li>
+                <li>Der Anzeigename für Kollaboration wird in den Einstellungen hinterlegt.</li>
+                <li>Für geteilte Dokumente kann ein Passwort gesetzt werden.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Wichtige Hinweise</h3>
+              <ul>
+                <li>Die Option <strong>Gemeinsame Bearbeitung erlauben</strong> steuert die automatische Teilnahme an geteilten Dokumenten.</li>
+                <li>Teilen und Kollaboration greifen sauber zusammen: zuerst Link erstellen, dann gemeinsam bearbeiten.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="ai">
+          <h2>KI-Assistent</h2>
+          <p>Der KI-Assistent sitzt als drittes Panel neben Vorschau und Baumansicht. Er kann mit dem aktuellen Dokumentkontext arbeiten und neue Chat-Sitzungen verwalten.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Im Arbeitsbereich</h3>
+              <ul>
+                <li>Öffnen und schließen per Panel-Umschalter, <kbd>Alt</kbd>+<kbd>Space</kbd> oder <kbd>Ctrl</kbd>+<kbd>Space</kbd>.</li>
+                <li>In Mermaid-Codeblöcken bleibt <kbd>Ctrl</kbd>+<kbd>Space</kbd> für Auto-Completion reserviert.</li>
+                <li>Mehrere Chats pro Dokument sind möglich.</li>
+                <li>Änderungen durch KI können rückgängig gemacht werden.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>In den Einstellungen</h3>
+              <ul>
+                <li>Modelle und API-Zugänge für mehrere Anbieter werden im Tab <strong>KI-Modelle</strong> verwaltet.</li>
+                <li>Die Aktivierung einzelner Provider erfolgt pro Anbieter.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="markdown">
+          <h2>Basis-Markdown</h2>
+          <p>Die Grundsyntax entspricht klassischem Markdown für Texte, Überschriften, Listen, Links, Bilder und Code.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Typische Elemente</h3>
+              <pre><code># Überschrift
+
+- Punkt 1
+- Punkt 2
+
+[Link](https://example.com)
+![Bild](bild.png)</code></pre>
+            </article>
+            <article class="card">
+              <h3>Code und Zitate</h3>
+              <pre><code>`inline`
+
+```js
+console.log("Hallo")
+```
+
+> Zitat</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="gfm">
+          <h2>GitHub Flavored Markdown (GFM)</h2>
+          <p><strong>GFM</strong> steht für <strong>GitHub Flavored Markdown</strong>. In mdedit.io gehören dazu vor allem Tabellen, Aufgabenlisten, automatische Links und Durchstreichung.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Element</th>
+                <th>Beispiel</th>
+                <th>Hinweis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Aufgabenlisten</td>
+                <td><code>- [ ] Offen</code>, <code>- [x] Erledigt</code></td>
+                <td>Geeignet für Checklisten und Planungsdokumente.</td>
+              </tr>
+              <tr>
+                <td>Tabellen</td>
+                <td><code>| A | B |</code></td>
+                <td>Unterstützt auch Ausrichtung und komplexere Tabellen-Plugins.</td>
+              </tr>
+              <tr>
+                <td>Autolinks</td>
+                <td><code>https://example.com</code></td>
+                <td>Webadressen werden automatisch verlinkt.</td>
+              </tr>
+              <tr>
+                <td>Durchstreichung</td>
+                <td><code>~~veraltet~~</code></td>
+                <td>Nützlich für Review und Status-Markierung.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="mermaid">
+          <h2>Mermaid-Diagramme</h2>
+          <p>Mermaid wird direkt aus Codeblöcken gerendert. Zusätzlich gibt es einen visuellen Mermaid-Editor mit Vorschau, Eigenschaften und Zoom.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Unterstützte Diagrammtypen</h3>
+              <p>Flowchart, Sequence, State, Class, Entity-Relationship, Gantt, Journey, Pie, Mindmap, Timeline, QuadrantChart, GitGraph und Requirement Diagram.</p>
+            </article>
+            <article class="card">
+              <h3>Beispiel</h3>
+              <pre><code>```mermaid
+flowchart TD
+  A[Start] --> B{Entscheidung}
+  B -->|Ja| C[Weiter]
+```</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="math">
+          <h2>Mathe mit KaTeX</h2>
+          <p>Formeln lassen sich inline oder blockweise schreiben und werden mit KaTeX gerendert.</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Inline</h3>
+              <pre><code>$E=mc^2$</code></pre>
+            </article>
+            <article class="card">
+              <h3>Block</h3>
+              <pre><code>$$
+\int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
+$$</code></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="extended">
+          <h2>Erweiterte Syntax</h2>
+          <p>Neben Basis-Markdown und GFM stehen zusätzliche Plugins für strukturierte Dokumente zur Verfügung.</p>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Beispiel</th>
+                <th>Nutzen</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Fußnoten</td>
+                <td><code>Text[^1]</code> und <code>[^1]: Fußnote</code></td>
+                <td>Quellen, Erläuterungen und Anmerkungen.</td>
+              </tr>
+              <tr>
+                <td>Definition Lists</td>
+                <td><code>Begriff\n: Definition</code></td>
+                <td>Glossare und Begriffslisten.</td>
+              </tr>
+              <tr>
+                <td>Admonitions</td>
+                <td><code>::: warning</code> … <code>:::</code></td>
+                <td>Hinweis-, Warn- und Tippboxen.</td>
+              </tr>
+              <tr>
+                <td>Emoji</td>
+                <td><code>:rocket:</code></td>
+                <td>Kurze visuelle Marker im Text.</td>
+              </tr>
+              <tr>
+                <td>Subscript / Superscript</td>
+                <td><code>H~2~O</code>, <code>x^2^</code></td>
+                <td>Formeln und wissenschaftliche Notation.</td>
+              </tr>
+              <tr>
+                <td>Mark</td>
+                <td><code>==Wichtig==</code></td>
+                <td>Text hervorheben.</td>
+              </tr>
+              <tr>
+                <td>Abkürzungen</td>
+                <td><code>*[HTML]: HyperText Markup Language</code></td>
+                <td>Tooltips für Kürzel.</td>
+              </tr>
+              <tr>
+                <td>TOC</td>
+                <td><code>[[toc]]</code></td>
+                <td>Automatisches Inhaltsverzeichnis im Dokument.</td>
+              </tr>
+              <tr>
+                <td>Attribute</td>
+                <td><code>### Titel {#id}</code></td>
+                <td>IDs, Klassen und Attribute direkt im Markdown.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="layout">
+          <h2>Layout, Druck &amp; Bilder</h2>
+          <p>Für drucknahe Dokumente verbindet mdedit.io Markdown mit dokumentlokalen Layoutregeln, Preview-Presets und Paged-Preview.</p>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>Layoutfunktionen</h3>
+              <ul>
+                <li>Dokument-Preset nutzt Layoutvorgaben direkt aus dem Markdown.</li>
+                <li>Layout-Editor für Seitenränder, Typografie, Tabellen und visuelle Regeln.</li>
+                <li>Spalten mit <code>:::: columns</code> und Umbruchmarker für Zeile, Spalte, Abschnitt und Seite.</li>
+                <li>Seitenansicht mit Druck-/PDF-nahem Rendering.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>Bilder</h3>
+              <ul>
+                <li>Bilder lassen sich per Einfügen oder Drag &amp; Drop in den Editor übernehmen.</li>
+                <li>Die App speichert das Asset und erzeugt den passenden Markdown-Bildlink.</li>
+                <li>Assets werden bei ZIP-Exporten mitgenommen.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="shortcuts">
+          <h2>Tastenkürzel</h2>
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Kürzel</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><kbd>F1</kbd></td><td>Hilfe öffnen</td></tr>
+              <tr><td><kbd>F2</kbd></td><td>Zufälligen Tipp anzeigen</td></tr>
+              <tr><td><kbd>Escape</kbd></td><td>Modal oder Einstellungen schließen</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>Space</kbd> / <kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>KI-Assistent öffnen oder schließen</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></td><td>Layout-Editor öffnen</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>→</kbd> / <kbd>Ctrl</kbd>+<kbd>←</kbd></td><td>Zwischen Workspaces wechseln</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>↓</kbd></td><td>Zwischen Dokumenten der Historie wechseln</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Ordner- bzw. Workspace-Übersicht öffnen</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>Mermaid Auto-Completion im Editor innerhalb von Mermaid-Codeblöcken</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
       .help-brand {
         display: flex;
         align-items: center;

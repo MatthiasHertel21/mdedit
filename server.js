@@ -55,6 +55,16 @@ const IMAGE_CONFIG = {
   ASSETS_DIR: path.join(process.env.DATA_DIR || __dirname, 'assets')
 };
 
+const STORAGE_GUARD = {
+  SESSION_TTL_DAYS: Number(process.env.SESSION_TTL_DAYS) || 180,
+  USER_QUOTA_MB: Number(process.env.USER_QUOTA_MB) || 50,
+  DISK_WARN_PERCENT: Number(process.env.DISK_WARN_PERCENT) || 10,
+  DISK_CRITICAL_PERCENT: Number(process.env.DISK_CRITICAL_PERCENT) || 5,
+  MAX_PASTES_MEDIUM: Number(process.env.MAX_PASTES_MEDIUM) || 200,
+  MAX_PASTES_AGGRESSIVE: Number(process.env.MAX_PASTES_AGGRESSIVE) || 50,
+  MIN_FREE_MB: Number(process.env.DISK_MIN_FREE_MB) || 1024
+};
+
 const AI_PROVIDER_PRIORITY = ["groq", "gemini", "openai", "claude"];
 
 const AI_DEFAULT_MODELS = {
@@ -407,6 +417,18 @@ const touchSession = (id) => {
     .run(nowIso(), id);
 };
 
+const deletePasteRelatedRecords = (pasteId) => {
+  db.prepare(
+    `DELETE FROM collab_chat_messages
+     WHERE thread_id IN (SELECT id FROM collab_chat_threads WHERE paste_id = ?)`
+  ).run(pasteId);
+  db.prepare("DELETE FROM collab_chat_threads WHERE paste_id = ?").run(pasteId);
+  db.prepare("DELETE FROM collab_snapshots WHERE paste_id = ?").run(pasteId);
+  db.prepare("DELETE FROM collab_members WHERE paste_id = ?").run(pasteId);
+  db.prepare("DELETE FROM collab_settings WHERE paste_id = ?").run(pasteId);
+  db.prepare("DELETE FROM images WHERE paste_id = ?").run(pasteId);
+};
+
 // Rate limiting registered here so onRequest fires AFTER the session hook above
 app.register(fastifyRateLimit, {
   max: Number(process.env.RATE_LIMIT_MAX) || 300,
@@ -554,6 +576,11 @@ app.post("/api/pastes", async (req, reply) => {
     reply.code(400);
     return { error: "Title too long (max 500 chars)" };
   }
+
+  const storageCheck = await requireStorageHeadroom(reply, Buffer.byteLength(markdown, "utf8"));
+  if (storageCheck !== true) {
+    return storageCheck;
+  }
   
   // Limit: configurable max pastes per session (default 100)
   const maxPastes = Number(process.env.MAX_PASTES_PER_SESSION) || 100;
@@ -591,6 +618,21 @@ app.put("/api/pastes/:id", async (req, reply) => {
     reply.code(400);
     return { error: "Title too long (max 500 chars)" };
   }
+
+  const existing = db.prepare(
+    "SELECT LENGTH(markdown) as size FROM pastes WHERE id = ? AND session_id = ?"
+  ).get(req.params.id, req.sessionId);
+  if (!existing) {
+    reply.code(404);
+    return { error: "Not found" };
+  }
+
+  const deltaBytes = Math.max(Buffer.byteLength(markdown, "utf8") - Number(existing.size || 0), 0);
+  const storageCheck = await requireStorageHeadroom(reply, deltaBytes);
+  if (storageCheck !== true) {
+    return storageCheck;
+  }
+
   const finalTitle = title?.trim() || deriveTitle(markdown);
   const ts = nowIso();
   const res = db.prepare(
@@ -612,9 +654,7 @@ app.delete("/api/pastes/:id", async (req, reply) => {
     return { error: "Not found" };
   }
 
-  // Delete images from DB first (FK constraint: images → pastes)
-  db.prepare("DELETE FROM images WHERE paste_id = ?").run(req.params.id);
-  // Now safe to delete the paste
+  deletePasteRelatedRecords(req.params.id);
   db.prepare("DELETE FROM pastes WHERE id = ?").run(req.params.id);
 
   // Cleanup assets from disk
@@ -686,6 +726,11 @@ app.post("/api/pastes/:id/upload-image", async (req, reply) => {
     if (sizeMB > IMAGE_CONFIG.MAX_SIZE_MB) {
       reply.code(413);
       return { error: `Image too large (max ${IMAGE_CONFIG.MAX_SIZE_MB} MB)` };
+    }
+
+    const storageCheck = await requireStorageHeadroom(reply, buffer.length);
+    if (storageCheck !== true) {
+      return storageCheck;
     }
 
     // Check total size for this paste
@@ -1076,6 +1121,58 @@ const getDiskSpaceStats = () => {
     app.log.warn({ err: err.message }, "Could not determine disk space stats");
     return { totalBytes: 0, usedBytes: 0, freeBytes: 0 };
   }
+};
+
+const getDiskFreePercent = () => {
+  const { totalBytes, freeBytes } = getDiskSpaceStats();
+  if (!totalBytes) return 100;
+  return (freeBytes / totalBytes) * 100;
+};
+
+const assessStorageHeadroom = (estimatedAdditionalBytes = 0) => {
+  const disk = getDiskSpaceStats();
+  const minFreeBytes = STORAGE_GUARD.MIN_FREE_MB * 1024 * 1024;
+  const projectedFreeBytes = Math.max(disk.freeBytes - Math.max(Number(estimatedAdditionalBytes) || 0, 0), 0);
+  const projectedFreePercent = disk.totalBytes > 0
+    ? (projectedFreeBytes / disk.totalBytes) * 100
+    : 100;
+
+  return {
+    disk,
+    projectedFreeBytes,
+    projectedFreePercent,
+    isLow: projectedFreeBytes <= minFreeBytes || projectedFreePercent <= STORAGE_GUARD.DISK_CRITICAL_PERCENT
+  };
+};
+
+let pruneDatabaseInFlight = null;
+
+const maybeRunStorageCleanup = async () => {
+  if (pruneDatabaseInFlight) return pruneDatabaseInFlight;
+
+  pruneDatabaseInFlight = Promise.resolve(pruneDatabase())
+    .catch((err) => {
+      app.log.warn({ err: err.message }, "On-demand storage cleanup failed");
+    })
+    .finally(() => {
+      pruneDatabaseInFlight = null;
+    });
+
+  return pruneDatabaseInFlight;
+};
+
+const requireStorageHeadroom = async (reply, estimatedAdditionalBytes = 0) => {
+  let assessment = assessStorageHeadroom(estimatedAdditionalBytes);
+  if (!assessment.isLow) return true;
+
+  await maybeRunStorageCleanup();
+  assessment = assessStorageHeadroom(estimatedAdditionalBytes);
+  if (!assessment.isLow) return true;
+
+  reply.code(507);
+  return {
+    error: `Storage temporarily unavailable (${formatBytes(assessment.disk.freeBytes)} free). Please delete content or try again later.`
+  };
 };
 
 const getDirectorySizeBytes = async (dirPath) => {
@@ -1942,6 +2039,7 @@ app.get("/i18n/:filename", async (req, reply) =>
 );
 
 app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
+app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.html"));
 
 // Root path
 app.get("/", async (req, reply) => {
@@ -1979,25 +2077,6 @@ app.get("/:id", async (req, reply) => {
 // MEDIUM    (5-10% free): + Limit each session to MAX_PASTES_MEDIUM recent pastes
 // AGGRESSIVE (<5% free): + Limit each session to MAX_PASTES_AGGRESSIVE + lower per-user quota
 
-const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS) || 180;
-const USER_QUOTA_MB = Number(process.env.USER_QUOTA_MB) || 50;     // Per session
-const DISK_WARN_PERCENT = Number(process.env.DISK_WARN_PERCENT) || 10;
-const DISK_CRITICAL_PERCENT = Number(process.env.DISK_CRITICAL_PERCENT) || 5;
-const MAX_PASTES_MEDIUM = Number(process.env.MAX_PASTES_MEDIUM) || 200;
-const MAX_PASTES_AGGRESSIVE = Number(process.env.MAX_PASTES_AGGRESSIVE) || 50;
-
-// Get disk usage percentage (used / total * 100)
-const getDiskUsagePercent = () => {
-  try {
-    const stats = fs.statfsSync(process.env.DATA_DIR || __dirname);
-    const used = stats.blocks - stats.bavail;
-    return (used / stats.blocks) * 100;
-  } catch (err) {
-    app.log.warn({ err: err.message }, "Could not determine disk usage");
-    return 0;
-  }
-};
-
 // Get total markdown size for a session in MB
 const getSessionMarkdownSizeMB = (sessionId) => {
   const result = db.prepare(
@@ -2008,13 +2087,19 @@ const getSessionMarkdownSizeMB = (sessionId) => {
 
 const pruneDatabase = async () => {
   try {
-    const diskUsagePercent = getDiskUsagePercent();
-    const isCritical = diskUsagePercent > DISK_CRITICAL_PERCENT;
-    const isMedium = diskUsagePercent > DISK_WARN_PERCENT && !isCritical;
+    const diskFreePercent = getDiskFreePercent();
+    const isCritical = diskFreePercent <= STORAGE_GUARD.DISK_CRITICAL_PERCENT;
+    const isMedium = diskFreePercent <= STORAGE_GUARD.DISK_WARN_PERCENT && !isCritical;
     const cleanupMode = isCritical ? "AGGRESSIVE" : (isMedium ? "MEDIUM" : "NORMAL");
 
     // Phase 1: Always prune sessions older than SESSION_TTL_DAYS
-    const cutoff = new Date(Date.now() - SESSION_TTL_DAYS * 86_400_000).toISOString();
+    const cutoff = new Date(Date.now() - STORAGE_GUARD.SESSION_TTL_DAYS * 86_400_000).toISOString();
+    const stalePasteIds = db.prepare(
+      "SELECT id FROM pastes WHERE session_id IN (SELECT id FROM sessions WHERE last_seen < ?)"
+    ).all(cutoff);
+    for (const { id } of stalePasteIds) {
+      deletePasteRelatedRecords(id);
+    }
     const stalePastes = db.prepare(
       "DELETE FROM pastes WHERE session_id IN (SELECT id FROM sessions WHERE last_seen < ?)"
     ).run(cutoff);
@@ -2030,26 +2115,30 @@ const pruneDatabase = async () => {
 
     // Phase 2: If disk is medium/critical, limit pastes per session
     if (isMedium || isCritical) {
-      const maxPastes = isCritical ? MAX_PASTES_AGGRESSIVE : MAX_PASTES_MEDIUM;
+      const maxPastes = isCritical ? STORAGE_GUARD.MAX_PASTES_AGGRESSIVE : STORAGE_GUARD.MAX_PASTES_MEDIUM;
       for (const { id: sessionId } of allSessions) {
         const pastesPerSession = db.prepare(
           "SELECT COUNT(*) as count FROM pastes WHERE session_id = ?"
         ).get(sessionId).count;
 
         if (pastesPerSession > maxPastes) {
-          const excess = db.prepare(
-            `DELETE FROM pastes WHERE session_id = ? AND id NOT IN
+          const removablePastes = db.prepare(
+            `SELECT id FROM pastes WHERE session_id = ? AND id NOT IN
              (SELECT id FROM pastes WHERE session_id = ? ORDER BY created_at DESC LIMIT ?)
              ORDER BY created_at ASC LIMIT ?`
-          ).run(sessionId, sessionId, maxPastes, pastesPerSession - maxPastes);
-          deletedPhase2 += excess.changes;
+          ).all(sessionId, sessionId, maxPastes, pastesPerSession - maxPastes);
+          for (const { id } of removablePastes) {
+            deletePasteRelatedRecords(id);
+            db.prepare("DELETE FROM pastes WHERE id = ?").run(id);
+            deletedPhase2++;
+          }
         }
       }
     }
 
     // Phase 3: If disk is critical, enforce per-session quota with headroom
     if (isCritical) {
-      const quotaMB = USER_QUOTA_MB / 2; // Halved quota when critical
+      const quotaMB = STORAGE_GUARD.USER_QUOTA_MB / 2; // Halved quota when critical
       for (const { id: sessionId } of allSessions) {
         let totalSizeMB = 0;
         const pastes = db.prepare(
@@ -2059,6 +2148,7 @@ const pruneDatabase = async () => {
         for (const { id: pasteId, size } of pastes) {
           const pasteSizeMB = size / 1024 / 1024;
           if (totalSizeMB + pasteSizeMB > quotaMB) {
+            deletePasteRelatedRecords(pasteId);
             db.prepare("DELETE FROM pastes WHERE id = ?").run(pasteId);
             deletedPhase3++;
           } else {
@@ -2069,8 +2159,33 @@ const pruneDatabase = async () => {
     }
 
     // Phase 4: Always remove orphaned pastes (session already deleted)
+    const orphanPasteIds = db.prepare(
+      "SELECT id FROM pastes WHERE session_id NOT IN (SELECT id FROM sessions)"
+    ).all();
+    for (const { id } of orphanPasteIds) {
+      deletePasteRelatedRecords(id);
+    }
     const orphanPastes = db.prepare(
       "DELETE FROM pastes WHERE session_id NOT IN (SELECT id FROM sessions)"
+    ).run();
+
+    const orphanSnapshots = db.prepare(
+      "DELETE FROM collab_snapshots WHERE paste_id NOT IN (SELECT id FROM pastes)"
+    ).run();
+    const orphanSettings = db.prepare(
+      "DELETE FROM collab_settings WHERE paste_id NOT IN (SELECT id FROM pastes)"
+    ).run();
+    const orphanMembers = db.prepare(
+      "DELETE FROM collab_members WHERE paste_id NOT IN (SELECT id FROM pastes)"
+    ).run();
+    const orphanThreads = db.prepare(
+      "DELETE FROM collab_chat_threads WHERE paste_id NOT IN (SELECT id FROM pastes)"
+    ).run();
+    const orphanMessagesByThread = db.prepare(
+      "DELETE FROM collab_chat_messages WHERE thread_id NOT IN (SELECT id FROM collab_chat_threads)"
+    ).run();
+    const orphanMessagesByMember = db.prepare(
+      "DELETE FROM collab_chat_messages WHERE member_id NOT IN (SELECT id FROM collab_members)"
     ).run();
 
     // Phase 5: Cleanup orphaned asset directories
@@ -2093,16 +2208,24 @@ const pruneDatabase = async () => {
 
     // Log only if something was deleted
     if (stalePastes.changes > 0 || staleSessions.changes > 0 ||
-        deletedPhase2 > 0 || deletedPhase3 > 0 || orphanPastes.changes > 0 || deletedAssets > 0) {
+        deletedPhase2 > 0 || deletedPhase3 > 0 || orphanPastes.changes > 0 ||
+        orphanSnapshots.changes > 0 || orphanSettings.changes > 0 || orphanMembers.changes > 0 ||
+        orphanThreads.changes > 0 || orphanMessagesByThread.changes > 0 || orphanMessagesByMember.changes > 0 ||
+        deletedAssets > 0) {
       app.log.info(
         {
-          diskUsagePercent: diskUsagePercent.toFixed(1),
+          diskFreePercent: diskFreePercent.toFixed(1),
           cleanupMode,
           sessionsDeleted: staleSessions.changes,
           pastesDeletedAge: stalePastes.changes,
           pastesDeletedLimit: deletedPhase2,
           pastesDeletedQuota: deletedPhase3,
           orphanedPastes: orphanPastes.changes,
+          orphanedSnapshots: orphanSnapshots.changes,
+          orphanedSettings: orphanSettings.changes,
+          orphanedMembers: orphanMembers.changes,
+          orphanedThreads: orphanThreads.changes,
+          orphanedMessages: orphanMessagesByThread.changes + orphanMessagesByMember.changes,
           assetDirsDeleted: deletedAssets
         },
         "Database cleanup completed"
@@ -2399,6 +2522,15 @@ app.post("/api/pastes/:id/collab/restore", async (req, reply) => {
     return { error: "Snapshot not found" };
   }
 
+  const currentPaste = db.prepare(
+    "SELECT LENGTH(markdown) as size FROM pastes WHERE id = ?"
+  ).get(req.params.id);
+  const deltaBytes = Math.max(Buffer.byteLength(snapshot.markdown, "utf8") - Number(currentPaste?.size || 0), 0);
+  const storageCheck = await requireStorageHeadroom(reply, deltaBytes);
+  if (storageCheck !== true) {
+    return storageCheck;
+  }
+
   const ts = nowIso();
   db.prepare("UPDATE pastes SET markdown = ?, updated_at = ? WHERE id = ?")
     .run(snapshot.markdown, ts, req.params.id);
@@ -2437,10 +2569,10 @@ app.register(async (fastify) => {
       avatarColor: member.avatar_color
     }, memberId);
 
-    ws.on("message", (data) => {
+    ws.on("message", async (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        handleCollabMessage(pasteId, memberId, msg);
+        await handleCollabMessage(pasteId, memberId, msg);
       } catch (e) {
         app.log.warn({ err: e.message }, "WebSocket message parse error");
       }
@@ -2471,7 +2603,7 @@ const broadcastToClients = (pasteId, message, excludeMemberId = null) => {
   }
 };
 
-const handleCollabMessage = (pasteId, memberId, message) => {
+const handleCollabMessage = async (pasteId, memberId, message) => {
   const { type, content } = message;
   const ts = nowIso();
 
@@ -2499,9 +2631,14 @@ const handleCollabMessage = (pasteId, memberId, message) => {
     const lastSnapshotTime = lastSnapshot ? new Date(lastSnapshot.created_at).getTime() : 0;
     
     if (now - lastSnapshotTime > 30000) {
-      db.prepare(
-        "INSERT INTO collab_snapshots (id, paste_id, markdown, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
-      ).run(crypto.randomUUID(), pasteId, content, ts, memberId);
+      const storageAssessment = assessStorageHeadroom(Buffer.byteLength(String(content || ""), "utf8"));
+      if (!storageAssessment.isLow) {
+        db.prepare(
+          "INSERT INTO collab_snapshots (id, paste_id, markdown, created_at, created_by_member_id) VALUES (?, ?, ?, ?, ?)"
+        ).run(crypto.randomUUID(), pasteId, content, ts, memberId);
+      } else {
+        app.log.warn({ pasteId }, "Skipped collab snapshot due to low disk headroom");
+      }
     }
 
     // Broadcast edit
@@ -2518,6 +2655,12 @@ const handleCollabMessage = (pasteId, memberId, message) => {
       memberId
     }, memberId);
   } else if (type === "chat") {
+    const storageAssessment = assessStorageHeadroom(Buffer.byteLength(String(content || ""), "utf8"));
+    if (storageAssessment.isLow) {
+      app.log.warn({ pasteId }, "Skipped collab chat persistence due to low disk headroom");
+      return;
+    }
+
     // Save chat message
     const threadId = message.threadId;
     const msgId = crypto.randomUUID();
@@ -2549,6 +2692,11 @@ app.post("/api/pastes/:id/collab/chat/threads", async (req, reply) => {
   if (!title || typeof title !== "string" || title.length === 0 || title.length > 200) {
     reply.code(400);
     return { error: "Invalid title" };
+  }
+
+  const storageCheck = await requireStorageHeadroom(reply, Buffer.byteLength(title.trim(), "utf8"));
+  if (storageCheck !== true) {
+    return storageCheck;
   }
 
   const threadId = crypto.randomUUID();
@@ -2647,6 +2795,16 @@ app.post("/api/pastes/:id/collab/chat/threads/:threadId/messages", async (req, r
   if (!message || typeof message !== "string" || !message.trim()) {
     reply.code(400);
     return { error: "Invalid message" };
+  }
+
+  if (message.trim().length > 4000) {
+    reply.code(413);
+    return { error: "Message too long (max 4000 chars)" };
+  }
+
+  const storageCheck = await requireStorageHeadroom(reply, Buffer.byteLength(message.trim(), "utf8"));
+  if (storageCheck !== true) {
+    return storageCheck;
   }
 
   const member = getOwnedCollabMember(req.params.id, memberId, req.sessionId);
