@@ -1,99 +1,100 @@
 # mdedit.io
 
-Browserbasierter Markdown-Editor mit Live-Vorschau, Strukturansicht und Export nach Markdown, DOCX und PDF.
+Browser-based Markdown editor with live preview, document structure view, and export to Markdown, DOCX, and PDF.
 
-## Dokumentation
+## Documentation
 
-- Betriebs- und Deployment-Doku: `docs/operations/`
-- Architektur- und Engineering-Notizen: `docs/engineering/`
-- Produkt- und Feature-Konzepte: `docs/concepts/`
-- Strategie und GTM-Material: `docs/strategy/`
-- Beispiele und Testmaterial: `docs/examples/`, `docs/testing/`
+- Operations and deployment docs: `docs/operations/`
+- Architecture and engineering notes: `docs/engineering/`
+- Product and feature concepts: `docs/concepts/`
+- Strategy and GTM material: `docs/strategy/`
+- Examples and test material: `docs/examples/`, `docs/testing/`
 
-Eine Übersicht findest du in [docs/README.md](docs/README.md).
+You can find an overview in [docs/README.md](docs/README.md).
 
-## Start
+## Getting Started
 
-### Voraussetzungen
+### Prerequisites
 
-- Node.js 20 oder neuer fuer lokale Entwicklung, Release-Checks und `deploy-prod.sh`
-- Docker und Docker Compose fuer den empfohlenen Betriebsweg
-- Pandoc/LaTeX nur fuer bestimmte Exportpfade ausserhalb des Containers
+- Node.js 20 or newer for local development, release checks, and `deploy-prod.sh`
+- Docker and Docker Compose for the recommended runtime path
+- Pandoc/LaTeX only for certain export paths outside the container
 
-Die Browser-Runtime wird aus lokal mitgelieferten Assets unter `public/vendor/` und `public/vendor/npm/` geladen. Der aktive App-Pfad haengt nicht von externen Browser-CDNs ab.
+The browser runtime is loaded from locally bundled assets in `public/vendor/` and `public/vendor/npm/`. The active app path does not depend on external browser CDNs.
 
-### Option 1: Docker (empfohlen)
+### Option 1: Docker (recommended)
 
 ```bash
-# Container starten
+# Start the containers
 docker compose up -d
 
-# Status prüfen
+# Check status
 docker compose ps
 
-# Logs anzeigen
+# Show logs
 docker compose logs -f
 
-# Oder mit Management-Script
+# Or use the management script
 ./docker.sh start
 ./docker.sh logs
 ```
 
-Die App läuft lokal auf `http://localhost:3210`.
+The app is available locally at `http://localhost:3210`.
 
-Siehe [docs/operations/DOCKER.md](docs/operations/DOCKER.md) für Details.
+See [docs/operations/DOCKER.md](docs/operations/DOCKER.md) for details.
 
-**🔒 Sicherheitshinweis für Production:**
+**Security note for production:**
 
-Vor dem Deployment in Production **MUSS** ein sicherer Cookie-Secret gesetzt werden:
+Before deploying to production, you **MUST** set a secure cookie secret:
 
 ```bash
-# .env Datei erstellen (basierend auf .env.example)
+# Create a .env file (based on .env.example)
 cp .env.example .env
 
-# Sicheren Secret generieren
+# Generate a secure secret
 openssl rand -hex 32
 
-# In .env eintragen:
-COOKIE_SECRET=ihr_generierter_secret_hier
+# Add it to .env:
+COOKIE_SECRET=your_generated_secret_here
 ```
 
-Für Docker Compose:
+For Docker Compose:
+
 ```bash
-# Umgebungsvariable setzen
+# Set the environment variable
 export COOKIE_SECRET=$(openssl rand -hex 32)
 docker compose up -d
 ```
 
-Vor oeffentlichen Releases oder Production-Deployments sollte immer der Release-Gate erfolgreich laufen:
+Before public releases or production deployments, the release gate should always pass successfully:
 
 ```bash
 npm run release:check
 ```
 
-### Option 2: Direkter Node.js-Start
+### Option 2: Direct Node.js start
 
-1. Abhängigkeiten installieren:
+1. Install dependencies:
    - `npm install`
-2. Pandoc und LaTeX installieren (für PDF-Export):
+2. Install Pandoc and LaTeX (for PDF export):
    ```bash
    # Ubuntu/Debian
    sudo apt-get install pandoc texlive-xetex texlive-latex-recommended librsvg2-bin
    ```
-3. Server starten:
+3. Start the server:
    - `npm run dev`
-4. App läuft auf `http://localhost:3210`.
+4. The app runs at `http://localhost:3210`.
 
-Hinweis: `npm run release:check` und `./deploy-prod.sh` setzen lokal Node 20+ voraus. Wenn dein Host absichtlich aelter bleibt, nutze den Docker-Pfad fuer den betriebsnahen Testlauf.
+Note: `npm run release:check` and `./deploy-prod.sh` require local Node 20+. If your host intentionally stays older, use the Docker path for production-like test runs.
 
-## Nginx Reverse Proxy (Beispiel)
+## Nginx Reverse Proxy (example)
 
-Beide Domains auf denselben Server leiten:
+Point both domains to the same server:
 
-```
+```nginx
 server {
   listen 80;
-   server_name mdedit.io www.mdedit.io;
+  server_name mdedit.io www.mdedit.io;
 
   location / {
     proxy_pass http://127.0.0.1:3210;
@@ -105,51 +106,51 @@ server {
 }
 ```
 
-## Notizen
+## Notes
 
-- Session über HttpOnly Cookie (`sid`)
-- Historie pro Session, kein Login
-- Baumansicht basiert ausschließlich auf Überschriften (H1–H6)
+- Session-based via HttpOnly cookie (`sid`)
+- History is kept per session, no login required
+- Tree view is based exclusively on headings (H1-H6)
 
-## Sicherheit & Features
+## Security & Features
 
-### Implementierte Security-Maßnahmen
+### Implemented security measures
 
-- ✅ **Rate Limiting**: 100 Requests/Minute pro IP
-- ✅ **Security Headers**: CSP, HSTS, X-Frame-Options (via Helmet)
-- ✅ **Secure Cookies**: HttpOnly, SameSite=Lax, Secure in Production
-- ✅ **Input Validation**: Markdown-Größenlimit (1MB), SQL-Injection-Schutz
-- ✅ **Privacy**: Pastes sind standardmäßig privat (session-bound)
-- ✅ **Temp File Cleanup**: Automatische Bereinigung nach Export
-- ✅ **Self-hosted Frontend Runtime**: Browser-Abhaengigkeiten werden lokal ausgeliefert statt zur Laufzeit von externen CDNs geladen
+- ✅ **Rate limiting**: 100 requests/minute per IP
+- ✅ **Security headers**: CSP, HSTS, X-Frame-Options (via Helmet)
+- ✅ **Secure cookies**: HttpOnly, SameSite=Lax, Secure in production
+- ✅ **Input validation**: Markdown size limit (1 MB), SQL injection protection
+- ✅ **Privacy**: Pastes are private by default (session-bound)
+- ✅ **Temp file cleanup**: Automatic cleanup after export
+- ✅ **Self-hosted frontend runtime**: Browser dependencies are served locally instead of being loaded from external CDNs at runtime
 
 ### Sharing & Privacy
 
-Pastes sind standardmäßig **privat** und nur für die eigene Session sichtbar. Um einen Paste zu teilen:
+Pastes are **private** by default and only visible within the current session. To share a paste:
 
 ```javascript
 // POST /api/pastes/:id/share
-{ "shared": true }  // Macht Paste öffentlich via Permalink
+{ "shared": true } // Makes the paste public via permalink
 ```
 
-Nur explizit als `shared: true` markierte Pastes sind via Permalink für andere Nutzer sichtbar.
+Only pastes explicitly marked as `shared: true` are visible to other users via permalink.
 
-### Wartung & Cleanup
+### Maintenance & Cleanup
 
-Alte Sessions (>30 Tage inaktiv) sollten regelmäßig bereinigt werden:
+Old sessions (>30 days inactive) should be cleaned up regularly:
 
 ```bash
-# Manuell
+# Manual
 node cleanup.js
 
-# Via Cron (täglich um 3:00 Uhr)
-0 3 * * * cd /pfad/zu/app && node cleanup.js >> /var/log/md-cleanup.log 2>&1
+# Via cron (daily at 3:00 AM)
+0 3 * * * cd /path/to/app && node cleanup.js >> /var/log/md-cleanup.log 2>&1
 ```
 
-Das Cleanup-Script entfernt:
-- Sessions ohne Aktivität seit 30 Tagen
-- Verwaiste Pastes (deren Session gelöscht wurde)
-- Führt VACUUM für Datenbank-Optimierung aus
+The cleanup script removes:
+- Sessions with no activity for 30 days
+- Orphaned pastes (whose session was deleted)
+- Runs VACUUM for database optimization
 
 ## License
 
