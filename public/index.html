@@ -335,8 +335,10 @@
       </div>
       <div class="modal-body">
         <section id="tipsIntroCard" class="tips-intro-card" aria-label="mdedit.io intro">
-          <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
-          <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">A no-account Markdown editor for longer documents</h3>
+          <div class="tips-hero-row">
+            <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
+            <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">A no-account Markdown editor for longer documents</h3>
+          </div>
           <p class="tips-intro-lead" data-i18n="tipsIntroLead">Write in Markdown and export print-ready pages without needing Word, LaTeX, or a desktop publishing tool.</p>
           <div class="tips-feature-grid" aria-label="Core features">
             <div class="tips-feature-item">
@@ -351,13 +353,6 @@
               <strong data-i18n="tipsFeatureWorkflowTitle">Fast workflow</strong>
               <span data-i18n="tipsFeatureWorkflowText">Live preview, outline, local autosave, collaboration and export without setup overhead.</span>
             </div>
-          </div>
-          <div class="tips-intro-meta">
-            <div class="tips-stat-card">
-              <span class="tips-stat-label" data-i18n="tipsStoredDocsLabel">Documents currently stored</span>
-              <strong id="tipsDocumentCount" class="tips-stat-value">0</strong>
-            </div>
-            <button id="tipsImprintBtn" class="tips-inline-link" type="button" data-i18n="aboutImprint">Imprint</button>
           </div>
           <div class="tips-cta-row">
             <button id="tipsDemoBtn" class="tips-cta-btn" type="button" data-i18n="tipsDemoCta">Open demo document</button>
@@ -379,8 +374,15 @@
               <input type="checkbox" id="dontShowTipsAgain" />
               <span data-i18n="settingShowStartupTips">Tipps beim Start anzeigen</span>
             </label>
+            <div class="tips-footer-meta">
+              <div class="tips-stat-inline">
+                <span class="tips-stat-label" data-i18n="tipsStoredDocsLabel">Documents currently stored</span>
+                <strong id="tipsDocumentCount" class="tips-stat-value">0</strong>
+              </div>
+              <button id="tipsImprintBtn" class="tips-inline-link" type="button" data-i18n="aboutImprint">Imprint</button>
+              <a id="tipsHelpLink" class="tips-inline-link" href="/help-en.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
+            </div>
             <div class="tips-footer-buttons">
-              <a id="tipsHelpLink" class="btn-secondary tips-help-link" href="/help-en.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
               <button id="nextTipBtn" class="btn-primary tips-next-btn">
                 <i class="fa-solid fa-arrow-right"></i> <span data-i18n="nextTip">Nächster Tipp</span>
               </button>
