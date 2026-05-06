@@ -66,6 +66,19 @@ const customCssKey = "md-custom-css";
 const layoutEditorKey = "md-layout-editor";
 const localeKey = "md-locale";
 const tipsIntroSeenKey = "md-tips-intro-seen";
+const tipsStartupAutoCloseMs = 9000;
+const tipsStartupFirstVisitAutoCloseMs = 14000;
+
+let tipsStartupAutoCloseTimeout = null;
+
+const waitForNextFrame = () => new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+
+const clearTipsStartupAutoClose = () => {
+  if (tipsStartupAutoCloseTimeout !== null) {
+    window.clearTimeout(tipsStartupAutoCloseTimeout);
+    tipsStartupAutoCloseTimeout = null;
+  }
+};
 
 const normalizePasteId = (value) => {
   if (typeof value === "number") return value;
@@ -1257,13 +1270,16 @@ const elements = {
   previewPresetLabel: document.getElementById("previewPresetLabel"),
   previewPresetItems: Array.from(document.querySelectorAll(".preview-preset-item")),
   previewPrintItem: document.getElementById("previewPrintItem"),
+  sidebarBrandTrigger: document.getElementById("sidebarBrandTrigger"),
   tipsModal: document.getElementById("tipsModal"),
   tipsOverlay: document.getElementById("tipsOverlay"),
   tipsClose: document.getElementById("tipsClose"),
   tipsIntroCard: document.getElementById("tipsIntroCard"),
   randomTipContainer: document.getElementById("randomTipContainer"),
   tipsFooter: document.getElementById("tipsFooter"),
+  tipsImprintBtn: document.getElementById("tipsImprintBtn"),
   dontShowTipsAgain: document.getElementById("dontShowTipsAgain"),
+  tipsDocumentCount: document.getElementById("tipsDocumentCount"),
   nextTipBtn: document.getElementById("nextTipBtn"),
   tipsDemoBtn: document.getElementById("tipsDemoBtn"),
   tipsStartBtn: document.getElementById("tipsStartBtn"),
@@ -1328,6 +1344,7 @@ let currentWorkspace = "default";
 let tipsData = [];
 let tipsLoadedLocale = null;
 let historyCache = [];
+let totalStoredDocumentCount = 0;
 let selectedNodeId = null;
 let currentView = "preview";
 const mobileWorkspaceViewKey = "mobileWorkspaceView";
@@ -1838,6 +1855,16 @@ const openSettings = () => {
   elements.settingsModal?.classList.remove("hidden");
   elements.settingsOverlay?.classList.remove("hidden");
   syncSettingsUI();
+};
+
+const openSettingsTab = (tabName) => {
+  openSettings();
+  document.querySelectorAll("#settingsModal .tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.tab === tabName);
+  });
+  document.querySelectorAll("#settingsModal .tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.tabPanel === tabName);
+  });
 };
 
 const closeSettings = () => {
@@ -2698,37 +2725,52 @@ const displayRandomTip = async () => {
   await renderMermaid(tipContainerEl);
 };
 
-const showTipsModal = async () => {
-  const isFirstTipsVisit = !localStorage.getItem(tipsIntroSeenKey);
-  document.getElementById("tipsFirstVisitBadge")?.classList.toggle("hidden", !isFirstTipsVisit);
+const showTipsModal = async ({ autoClose = false, forceIntro = false } = {}) => {
+  clearTipsStartupAutoClose();
+  const isFirstTipsVisit = forceIntro || !localStorage.getItem(tipsIntroSeenKey);
+  elements.tipsModal?.classList.toggle("is-first-visit", isFirstTipsVisit);
   elements.tipsIntroCard?.classList.toggle("hidden", !isFirstTipsVisit);
   elements.randomTipContainer?.classList.toggle("hidden", isFirstTipsVisit);
-  elements.tipsFooter?.classList.toggle("hidden", isFirstTipsVisit);
+  elements.tipsFooter?.classList.remove("hidden");
+  if (elements.dontShowTipsAgain) {
+    elements.dontShowTipsAgain.checked = activeSettings.showStartupTips !== false;
+  }
+  if (elements.tipsDocumentCount) {
+    elements.tipsDocumentCount.textContent = new Intl.NumberFormat(currentLocale || getLocale()).format(totalStoredDocumentCount);
+  }
 
   if (!isFirstTipsVisit) {
+    await waitForNextFrame();
     await loadTips();
     await displayRandomTip();
   }
 
-  if (isFirstTipsVisit) {
+  if (!forceIntro && isFirstTipsVisit) {
     localStorage.setItem(tipsIntroSeenKey, "1");
   }
   
-  // Show modal
   elements.tipsModal?.classList.remove("hidden");
   elements.tipsOverlay?.classList.remove("hidden");
   elements.tipsStartBtn?.focus();
+
+  if (autoClose) {
+    const closeDelay = isFirstTipsVisit ? tipsStartupFirstVisitAutoCloseMs : tipsStartupAutoCloseMs;
+    tipsStartupAutoCloseTimeout = window.setTimeout(() => {
+      if (!elements.tipsModal?.classList.contains("hidden")) {
+        closeTipsModal();
+      }
+    }, closeDelay);
+  }
 };
 
 const closeTipsModal = () => {
+  clearTipsStartupAutoClose();
   elements.tipsModal?.classList.add("hidden");
+  elements.tipsModal?.classList.remove("is-first-visit");
   elements.tipsOverlay?.classList.add("hidden");
-  
-  // Check if "don't show again" was checked
-  if (elements.dontShowTipsAgain?.checked) {
-    activeSettings.showStartupTips = false;
-    saveSettings(activeSettings);
-  }
+
+  activeSettings.showStartupTips = Boolean(elements.dontShowTipsAgain?.checked);
+  saveSettings(activeSettings);
 };
 
 // Workspace Management
@@ -4014,6 +4056,10 @@ const renderTree = () => {
 const loadHistory = async () => {
   const res = await fetch("/api/pastes");
   const allPastes = await res.json();
+  totalStoredDocumentCount = allPastes.length;
+  if (elements.tipsDocumentCount) {
+    elements.tipsDocumentCount.textContent = new Intl.NumberFormat(currentLocale || getLocale()).format(totalStoredDocumentCount);
+  }
   
   // Get current workspace pastes
   const workspaces = getWorkspaces();
@@ -6119,6 +6165,10 @@ elements.sharePdfBtn?.addEventListener("click", () => exportFile("pdf"));
 elements.settingsBtn?.addEventListener("click", openSettings);
 elements.previewLayoutEditorBtn?.addEventListener("click", () => openLayoutEditor(previewPreset || "scientific"));
 elements.tipsBtn?.addEventListener("click", showTipsModal);
+elements.sidebarBrandTrigger?.addEventListener("click", (event) => {
+  event.preventDefault();
+  showTipsModal({ forceIntro: true });
+});
 elements.settingsClose?.addEventListener("click", closeSettings);
 elements.settingsOverlay?.addEventListener("click", closeSettings);
 elements.layoutEditorClose?.addEventListener("click", closeLayoutEditor);
@@ -6935,9 +6985,16 @@ elements.clearSyncBtn?.addEventListener("click", async () => {
 
 elements.tipsClose?.addEventListener("click", closeTipsModal);
 elements.tipsOverlay?.addEventListener("click", closeTipsModal);
+elements.tipsModal?.addEventListener("pointerdown", clearTipsStartupAutoClose);
+elements.tipsModal?.addEventListener("mouseenter", clearTipsStartupAutoClose);
+elements.tipsModal?.addEventListener("keydown", clearTipsStartupAutoClose);
 elements.nextTipBtn?.addEventListener("click", displayRandomTip);
 elements.tipsDemoBtn?.addEventListener("click", loadDemoDocument);
 elements.tipsStartBtn?.addEventListener("click", closeTipsModal);
+elements.tipsImprintBtn?.addEventListener("click", () => {
+  closeTipsModal();
+  openSettingsTab("about");
+});
 elements.currentSpaceName?.addEventListener("click", openSpacesOverview);
 elements.spacesClose?.addEventListener("click", closeSpacesOverview);
 elements.spacesOverlay?.addEventListener("click", closeSpacesOverview);
@@ -7329,7 +7386,7 @@ if (urlPasteId && uuidPattern.test(urlPasteId)) {
     
     // Show startup tips if enabled
     if (activeSettings.showStartupTips) {
-      showTipsModal();
+      showTipsModal({ autoClose: true });
     }
   });
 }
