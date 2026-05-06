@@ -1,6 +1,6 @@
 # Citations UX Concept
 
-Stand: 2026-05-03
+Stand: 2026-05-06
 Status: Bedienkonzept, keine Implementierung in diesem Schritt.
 
 Bezug: `citations-concept.md`, `citations-implementation-plan.md`
@@ -47,7 +47,7 @@ Konsequenz:
 
 ### UC-1 Quelle hinterlegen
 
-Als Autor moechte ich eine Bibliografie-Datei oder zentrale Projektbibliografie hinterlegen, damit ich aus ihr zitieren kann.
+Als Autor moechte ich eine Bibliografie-Datei oder spaeter eine gemeinsam abgelegte serverseitige Bibliografie hinterlegen, damit ich aus ihr zitieren kann.
 
 ### UC-2 Zitat einfuegen
 
@@ -71,10 +71,12 @@ Als Autor moechte ich wissen, ob mein Stil einen Paged-PDF-Export oder einen Fus
 
 Designentscheidung: Wer klassifiziert den Exportmodus?
 
-- MVP: Der Nutzer waehlt explizit im Exportdialog (`Paged PDF` vs. `PDF mit echten Fussnoten`).
-- Phase 2: Das System liest den gewaehlten CSL-Stil und berechnet eine Vorbelegung (note-style CSL → Fussnoten-PDF; alle anderen → Paged PDF). Der Nutzer kann die Vorbelegung jederzeit ueberschreiben.
+- Phase 1 / Citeproc Export MVP: Es ist noch keine sichtbare Exportmodus-UI noetig. Der Server behandelt bibliography-orientierte Exporte normativ und blockiert `PDF mit echten Fussnoten` bis SCI-023 mit klarem Fehler.
+- Phase 2 / SCI-019: Der Nutzer waehlt explizit im Exportdialog (`Paged PDF` vs. `PDF mit echten Fussnoten`).
+- Phase 3: Das System liest den gewaehlten CSL-Stil und berechnet eine Vorbelegung (note-style CSL → Fussnoten-PDF; alle anderen → Paged PDF). Der Nutzer kann die Vorbelegung jederzeit ueberschreiben.
 
-Bis die automatische CSL-Klassifikation verlaesslich implementiert ist, bleibt die explizite Nutzerauswahl die sichere Variante.
+Bis die automatische CSL-Klassifikation verlaesslich implementiert ist, bleibt die explizite Nutzerauswahl die sichere Variante, sobald SCI-019 verfuegbar ist.
+Solange der LaTeX-Footnote-Pfad noch nicht produktiv ist, darf `PDF mit echten Fussnoten` im UI nur als noch nicht verfuegbar erscheinen oder mit klarer Fehlermeldung blockiert werden.
 
 ## Informationsarchitektur
 
@@ -211,7 +213,7 @@ Anzeigen:
 Modi:
 
 - `PDF (Paged, Literaturverzeichnis)`
-- `PDF (echte Fussnoten)`
+- `PDF (echte Fussnoten)` (erst ab SCI-023 verfuegbar; bis dahin als nicht verfuegbar markiert oder mit klarer Fehlermeldung blockiert)
 - `DOCX`
 
 Warnungen:
@@ -264,6 +266,11 @@ Empfehlung fuer die Bedienung:
 Die normale Vorschau bleibt editornah.
 Ein deutlicher Hinweis ist noetig, dass die finale Zitationsdarstellung im Export verbindlich ist.
 
+Fuer Exportmodi gilt in Phase 1:
+
+- `Paged PDF` ist verfuegbar
+- `PDF mit echten Fussnoten` kann sichtbar sein, ist aber bis zum produktiven LaTeX-Footnote-Pfad als noch nicht verfuegbar markiert oder kontrolliert blockiert
+
 Geeignete Formulierung:
 
 - `Zitationsdarstellung wird fuer wissenschaftliche Exporte serverseitig finalisiert.`
@@ -293,7 +300,7 @@ Damit wird die unterschiedliche Verbindlichkeit der Ansichten fuer Nutzer transp
 - Hinweistexte bei manuell erkannten Literatur-Fussnotenmustern
 - Exportwarnung bei fehlender Bibliografie
 - Modus-Hinweis `Dieser Stil wird als Literaturverzeichnis exportiert`
-- Modus-Hinweis `Dieser Stil benoetigt PDF mit echten Fussnoten`
+- Modus-Hinweis `Dieser Stil benoetigt spaeter PDF mit echten Fussnoten`; bis SCI-023 bleibt dieser Pfad blockiert oder als nicht verfuegbar markiert
 
 ## Tastatur- und Schnellzugriffe
 
@@ -329,7 +336,7 @@ Im Quellenpanel sichtbar:
 Im Exportdialog sichtbar:
 
 - `Paged-PDF empfohlen`
-- `Fussnoten-PDF empfohlen`
+- `Fussnoten-PDF empfohlen` (nur nach SCI-023 aktiv; vorher als noch nicht verfuegbar angezeigt)
 - `DOCX bereit`
 
 ## MVP-Empfehlung
@@ -348,7 +355,7 @@ Noch nicht noetig (entspricht Phase 3 des Implementierungsplans):
 - komplexe Mehrbibliografie-Workflows
 - vollstaendig exportnahe Live-Vorschau
 - Hochschulvorlagen per `reference.docx`
-- Projektbibliografie-Verwaltung im Produkt
+- Verwaltung gemeinsam abgelegter Bibliografieressourcen im Produkt
 
 ## Akzeptanzkriterien
 
@@ -356,7 +363,8 @@ Noch nicht noetig (entspricht Phase 3 des Implementierungsplans):
 - Nutzer kann ein Zitat aus einer Quelle suchen und korrekt einfuegen.
 - Nutzer kann ein Literaturverzeichnis an definierter Stelle einbauen.
 - Der Exportdialog warnt vor fehlenden oder unpassenden Einstellungen.
-- Die UI macht klar, wann ein Fussnotenstil einen anderen PDF-Pfad benoetigt.
+- In Phase 1 (vor SCI-023): Die UI kennzeichnet `PDF mit echten Fussnoten` als noch nicht verfuegbar oder blockiert diesen Modus mit klarer Fehlermeldung.
+- Ab Phase 3 (SCI-023): Die UI macht klar, wann ein Fussnotenstil den separaten LaTeX-PDF-Pfad benoetigt.
 
 ## Empfehlung
 

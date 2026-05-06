@@ -4602,7 +4602,7 @@ const collectExportStyles = ({ includePrintStyles = false } = {}) => {
 
 const serializePreviewForExport = async ({ forPdf = false } = {}) => {
   await renderMermaid();
-  const sourceRoot = getActivePreviewRoot() || elements.preview;
+  const sourceRoot = forPdf ? elements.preview : (getActivePreviewRoot() || elements.preview);
   const clone = sourceRoot.cloneNode(true);
   const svgs = Array.from(sourceRoot.querySelectorAll("svg"));
   const cloneSvgs = Array.from(clone.querySelectorAll("svg"));

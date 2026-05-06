@@ -1514,7 +1514,7 @@ const extractEmbeddedPagedStyles = (html) => {
     return { bodyHtml: html, embeddedCss: "" };
   }
 
-  const embeddedCss = stripAtPageRules(match[1] || "");
+  const embeddedCss = match[1] || "";
   const bodyHtml = html.replace(styleRegex, "");
   return { bodyHtml, embeddedCss };
 };
@@ -1532,8 +1532,7 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
   if (!chromiumCmd) return { ok: false, reason: "chromium-not-found" };
 
   const pagedHtmlPath = path.join(tmpDir, "paged-chromium.html");
-  const sanitizedHtml = stripAtPageFromAllStyleTags(html);
-  const { bodyHtml, embeddedCss } = extractEmbeddedPagedStyles(sanitizedHtml);
+  const { bodyHtml, embeddedCss } = extractEmbeddedPagedStyles(html);
   const hasEmbeddedPagedStyles = Boolean(embeddedCss);
   const printCssPath = path.join(__dirname, "public", "print.css");
   let printCss = "";
@@ -1561,7 +1560,6 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    @page { margin: 0; }
     .print-preview-warning { display: none !important; }
     .pagedjs_pages {
       margin: 0 !important;
@@ -1655,7 +1653,7 @@ ${bodyHtml}
       path: outputPath,
       format: "A4",
       printBackground: true,
-      preferCSSPageSize: false,
+      preferCSSPageSize: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" }
     });
     return { ok: true };

@@ -1,6 +1,6 @@
 # Citations Implementation Plan
 
-Stand: 2026-05-03
+Stand: 2026-05-06
 Status: Umsetzungsplan, keine Implementierung in diesem Schritt.
 
 Bezug: `citations-concept.md`
@@ -162,11 +162,16 @@ Output:
 
 Empfohlene Pandoc-Parameter fuer HTML-Zwischenformat:
 
-- `--from=markdown`
+- `--from=...` als explizit definierter wissenschaftlicher Reader beziehungsweise dokumentierte wissenschaftliche Markdown-Teilmenge
 - `--to=html5`
 - `--citeproc`
 - `--standalone`
 - `--resource-path=...`
+
+Wichtig:
+
+- der konkrete `--from`-Wert darf nicht implizit aus dem Status quo abgeleitet werden
+- vor der Implementierung muss definiert werden, welche mdedit-Syntax Pandoc direkt lesen darf und welche normalisiert werden muss
 
 Optional spaeter:
 
@@ -177,6 +182,8 @@ Optional spaeter:
 
 Die bestehende Exportlogik sollte vor dem eigentlichen PDF-Lauf eine Entscheidung treffen.
 
+Diese Entscheidung ist serverseitig normativ. Der Client darf Modi vorgeben, aber nicht die eigentliche Pfadwahl implizit durch UI-Flags erzwingen.
+
 Pseudologik:
 
 1. Eingehendes Markdown analysieren.
@@ -185,7 +192,7 @@ Pseudologik:
 4. Falls ja:
    - fuer PDF Stilklasse bestimmen
    - fuer Paged-Stile zuerst Citeproc-HTML erzeugen
-   - fuer Fussnotenstile den LaTeX-basierten PDF-Pfad waehlen
+  - fuer Fussnotenstile vor SCI-023 einen klaren Fehler zurueckgeben; ab SCI-023 den LaTeX-basierten PDF-Pfad waehlen
 5. Fuer DOCX immer Citeproc vor dem Export ausfuehren.
 
 ## Stilklassifikation
@@ -195,12 +202,17 @@ Zulaessig sind zwei Stufen:
 
 ### MVP
 
-- Nutzer waehlt im Exportdialog explizit:
-  - `Paged PDF (Literaturverzeichnis)`
-  - `PDF mit echten Fussnoten`
+- Im Citeproc Export MVP trifft der Server die normative Pfadentscheidung.
+- bibliography-orientierte Dokumente laufen auf den Paged-Citeproc-Pfad.
+- Requests fuer `PDF mit echten Fussnoten` werden bis SCI-023 mit klarem Fehler abgelehnt.
+- Eine sichtbare Nutzerauswahl im Exportdialog folgt erst mit SCI-019 / Phase 2.
 
 ### Spaeter
 
+- Nutzer waehlt im Exportdialog explizit:
+  - `Paged PDF (Literaturverzeichnis)`
+  - `PDF mit echten Fussnoten`
+- der Server validiert diese Auswahl gegen vorhandene Metadaten und waehlt den finalen Exportpfad
 - automatische Vorbelegung anhand des gewaehlten CSL-Stils
 - explizite Uebersteuerung bleibt erhalten
 
@@ -210,11 +222,19 @@ Zulaessig sind zwei Stufen:
 
 Der Client muss fuer wissenschaftliche Exporte nicht sofort die finale Zitationsdarstellung in der Live-Vorschau abbilden.
 
-Erforderlich im MVP:
+Erforderlich im MVP (clientseitig):
 
 - Erkennung, dass ein Dokument Zitationsmetadaten besitzt
-- Exportoptionen fuer Zitationsstil und Exportmodus
 - Uebergabe von Markdown plus Exportmetadaten an den Server
+
+Erforderlich ab Phase 2 / SCI-019 (clientseitig):
+
+- sichtbare Exportoptionen fuer Zitationsstil und Exportmodus
+
+Erforderlich im MVP (serverseitig):
+
+- Normalisierung oder klare Eingrenzung der wissenschaftlichen Markdown-Teilmenge vor dem Pandoc-Aufruf
+- Routing-Logik fuer bibliography- versus footnote-orientierte Exportpfade
 
 ## Nicht im ersten Schritt noetig
 
@@ -317,7 +337,7 @@ Damit kann spaeter der Paged-Preview-Modus auf denselben HTML-Stand wie der PDF-
 - Wechsel des CSL-Stils aendert Darstellung ohne Quelldateiaenderung
 - DOCX enthaelt Zitate und Literaturverzeichnis
 - Paged-PDF enthaelt aufgeloeste Zitate statt Rohsyntax
-- note-style PDF laeuft ueber separaten Fussnotenpfad
+- note-style PDF laeuft ueber separaten Fussnotenpfad (SCI-023/Sprint 6, kein Teil des Citeproc Export MVP)
 
 ## Visuelle Tests
 
@@ -332,7 +352,10 @@ Erweiterung des bestehenden visuellen Smoke-Tests um:
 ## Phase 1
 
 - Backend kann Citeproc-HTML fuer Exporte erzeugen
+- Backend definiert und validiert die wissenschaftliche Markdown-Eingabe fuer Pandoc
 - bestehender Paged-PDF-Pfad wird fuer Zitationsdokumente serverseitig ueber dieses HTML gespeist
+- serverseitige Exportentscheidung fuer bibliography-orientierte Pfade ist implementiert
+- Requests fuer den footnote-orientierten Modus geben bis SCI-023 einen klaren Fehler zurueck
 - DOCX-Export bekommt Citeproc-Unterstuetzung
 
 ## Phase 2
@@ -342,8 +365,9 @@ Erweiterung des bestehenden visuellen Smoke-Tests um:
 
 ## Phase 3
 
+- produktiver LaTeX-Footnote-Pfad fuer note-style-Dokumente
 - exportnahe serverseitige Vorschau
-- optionale Projektbibliografie-Verwaltung
+- optionale Verwaltung gemeinsam abgelegter Bibliografieressourcen im Server-Datenverzeichnis
 - echte Vorlagenunterstuetzung fuer Hochschulen
 
 ## Risiko- und Aufwandseinschaetzung
@@ -367,10 +391,12 @@ Erweiterung des bestehenden visuellen Smoke-Tests um:
 
 ## Empfohlene erste Implementierung
 
-1. Citeproc im Server fuer DOCX aktivieren.
-2. Citeproc-HTML fuer Paged-PDF erzeugen.
-3. YAML-Metadaten im Exportpfad offiziell unterstuetzen.
-4. Exportmodus `Paged PDF` vs. `Fussnoten PDF` einfuehren.
-5. Visuelle und inhaltliche Exporttests fuer Zitationsdokumente ergaenzen.
+1. Wissenschaftliche Markdown-Teilmenge und Pandoc-Reader vertraglich festlegen.
+2. Citeproc im Server fuer DOCX aktivieren.
+3. Citeproc-HTML fuer Paged-PDF erzeugen.
+4. YAML-Metadaten im Exportpfad offiziell unterstuetzen.
+5. Serverseitige Exportentscheidung fuer den Paged-PDF-Pfad einfuehren. (Der Fussnoten-PDF-Pfad folgt erst mit SCI-023/Sprint 6; Requests auf diesen Modus geben bis dahin einen klaren Fehler zurueck.)
+6. Danach den Exportmodus im UI sichtbar machen.
+7. Visuelle und inhaltliche Exporttests fuer Zitationsdokumente ergaenzen.
 
 Damit wird mdedit schnell fuer wissenschaftliche Arbeiten mit zentralem Literaturverzeichnis nutzbar, ohne die Preview-Architektur sofort grundsaetzlich umzubauen.

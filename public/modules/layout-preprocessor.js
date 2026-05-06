@@ -12,7 +12,7 @@ const createLayoutToken = (name, attrs = {}) => {
 };
 
 const parseLayoutToken = (value) => {
-  const match = String(value || '').trim().match(/^\[\[MDLAYOUT:([a-z-]+)(?:;([^\]]+))?\]\]$/i);
+  const match = String(value || '').trim().match(/^\[{1,2}MDLAYOUT:([a-z-]+)(?:;([^\]]+))?\]{1,2}$/i);
   if (!match) return null;
 
   const attrs = {};
@@ -27,6 +27,33 @@ const parseLayoutToken = (value) => {
   return { name: match[1].toLowerCase(), attrs };
 };
 
+const isTocPlaceholder = (value) => /^\[\[?_?toc_?\]?\]$/i.test(String(value || '').trim());
+
+const protectMarkdownCode = (markdown) => {
+  const placeholders = [];
+  let protectedText = String(markdown || '');
+
+  const reserve = (value) => {
+    const token = `__MD_CODE_PLACEHOLDER_${placeholders.length}__`;
+    placeholders.push(value);
+    return token;
+  };
+
+  protectedText = protectedText.replace(/(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2(?=\n|$)/g, (match) => reserve(match));
+  protectedText = protectedText.replace(/`([^`\n]+)`/g, (match) => reserve(match));
+
+  return {
+    text: protectedText,
+    restore(value) {
+      let restored = String(value || '');
+      placeholders.forEach((original, index) => {
+        restored = restored.replace(`__MD_CODE_PLACEHOLDER_${index}__`, original);
+      });
+      return restored;
+    }
+  };
+};
+
 export class LayoutPreprocessor {
   constructor() {
     this.tableCounter = 0;
@@ -38,7 +65,8 @@ export class LayoutPreprocessor {
    * Process markdown with layout commands
    */
   process(markdown) {
-    let processed = markdown;
+    const protectedMarkdown = protectMarkdownCode(markdown);
+    let processed = protectedMarkdown.text;
 
     // Process all command types
     processed = this.processPageBreaks(processed);
@@ -50,7 +78,7 @@ export class LayoutPreprocessor {
     processed = this.processTitlePage(processed);
     processed = this.processBlankPages(processed);
 
-    return processed;
+    return protectedMarkdown.restore(processed);
   }
 
   /**
@@ -243,6 +271,9 @@ export class LayoutPreprocessor {
     // Apply column styles
     this.applyColumnStyles(doc);
 
+    this.hydrateTableOfContents(doc);
+    this.applyChapterMarkers(doc);
+
     // Apply table layouts
     this.applyTableLayouts(doc);
 
@@ -251,61 +282,171 @@ export class LayoutPreprocessor {
 
     // Clean up markers
     this.cleanupMarkers(doc);
+    this.removeResidualLayoutTokenText(doc);
 
     return doc.body.innerHTML;
   }
 
-  hydrateLayoutTokens(doc) {
-    Array.from(doc.body.querySelectorAll('p')).forEach((paragraph) => {
-      if (paragraph.childElementCount > 0) return;
+  applyChapterMarkers(doc) {
+    const keepWithHeadingSelector = [
+      'p',
+      'h2',
+      'h3',
+      'ul',
+      'ol',
+      'pre',
+      'table',
+      'blockquote',
+      '.math-block',
+      '.md-columns'
+    ].join(', ');
 
-      const token = parseLayoutToken(paragraph.textContent || '');
-      if (!token) return;
-
-      const marker = doc.createElement('div');
-
-      switch (token.name) {
-        case 'page-break':
-          marker.className = 'page-break';
-          if (token.attrs.break) marker.dataset.break = token.attrs.break;
-          break;
-        case 'column-break':
-          marker.className = 'column-break';
-          break;
-        case 'columns-open':
-          marker.className = 'md-columns-token-start';
-          marker.dataset.count = token.attrs.count || '2';
-          marker.dataset.gap = token.attrs.gap || '20pt';
-          marker.dataset.rule = token.attrs.rule || 'false';
-          break;
-        case 'columns-close':
-          marker.className = 'md-columns-token-end';
-          break;
-        case 'chapter':
-          marker.className = 'chapter-marker';
-          break;
-        case 'section':
-          marker.className = 'section-break';
-          marker.dataset.type = token.attrs.type || 'continuous';
-          marker.dataset.columns = token.attrs.columns || '1';
-          break;
-        case 'table':
-          marker.className = 'table-layout-marker';
-          marker.dataset.layout = token.attrs.layout || 'default';
-          break;
-        case 'title-page':
-          marker.className = 'title-page-marker';
-          if (token.attrs.start === 'true') marker.dataset.start = 'true';
-          if (token.attrs.end === 'true') marker.dataset.end = 'true';
-          break;
-        case 'blank-page':
-          marker.className = 'blank-page-marker';
-          break;
-        default:
-          return;
+    doc.querySelectorAll('.chapter-marker').forEach((marker) => {
+      let target = marker.nextElementSibling;
+      while (target && target.classList.contains('chapter-marker')) {
+        target = target.nextElementSibling;
       }
 
-      paragraph.replaceWith(marker);
+      if (!target) {
+        marker.remove();
+        return;
+      }
+
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'chapter-start';
+      marker.replaceWith(wrapper);
+      wrapper.appendChild(target);
+
+      const firstContent = wrapper.nextElementSibling;
+      if (firstContent?.matches(keepWithHeadingSelector)) {
+        wrapper.appendChild(firstContent);
+      }
+    });
+  }
+
+  buildTableOfContents(doc) {
+    const headings = Array.from(doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+      .filter((heading) => {
+        if (!heading.id || heading.closest('.table-of-contents')) return false;
+        if (heading.closest('.md-columns, .md-column')) return false;
+        const level = Number.parseInt(heading.tagName.slice(1), 10) || 1;
+        return level <= 3;
+      });
+
+    if (headings.length === 0) return null;
+
+    const nav = doc.createElement('nav');
+    nav.className = 'table-of-contents';
+
+    const rootList = doc.createElement('ul');
+    nav.appendChild(rootList);
+
+    const listStack = [{ level: 0, list: rootList, item: null }];
+
+    headings.forEach((heading) => {
+      const level = Number.parseInt(heading.tagName.slice(1), 10) || 1;
+      const item = doc.createElement('li');
+      const link = doc.createElement('a');
+      link.setAttribute('href', `#${heading.id}`);
+      link.textContent = (heading.textContent || '').trim();
+      item.appendChild(link);
+
+      while (listStack.length > 1 && level <= listStack[listStack.length - 1].level) {
+        listStack.pop();
+      }
+
+      if (level > listStack[listStack.length - 1].level && listStack[listStack.length - 1].item) {
+        const nestedList = doc.createElement('ul');
+        listStack[listStack.length - 1].item.appendChild(nestedList);
+        listStack.push({ level, list: nestedList, item: null });
+      }
+
+      const current = listStack[listStack.length - 1];
+      current.list.appendChild(item);
+      current.item = item;
+    });
+
+    return nav;
+  }
+
+  createMarkerForToken(doc, token) {
+    const marker = doc.createElement('div');
+
+    switch (token.name) {
+      case 'page-break':
+        marker.className = 'page-break';
+        if (token.attrs.break) marker.dataset.break = token.attrs.break;
+        break;
+      case 'column-break':
+        marker.className = 'column-break';
+        break;
+      case 'columns-open':
+        marker.className = 'md-columns-token-start';
+        marker.dataset.count = token.attrs.count || '2';
+        marker.dataset.gap = token.attrs.gap || '20pt';
+        marker.dataset.rule = token.attrs.rule || 'false';
+        break;
+      case 'columns-close':
+        marker.className = 'md-columns-token-end';
+        break;
+      case 'chapter':
+        marker.className = 'chapter-marker';
+        break;
+      case 'section':
+        marker.className = 'section-break';
+        marker.dataset.type = token.attrs.type || 'continuous';
+        marker.dataset.columns = token.attrs.columns || '1';
+        break;
+      case 'table':
+        marker.className = 'table-layout-marker';
+        marker.dataset.layout = token.attrs.layout || 'default';
+        break;
+      case 'title-page':
+        marker.className = 'title-page-marker';
+        if (token.attrs.start === 'true') marker.dataset.start = 'true';
+        if (token.attrs.end === 'true') marker.dataset.end = 'true';
+        break;
+      case 'blank-page':
+        marker.className = 'blank-page-marker';
+        break;
+      default:
+        return null;
+    }
+
+    return marker;
+  }
+
+  hydrateLayoutTokens(doc) {
+    Array.from(doc.body.querySelectorAll('*')).forEach((element) => {
+      if (element.childElementCount > 0) return;
+      if (element.closest('code, pre')) return;
+
+      const token = parseLayoutToken(element.textContent || '');
+      if (!token) return;
+
+      const marker = this.createMarkerForToken(doc, token);
+      if (!marker) return;
+
+      element.replaceWith(marker);
+    });
+  }
+
+  hydrateTableOfContents(doc) {
+    const placeholderNodes = Array.from(doc.body.querySelectorAll('*')).filter((element) => {
+      if (element.childElementCount > 0) return false;
+      if (element.closest('code, pre')) return false;
+      return isTocPlaceholder(element.textContent || '');
+    });
+
+    if (placeholderNodes.length === 0) return;
+
+    placeholderNodes.forEach((element, index) => {
+      const toc = this.buildTableOfContents(doc);
+      if (toc) {
+        element.replaceWith(index === 0 ? toc : toc.cloneNode(true));
+        return;
+      }
+      element.remove();
     });
   }
 
@@ -336,44 +477,55 @@ export class LayoutPreprocessor {
 
   applyColumnStyles(doc) {
     doc.querySelectorAll('.md-columns').forEach(el => {
-      if (!el.querySelector(':scope > .md-column')) {
-        const columns = [];
-        let currentColumn = doc.createElement('div');
-        currentColumn.className = 'md-column';
+      const columns = [];
+      let currentColumn = doc.createElement('div');
+      currentColumn.className = 'md-column';
 
-        Array.from(el.childNodes).forEach((node) => {
-          const isBreak = node.nodeType === Node.ELEMENT_NODE &&
-            (node.classList.contains('column-break') || node.classList.contains('md-columnbreak'));
+      Array.from(el.childNodes).forEach((node) => {
+        const isBreak = node.nodeType === Node.ELEMENT_NODE &&
+          (node.classList.contains('column-break') || node.classList.contains('md-columnbreak'));
 
-          if (isBreak) {
-            if (currentColumn.childNodes.length > 0) {
-              columns.push(currentColumn);
-            }
-            currentColumn = doc.createElement('div');
-            currentColumn.className = 'md-column';
-            return;
+        if (isBreak) {
+          if (currentColumn.childNodes.length > 0) {
+            columns.push(currentColumn);
           }
-
-          currentColumn.appendChild(node);
-        });
-
-        if (currentColumn.childNodes.length > 0) {
-          columns.push(currentColumn);
+          currentColumn = doc.createElement('div');
+          currentColumn.className = 'md-column';
+          return;
         }
 
-        if (columns.length > 0) {
-          el.replaceChildren(...columns);
+        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('md-column')) {
+          Array.from(node.childNodes).forEach((child) => currentColumn.appendChild(child));
+          node.remove();
+          return;
         }
+
+        currentColumn.appendChild(node);
+      });
+
+      if (currentColumn.childNodes.length > 0) {
+        columns.push(currentColumn);
+      }
+
+      if (columns.length > 0) {
+        el.replaceChildren(...columns);
       }
 
       const count = el.dataset.count || '2';
       const gap = el.dataset.gap || '20pt';
       const rule = el.dataset.rule === 'true';
 
+      el.style.setProperty('--md-columns-count', count);
+      el.style.setProperty('--md-columns-gap', gap);
       el.style.columnCount = count;
       el.style.columnGap = gap;
       if (rule) {
+        el.style.setProperty('--md-columns-rule-width', '1pt');
+        el.style.setProperty('--md-columns-rule-color', '#ccc');
         el.style.columnRule = '1pt solid #ccc';
+      } else {
+        el.style.removeProperty('--md-columns-rule-width');
+        el.style.removeProperty('--md-columns-rule-color');
       }
     });
   }
@@ -406,14 +558,17 @@ export class LayoutPreprocessor {
       switch(type) {
         case 'new-page':
           el.style.breakBefore = 'page';
+          el.style.pageBreakBefore = 'always';
           break;
         case 'odd-page':
         case 'right':
-          el.style.breakBefore = 'right';
+          el.style.breakBefore = 'page';
+          el.style.pageBreakBefore = 'always';
           break;
         case 'even-page':
         case 'left':
-          el.style.breakBefore = 'left';
+          el.style.breakBefore = 'page';
+          el.style.pageBreakBefore = 'always';
           break;
         case 'continuous':
           // No page break
@@ -429,7 +584,20 @@ export class LayoutPreprocessor {
   cleanupMarkers(doc) {
     // Remove marker divs that are no longer needed
     // (but keep them if they have styling applied)
-    doc.querySelectorAll('.table-layout-marker').forEach(el => el.remove());
+    doc.querySelectorAll('.table-layout-marker, .md-columns-token-start, .md-columns-token-end, .chapter-marker').forEach(el => el.remove());
+  }
+
+  removeResidualLayoutTokenText(doc) {
+    Array.from(doc.body.querySelectorAll('*')).forEach((element) => {
+      if (element.childElementCount > 0) return;
+      if (element.closest('code, pre')) return;
+
+      const text = (element.textContent || '').trim();
+      if (!text) return;
+      if (parseLayoutToken(text) || isTocPlaceholder(text)) {
+        element.remove();
+      }
+    });
   }
 
   /**

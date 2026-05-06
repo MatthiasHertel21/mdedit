@@ -30,7 +30,7 @@
 
 /* Named pages for special layouts */
 @page chapter {
-  margin-top: 5cm;
+  margin-top: 1.8cm;
 }
 
 /* ===== BASE TYPOGRAPHY ===== */
@@ -52,13 +52,25 @@
 
 /* ===== HEADINGS ===== */
 
+.print-content .chapter-start {
+  page: chapter;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .chapter-start > :first-child {
+  margin-top: 0;
+}
+
 .print-content h1 {
   font-size: 24pt;
   font-weight: 700;
   margin-top: 0;
-  margin-bottom: 18pt;
+  margin-bottom: 12pt;
   break-after: avoid;
   page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
   color: #000;
   letter-spacing: -0.02em;
 }
@@ -67,10 +79,48 @@
   font-size: 18pt;
   font-weight: 600;
   margin-top: 24pt;
-  margin-bottom: 12pt;
+  margin-bottom: 10pt;
   break-after: avoid;
   page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
   color: #000;
+}
+
+.print-content h1 + p,
+.print-content h1 + h2,
+.print-content h1 + h3,
+.print-content h1 + ul,
+.print-content h1 + ol,
+.print-content h1 + pre,
+.print-content h1 + table,
+.print-content h1 + blockquote,
+.print-content h1 + .math-block,
+.print-content h1 + .table-of-contents,
+.print-content h1 + .md-columns,
+.print-content h2 + p,
+.print-content h2 + ul,
+.print-content h2 + ol,
+.print-content h2 + table,
+.print-content h2 + pre,
+.print-content h2 + blockquote,
+.print-content h2 + .math-block,
+.print-content h3 + p,
+.print-content h3 + ul,
+.print-content h3 + ol,
+.print-content h3 + pre,
+.print-content h3 + table,
+.print-content h3 + blockquote,
+.print-content h3 + .math-block,
+.print-content h4 + p,
+.print-content h4 + ul,
+.print-content h4 + ol,
+.print-content h4 + pre,
+.print-content h4 + table,
+.print-content h4 + blockquote,
+.print-content h4 + .math-block {
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 .print-content h3 {
@@ -80,6 +130,8 @@
   margin-bottom: 9pt;
   break-after: avoid;
   page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
   color: #000;
 }
 
@@ -139,10 +191,42 @@
   padding-left: 1.5em;
 }
 
+.print-content ul {
+  list-style: none;
+}
+
+.print-content ol {
+  list-style: decimal;
+  list-style-position: outside;
+  padding-left: 2.2em;
+}
+
 .print-content li {
   margin-bottom: 10pt;
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+.print-content ul > li {
+  position: relative;
+  padding-left: 1.1em;
+}
+
+.print-content ul > li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.8em;
+}
+
+.print-content ol > li {
+  padding-left: 0;
+  margin-left: 0.35em;
+}
+
+.print-content ol > li::before {
+  content: none;
 }
 
 /* ===== BLOCKQUOTES ===== */
@@ -162,20 +246,21 @@
 .print-content code {
   font-family: 'Courier New', Courier, monospace;
   font-size: 9.5pt;
-  background: #f5f5f5;
+  background: #eceff3;
   padding: 2pt 4pt;
   border-radius: 2pt;
 }
 
 .print-content pre {
-  margin: 12pt 0;
-  padding: 12pt;
-  background: #f8f8f8;
-  border: 1pt solid #ddd;
+  margin: 14pt 0 16pt;
+  padding: 13pt 15pt;
+  background: #edf1f5;
+  border: 1pt solid #c9d2db;
+  border-left: 4pt solid #8d9baa;
   border-radius: 4pt;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 9pt;
-  line-height: 1.4;
+  font-size: 9.2pt;
+  line-height: 1.5;
   overflow-x: auto;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -184,6 +269,9 @@
 .print-content pre code {
   background: none;
   padding: 0;
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* ===== TABLES ===== */
@@ -193,6 +281,7 @@
   margin: 18pt 0;
   border-collapse: collapse;
   font-size: 10pt;
+  table-layout: fixed;
   break-inside: auto;
   page-break-inside: auto;
 }
@@ -207,11 +296,19 @@
   text-align: left;
   padding: 8pt;
   border: 1pt solid #ccc;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .print-content td {
   padding: 8pt;
   border: 1pt solid #ccc;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .print-content tr {
@@ -251,11 +348,8 @@
   text-decoration: underline;
 }
 
-/* Show URLs in print */
 .print-content a[href^="http"]:after {
-  content: " (" attr(href) ")";
-  font-size: 9pt;
-  color: #666;
+  content: none;
 }
 
 /* Don't show anchor links */
@@ -278,6 +372,14 @@
 /* Manual page break marker */
 .page-break,
 .page-break-before {
+  break-before: page;
+  page-break-before: always;
+}
+
+.page-break[data-break="odd"],
+.page-break[data-break="even"],
+.page-break[data-break="left"],
+.page-break[data-break="right"] {
   break-before: page;
   page-break-before: always;
 }
@@ -333,19 +435,37 @@
 
 /* Map preview columns to print columns */
 .print-content .md-columns {
-  columns: 2;
-  column-gap: 1.5cm;
-  column-rule: 1pt solid #ddd;
+  display: grid;
+  grid-template-columns: repeat(var(--md-columns-count, 2), minmax(0, 1fr));
+  gap: var(--md-columns-gap, 1.5cm);
   margin: 12pt 0;
+  align-items: start;
+  position: relative;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .md-columns[data-rule="true"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - (var(--md-columns-rule-width, 1pt) / 2));
+  width: var(--md-columns-rule-width, 1pt);
+  background: var(--md-columns-rule-color, #ddd);
 }
 
 .print-content .md-column {
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-inside: auto;
+  page-break-inside: auto;
   padding: 0;
   margin: 0 0 12pt 0;
   background: none;
   border: none;
+}
+
+.print-content .md-column > :first-child {
+  margin-top: 0;
 }
 
 /* ===== MERMAID DIAGRAMS ===== */
@@ -364,10 +484,47 @@
 
 /* ===== MATH (KaTeX) ===== */
 
-.print-content .katex-display {
+.print-content .math-block {
   margin: 18pt 0;
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+.print-content .katex,
+.print-content .katex * {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .katex {
+  white-space: nowrap;
+}
+
+.print-content .katex .katex-mathml {
+  display: none !important;
+}
+
+.print-content .katex-display {
+  margin: 0;
+  text-align: center;
+  overflow: visible;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .katex-display > .katex {
+  display: block;
+  max-width: 100%;
+}
+
+.print-content .katex > .katex-html,
+.print-content .katex-display .katex-html {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.print-content .katex-display .katex-html {
+  white-space: nowrap;
 }
 
 /* ===== SPECIAL ELEMENTS ===== */
@@ -414,11 +571,42 @@
 .print-content .table-of-contents ul {
   list-style-type: none;
   padding-left: 0;
+  margin: 0;
+}
+
+.print-content .table-of-contents ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.print-content .table-of-contents li + li {
+  margin-top: 6pt;
+}
+
+.print-content .table-of-contents ul > li {
+  padding-left: 0;
+}
+
+.print-content .table-of-contents ul > li::before,
+.print-content .table-of-contents ol > li::before {
+  content: none !important;
+}
+
+.print-content .table-of-contents ul ul {
+  margin-top: 6pt;
+  padding-left: 1.2em;
+}
+
+.print-content .table-of-contents ul ul ul {
+  padding-left: 2.2em;
 }
 
 .print-content .table-of-contents a {
+  display: block;
   text-decoration: none;
   color: #000;
+  text-align: left;
 }
 
 .print-content .table-of-contents a::after {
@@ -436,6 +624,10 @@
 
 .print-content .footnotes ol {
   padding-left: 1.5em;
+}
+
+.print-content .footnote-backref {
+  display: none;
 }
 
 /* ===== DEBUG / DEVELOPMENT ===== */

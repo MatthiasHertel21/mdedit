@@ -61,11 +61,12 @@ export class LayoutCSSGenerator {
     css += `
 
 @page chapter {
-  margin-top: 5cm;
+  margin-top: 1.8cm;
 }
 
-.chapter-marker + * {
+.chapter-start {
   page: chapter;
+  break-inside: avoid;
 }`;
 
     return css;
@@ -217,12 +218,14 @@ export class LayoutCSSGenerator {
 .print-content li > * {
   font-family: inherit;
   line-height: inherit;
+  text-align: left;
 }
 
 /* Headings */
 .print-content h1, .print-content h2, .print-content h3, .print-content h4, .print-content h5, .print-content h6 {
   font-family: ${headings.fontFamily || body.fontFamily};
   color: ${headings.color};
+  text-align: left;
   text-indent: 0;
   margin-left: 0;
   padding-left: 0;
@@ -266,7 +269,7 @@ export class LayoutCSSGenerator {
   text-decoration: underline;
 }`;
 
-    if (links.showUrls) {
+    if (links.showUrls && name !== 'scientific') {
       css += `
 
 .print-content a[href^="http"]:after {
@@ -310,6 +313,7 @@ ${selector} {
   font-family: ${layout.typography.body.fontFamily};
   font-size: ${tLayout.fontSize};
   line-height: ${layout.typography.body.lineHeight};
+  ${name === 'scientific' ? 'table-layout: fixed;' : ''}
   break-inside: auto;
   page-break-inside: auto;
   ${tLayout.borderTop ? `border-top: ${tLayout.borderTop.width} solid ${tLayout.borderTop.color};` : ''}
@@ -330,6 +334,10 @@ ${selector} th {
   font-family: inherit;
   line-height: inherit;
   vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
   ${tLayout.headerBorderBottom ? `border-bottom: ${tLayout.headerBorderBottom.width} solid ${tLayout.headerBorderBottom.color};` : ''}
 }
 
@@ -340,6 +348,10 @@ ${selector} td {
   font-family: inherit;
   line-height: inherit;
   vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }`;
 
       css += `
@@ -425,7 +437,7 @@ ${selector} caption {
 /* Spacing */
 .print-content ul, .print-content ol {
   margin: ${spacing.list} 0;
-  padding-left: 0;
+  padding-left: ${spacing.listIndent};
 }
 
 .print-content ul {
@@ -433,19 +445,23 @@ ${selector} caption {
 }
 
 .print-content ol {
-  list-style: none;
-  counter-reset: print-list-item;
+  list-style: decimal;
+  list-style-position: outside;
+  padding-left: calc(${spacing.listIndent} + 0.7em);
 }
 
 .print-content li {
-  position: relative;
-  padding-left: calc(${spacing.listIndent} - 0.1em);
   line-height: inherit;
+  text-align: left;
   margin: 0 0 1pt;
 }
 
-.print-content ul > li::before,
-.print-content ol > li::before {
+.print-content ul > li {
+  position: relative;
+  padding-left: calc(${spacing.listIndent} - 0.1em);
+}
+
+.print-content ul > li::before {
   position: absolute;
   left: 0;
   top: 0;
@@ -461,15 +477,17 @@ ${selector} caption {
 }
 
 .print-content ol > li {
-  counter-increment: print-list-item;
+  padding-left: 0;
+  margin-left: 0.45em;
 }
 
 .print-content ol > li::before {
-  content: counter(print-list-item) ".";
+  content: none;
 }
 
 .print-content li > p {
   margin: 0;
+  text-align: left;
 }
 
 .print-content blockquote {

@@ -23,6 +23,10 @@
 - [Citations Implementation Plan](concepts/citations-implementation-plan.md)
 - [Citations UX Concept](concepts/citations-ux-concept.md)
 
+## Planning
+
+- [Scientific Documents Plan](planning/scientific-documents-plan.md)
+
 ## Examples and Testing
 
 - [Example Document](examples/example.md)

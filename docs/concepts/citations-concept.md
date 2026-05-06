@@ -1,370 +1,379 @@
-# Citations Concept
+# Scientific Documents & Citations Concept
 
-Stand: 2026-05-03
-Status: Analyse und Zielbild, keine Implementierung in diesem Schritt.
+Stand: 2026-05-06
+Status: Zielbild und Produkt-/Architekturkonzept, keine Implementierung in diesem Schritt.
 
 ## Ziel
 
-mdedit soll fuer wissenschaftliche Arbeiten nutzbar werden.
-Das schliesst ein:
+mdedit soll fuer laengere wissenschaftliche Arbeiten belastbar nutzbar werden.
+Das Ziel ist nicht nur "Markdown mit gutem PDF-Export", sondern ein reproduzierbarer Thesis-Workflow.
 
-- standardkonforme Zitation im Text
-- automatische Erzeugung eines Literaturverzeichnisses
-- optionale Ausgabe in Fussnotenstilen
-- reproduzierbare Exporte nach PDF und DOCX
-- eine Vorschau, die moeglichst nah am Export liegt
+Im Kern braucht mdedit dafuer drei Dinge:
+
+- belastbare wissenschaftliche Metadaten
+- referenzierbare Dokumentsemantik
+- exportnahe, fachlich korrekte PDF- und DOCX-Pfade
+
+## Leitthese
+
+Fuer wissenschaftliche Dokumente fehlen mdedit heute weniger Layout-Funktionen als semantische Dokumentfunktionen.
+
+Das Produkt hat bereits starke Bausteine fuer Druck und PDF:
+
+- paged Preview mit Paged.js und Chromium
+- Layoutmodell fuer wissenschaftsnahe Dokumente
+- Pandoc-basierte Exportpfade
+- Markdown-Attribute, Tabellen, Mermaid, KaTeX, TOC und Layoutmarker
+
+Die Luecke liegt heute vor allem in:
+
+- echtem YAML-Frontmatter mit sauberer Preview
+- nativen Captions, Labels und Cross-References
+- automatischer Nummerierung
+- belastbaren Zitations- und Literaturpfaden
+- echten seitengebundenen Fussnoten fuer note-style Anwendungsfaelle
+
+## Produktbild
+
+mdedit soll fuer wissenschaftliche Dokumente einen eigenen Modus erhalten.
+
+Dieser Modus ist kein zweiter Editor, sondern eine Schicht ueber dem bestehenden Markdown- und Layoutsystem.
+
+Er besteht aus drei Ebenen:
+
+1. Metadatenebene
+2. Dokumentsemantik
+3. Exportpfade
 
 ## Verifizierter Ist-Zustand
 
 ### Bereits vorhanden
 
-- Markdown-Fussnoten in Vorschau und Druck-CSS
-- PDF- und DOCX-Export ueber Pandoc
+- Markdown-Vorschau mit `markdown-it`
+- PDF- und DOCX-Export ueber Pandoc-basierte Pfade
 - paged / druckechte Visualisierung mit Paged.js und Chromium
 - Layout-Konfiguration fuer wissenschaftsnahe Dokumente
+- Markdown-Fussnoten in Vorschau und Druck-CSS
+- Tabellenlayouts, Mermaid und KaTeX
 
 ### Verifizierte Grenzen
 
-- Der aktuelle Paged-Chromium-Pfad rendert nur das uebergebene HTML.
-- Rohe Pandoc-Zitationssyntax wie `[@doe2020, p. 5]` wird im Chromium-PDF unveraendert gedruckt, wenn sie nicht vorher aufgeloest wurde.
-- Ein zentrales Literaturverzeichnis funktioniert im Paged-Chromium-Modus, wenn das HTML vorher mit Pandoc `--citeproc` erzeugt wurde.
-- Echte seitengebundene Zitat-Fussnoten funktionieren im aktuellen Paged-Chromium-Stack nicht belastbar.
-- Die vorhandene Fussnoten-Darstellung ist derzeit eine normale Endnoten-/Fussnoten-Sektion im Dokumentfluss, keine echte Druck-Fussnote am Seitenende.
+- YAML-Frontmatter wird in der Live-Vorschau heute nicht als Frontmatter behandelt.
+- Der bestehende `layout`-Block am Dokumentende ist fuer Layout gut geeignet, aber kein Ersatz fuer wissenschaftliche Dokumentmetadaten.
+- Rohsyntax wie Pandoc-Zitationen oder Referenzmarker wird in der Browser-Vorschau nicht semantisch aufgeloest.
+- Captions, Nummerierung, Listenverzeichnisse und Cross-References sind teilweise im Schema vorbereitet, aber nicht end-to-end abgesichert.
+- Die vorhandene Fussnoten-Darstellung ist eine Endnoten-/Fussnoten-Sektion im Dokumentfluss, keine echte Seitenfussnote.
+- Echte seitengebundene Zitat-Fussnoten sind im aktuellen Paged-Chromium-Stack nicht belastbar zusagbar.
 
 ## Schlussfolgerung
 
-Es gibt zwei klar zu trennende Aufgaben:
+Es gibt zwei unterschiedliche Problemklassen, die getrennt behandelt werden muessen:
 
-1. Zitation fachlich korrekt aufloesen.
-2. Das aufgeloeste Ergebnis druckgetreu rendern.
+1. semantische Dokumentmodellierung
+2. fachlich korrekte Exportverarbeitung
 
-Der zweite Teil ist mit Paged/Chromium fuer normale Literaturverzeichnisse bereits tragfaehig.
-Der erste Teil muss vor dem Paged-Export passieren.
+Die erste Klasse betrifft Frontmatter, Labels, Captions, Nummerierung, Cross-References, Appendix-Logik und Autorenkommentare.
+Die zweite Klasse betrifft Citeproc, DOCX-/PDF-Pfade und echte Fussnotenstile.
 
-## Zielarchitektur
+Beides haengt zusammen, sollte aber nicht in einer einzelnen ad-hoc Exportfunktion vermischt werden.
 
-### Normativer Kern
+## Normative Leitentscheidungen
 
-Pandoc mit Citeproc ist die normative Instanz fuer wissenschaftliche Zitationen.
+### 1. Pandoc + Citeproc bleibt die normative Zitationsinstanz
+
+mdedit soll keine eigene wissenschaftliche Zitationslogik im Frontend aufbauen.
 
 Begruendung:
 
 - Pandoc versteht Zitationssyntax, YAML-Metadaten und Bibliografiedateien.
 - CSL liefert standardisierte Stildefinitionen.
-- Dieselbe Quelle kann fuer Autor-Jahr-, numerische und Fussnotenstile genutzt werden.
-- DOCX und PDF koennen aus demselben Zitationsmodell erzeugt werden.
+- Dieselbe Quelle kann fuer PDF und DOCX genutzt werden.
+- wissenschaftliche Stilregeln gehoeren nicht in CSS-Heuristiken des Frontends.
 
-### Empfohlene Verarbeitungskette
+### 2. Wissenschaftliche Metadaten brauchen echtes YAML-Frontmatter
 
-#### Fall A: Paged PDF mit Literaturverzeichnis
+Wissenschaftliche Metadaten sollen nicht in einem proprietaeren `layout`-Block versteckt werden.
 
-`Markdown + YAML + Bibliografie -> Pandoc --citeproc -> HTML -> Paged/Chromium -> PDF`
+Begruendung:
 
-Eigenschaften:
+- Titel, Autoren, Sprache, Bibliografie, CSL und Referenzsektion sind semantische Dokumentdaten.
+- sie muessen fuer Pandoc/Citeproc unveraendert verarbeitbar bleiben
+- sie muessen exportorientiert und spaeter auch UI-seitig editierbar sein
 
-- fachlich korrekte Zitationsaufloesung
-- druckechtes Layout ueber vorhandenen Paged-Modus
-- Literaturverzeichnis an definierter Stelle moeglich
-- konsistent fuer seitenorientierte PDF-Ausgabe
+### 3. Captions, Labels, Nummerierung und Cross-References sind ein gemeinsames System
 
-#### Fall B: DOCX-Export
+Diese Funktionen sollen nicht separat und nacheinander als Einzeltricks gebaut werden.
 
-`Markdown + YAML + Bibliografie -> Pandoc --citeproc -> DOCX`
+Begruendung:
 
-Eigenschaften:
+- eine Caption ohne Label ist fuer Thesen nur halb nutzbar
+- eine Nummerierung ohne Referenzauflosung bleibt fehleranfaellig
+- Mermaid, Bilder und Tabellen sollen auf dieselbe Referenzlogik aufsetzen
 
-- fachlich korrekte Zitationsaufloesung
-- Literaturverzeichnis direkt im DOCX
-- spaetere Nutzung von `reference.docx` fuer Hochschulvorlagen moeglich
+### 4. Echte Fussnotenstile brauchen einen separaten PDF-Pfad
 
-#### Fall C: Note-Style-Zitationen als echte Seitenfussnoten
+Note-style-Anwendungsfaelle sollen nicht ueber denselben Paged-Chromium-Pfad versprochen werden wie Literaturverzeichnis-orientierte Stile.
 
-Nicht ueber den aktuellen Paged-Chromium-Pfad absichern.
+Begruendung:
 
-Stattdessen bevorzugt:
+- echte Seitenfussnoten sind im aktuellen HTML/Paged-Stack nicht belastbar genug
+- ein LaTeX-basierter Pandoc-Pfad ist dafuer fachlich sauberer
 
-- LaTeX-basierter Pandoc-PDF-Export fuer echte Fussnotenstile (XeLaTeX ist bereits im Docker-Image enthalten, kein zusaetzlicher Installationsaufwand)
-- alternativ spaetere gesonderte Evaluierung eines anderen HTML/PDF-Stacks mit belastbarer Footnote-Float-Unterstuetzung
+## Zielarchitektur
 
-## Datenmodell
+### Ebene A: Metadaten
 
-Das Zitationsmodell besteht aus drei Teilen: dem Markdown-Dokument mit YAML-Frontmatter, den Bibliografiedateien und dem CSL-Stil. Diese Teile sind separate Ressourcen, die erst beim Export durch Pandoc/Citeproc zusammengefuehrt werden. Kein Teil enthaelt Formatierungslogik; die Darstellung wird ausschliesslich durch CSL bestimmt.
-
-## Dokumentquelle
-
-Die Dokumentquelle bleibt Markdown.
-Fuer wissenschaftliche Dokumente wird echtes YAML-Frontmatter benoetigt.
+mdedit unterstuetzt wissenschaftliche Dokumentmetadaten ueber echtes YAML-Frontmatter am Dokumentanfang.
 
 Beispiel:
 
 ```yaml
 ---
-title: Beispielarbeit
+title: Titel der Masterarbeit
 author:
   - Max Mustermann
+date: 2026-05-06
 lang: de-DE
 bibliography:
-  - refs.bib
-csl: apa.csl
+  - bibliography/references.bib
+csl: csl/apa.csl
 reference-section-title: Literaturverzeichnis
 link-citations: true
 link-bibliography: true
 ---
 ```
 
-Danach folgt normales Markdown mit Pandoc-Zitationssyntax.
+Der bestehende `layout`-Block bleibt erhalten, aber mit klar getrennter Rolle:
 
-Beispiel:
+- Frontmatter fuer Dokumentmetadaten und Exportsemantik
+- `layout`-Block fuer Seitenlayout, Typografie und Print-Optionen
+
+Beide Formate koexistieren im selben Dokument.
+
+### Ebene B: Dokumentsemantik
+
+Das wissenschaftliche Dokumentmodell soll folgende semantische Objekte kennen:
+
+- Sections / Kapitel
+- Tabellen
+- Abbildungen
+- Mermaid-Diagramme
+- Formeln
+- Appendix-Eintraege
+
+Jedes Objekt kann spaeter folgende Eigenschaften tragen:
+
+- optionale ID / Label
+- optionale Caption
+- automatische Nummer
+- referenzierbarer Typ
+
+Beispielhafte Zielsyntax:
 
 ```md
-Der Befund ist seit laengerem beschrieben [@doe2020, S. 15-18].
-
-::: {#refs}
-:::
+![Systemarchitektur](architektur.png){#fig:architektur width=80%}
+: Abbildung: Systemarchitektur der Anwendung
 ```
 
-## Koexistenz von YAML-Frontmatter und Layout-Block
-
-mdedit verwendet ` ```layout``` `-Bloecke am Dokumentende fuer Layout-Konfiguration. Wissenschaftliche Dokumente benoetigen zusaetzlich echtes YAML-Frontmatter am Dokumentanfang. Beide koennen in einem Dokument koexistieren:
-
-- das `---`-Frontmatter steht ganz oben und wird serverseitig durch Pandoc gelesen
-- der ` ```layout``` `-Block steht am Ende und wird clientseitig durch `document-layout.js` gelesen
-- beide Parser arbeiten unabhaengig voneinander, es gibt keinen Konflikt
-
-Konsequenz fuer die Implementierung: Editoroperationen wie Metadaten-Aktualisierung muessen den YAML-Frontmatter-Block erhalten und duerfen ihn nicht entfernen oder ueberschreiben. Der Dokumentdialog fuer wissenschaftliche Metadaten muss gezielt in den Frontmatter-Block schreiben, nicht in den Layout-Block.
-
-## Bibliografische Quellen
-
-Unterstuetzte Formate im Zielbild:
-
-- BibTeX / BibLaTeX
-- CSL JSON
-- CSL YAML
-- RIS
-
-Empfehlung fuer den Start:
-
-- primaer `.bib`
-- optional spaeter CSL JSON fuer API-getriebene Quellenverwaltung
-
-## Ablagevarianten
-
-### Variante 1: Dokumentlokal
-
-- jedes Dokument referenziert eigene Bibliografiedateien
-- hohe Portabilitaet
-- einfacher Start
-
-### Variante 2: Projektweit zentral
-
-- ein gemeinsames Literaturverzeichnis pro Projekt oder Workspace
-- mehrere Dokumente koennen dieselbe Datenbasis nutzen
-- besser fuer Abschlussarbeiten und laengere Manuskripte
-
-### Empfehlung
-
-Fuer MVP und erste Implementierung:
-
-- eine zentrale Bibliografiedatei an einem festen Pfad im Server-Datenverzeichnis, referenziert im Dokument-Frontmatter
-
-Hinweis: "projektweite Bibliografie" bezeichnet in mdedit eine Datei an einem vereinbarten Pfad relativ zum Server-Datenverzeichnis (z.B. `bibliography/references.bib`). Ein allgemeines Projektkonzept existiert in mdedit derzeit nicht und ist keine Voraussetzung fuer diese Stufe.
-
-Beispiel:
-
-```yaml
-bibliography:
-  - bibliography/references.bib
+```md
+````mermaid {#fig:prozess caption="Forschungsprozess"}
+flowchart LR
+  A[Problem] --> B[Methode] --> C[Ergebnis]
+````
 ```
 
-Das ist fachlich sinnvoll, einfach zu sichern und kompatibel mit Pandoc.
+```md
+Wie in @fig:architektur dargestellt ...
+Siehe Kapitel @sec:methodik.
+```
 
-## Stilmodell
+### Ebene C: Exportpfade
 
-Die Darstellung darf nicht durch eigene Heuristiken im Frontend definiert werden.
-Stattdessen steuert ausschliesslich CSL den Ausgabestil.
+#### Fall A: Paged PDF mit Literaturverzeichnis
 
-Relevante Stilklassen:
-
-- Autor-Jahr mit Literaturverzeichnis
-- numerisch mit Literaturverzeichnis
-- Note Style mit Zitat-Fussnoten
-
-Konsequenz:
-
-- ein Wechsel des Zitationsstils darf ohne Aenderung des Markdown-Quelltexts moeglich sein
-- manuelle Markdown-Fussnoten fuer Literaturzitate sind keine bevorzugte Dauerloesung
-
-## Vorschaukonzept
-
-Die Vorschau hat im Zitationsmodell eine andere Rolle als der Export. Der Export ist normativ: er erzeugt das wissenschaftlich korrekte Dokument. Die Vorschau ist pragmatisch: sie unterstuetzt den Schreibfluss, muss aber nicht in jeder Phase mit dem Export identisch sein.
-
-## Phase 1: Export ist normativ, Vorschau ist pragmatisch
-
-In der ersten Ausbaustufe ist nicht erforderlich, dass die Live-Vorschau alle Zitationen final formatiert.
-Wichtig ist, dass die Exporte fachlich korrekt sind.
-
-Zulaessige Zwischenloesungen:
-
-- rohe Zitationssyntax in der normalen Vorschau
-- optional eine vereinfachte Darstellung fuer Zitationsmarker
-
-## Phase 2: Zitationsnahe Vorschau
-
-Spaeter moegliche Varianten:
-
-- serverseitige Vorschau ueber Pandoc+Citeproc auf HTML
-- clientseitige Zitationsverarbeitung mit separatem Citation-Processor
-
-Empfehlung:
-
-- fuer wissenschaftliche Zuverlaessigkeit eher serverseitige Vorschau fuer den finalen Exportmodus
-
-## Exportstrategie
-
-## PDF-Strategie
-
-### Standardfall fuer wissenschaftliche Arbeiten mit Literaturverzeichnis
-
-Nutze:
-
-- Pandoc `--citeproc` fuer die Zitationsaufloesung
-- HTML als Zwischenformat
-- danach Paged/Chromium fuer druckechte PDF-Erzeugung
+`Markdown + YAML + Bibliografie -> Pandoc --citeproc -> HTML -> Paged/Chromium -> PDF`
 
 Geeignet fuer:
 
 - Autor-Jahr-Stile
 - numerische Stile
-- zentrales Literaturverzeichnis
-- reproduzierbares Layout auf A4-Seiten
+- Literaturverzeichnis-orientierte wissenschaftliche Dokumente
+- druckechtes Seitenlayout
 
-### Sonderfall echte Fussnotenstile
+#### Fall B: DOCX-Export
 
-Wenn der Stil echte seitengebundene Zitat-Fussnoten verlangt, ist ein zweiter PDF-Pfad vorzusehen:
+`Markdown + YAML + Bibliografie -> Pandoc --citeproc -> DOCX`
 
-- Pandoc `--citeproc`
-- PDF direkt ueber LaTeX-Engine
+Geeignet fuer:
 
-Begruendung:
+- Word-kompatible wissenschaftliche Texte
+- spaetere Hochschulvorlagen per `reference.docx`
 
-- akademische Note-Styles verlangen oft echte Fussnoten am Seitenende
-- dies ist mit dem aktuellen Paged-Chromium-Stack nicht ausreichend abgesichert
+#### Fall C: PDF fuer echte Fussnotenstile
 
-## DOCX-Strategie
+`Markdown + YAML + Bibliografie -> Pandoc --citeproc -> PDF via LaTeX`
 
-Nutze:
+Geeignet fuer:
 
-- Pandoc `--citeproc`
-- spaeter optional `--reference-doc` fuer instituts- oder hochschulspezifische Formatvorlagen
+- note-style CSL
+- echte seitengebundene Zitat-Fussnoten
+- Szenarien mit hoher Fussnotenanforderung
 
-## Bedienkonzept
+## Funktionsumfang des wissenschaftlichen Dokumentmodus
 
-## Dokumentmetadaten
+### Prioritaet 1
 
-Erforderlich:
+- echtes YAML-Frontmatter
+- BibTeX/CSL-Workflow ueber Pandoc/Citeproc
 
-- Feld fuer Bibliografie-Datei(en)
-- Feld fuer CSL-Stil
-- Feld fuer Sprache / Locale
-- optional Titel fuer das Literaturverzeichnis
+### Prioritaet 2
 
-Diese Daten sollten nicht in einem proprietaeren Layout-Block versteckt werden, sondern als echtes YAML-Frontmatter oder als gleichwertige Metadatenquelle vorliegen.
+- nativer Referenzkern fuer Captions, Labels, Nummerierung und Cross-References
+- wissenschaftliche Exportmodi im UI
+- exportnahe serverseitige Vorschau fuer wissenschaftliche Dokumente
+- Appendix-Modus
+- Tabellen-Metadaten fuer Caption, ID, Breite und Sonderlayout
 
-## Zitationshilfe im Editor
+### Prioritaet 3
 
-Sinnvolle Komfortfunktionen:
+- wissenschaftliche Spezialcontainer wie `definition`, `theorem`, `example`, `research-question`
+- TOC-Optionen direkt im Markdown
+- offizielle Autorenkommentar-Syntax
 
-- Einfuegen eines Zitationsschluessels aus vorhandener Bibliografie
-- Suche nach Quelle anhand Autor, Titel, Jahr
-- Einfuegen von Lokatoren wie `p.`, `pp.`, `chap.`
-- Einfuegen eines `refs`-Blocks fuer Literaturverzeichnisse
+## Empfehlungen zu Syntax und Scope
 
-## Stilumschaltung
+### Frontmatter
 
-Die UI sollte eine Stilumschaltung erlauben, ohne das Dokument umzuschreiben.
+Frontmatter ist die offizielle Syntax fuer wissenschaftliche Metadaten.
 
-Beispielhafte Modi:
+### Autorenkommentare
 
-- APA / Harvard / Chicago author-date
-- IEEE / Vancouver numerisch
-- Chicago Notes / vergleichbare Fussnotenstile
+Autorenkommentare sollen nicht auf rohe HTML-Kommentare aufsetzen, weil HTML-Kommentare im bestehenden Layout-Preprocessor bereits fuer Layoutmarker verwendet werden.
+Zugleich ist `%%` innerhalb von Mermaid-Diagrammen bereits als Kommentarsyntax belegt; eine globale Autorenkommentar-Syntax darf deshalb nicht unscoped dieselben Marker wiederverwenden.
+
+Bevorzugte Zielrichtung:
+
+- eigener semantischer Container oder klar abgegrenzte Syntax ausserhalb von Code-Fences
+- keine unscoped Wiederverwendung von `%%`, um Konflikte mit Mermaid-Kommentaren zu vermeiden
+
+### Captions
+
+Captions sollen fuer Bilder, Tabellen und Mermaid auf dasselbe Modell aufsetzen.
+
+### Cross-References
+
+Cross-References sollen fuer mindestens folgende Typen vorgesehen werden:
+
+- `@sec:...`
+- `@fig:...`
+- `@tbl:...`
+- spaeter `@eq:...` und `@app:...`
+
+### TOC
+
+Der aktuelle `[[toc]]`-Mechanismus bleibt kompatibel.
+Erweiterte TOC-Optionen sind sinnvoll, aber nicht Blocker fuer den wissenschaftlichen MVP.
+
+### Appendix
+
+Ein offizieller Appendix-Modus ist fachlich sinnvoll, aber nach Nummerierung und Referenzmodell zu priorisieren.
+
+## Vorschaukonzept
+
+### Phase 1
+
+Normativ ist der Export, nicht die normale Live-Vorschau.
+
+Zulaessige Zwischenstufe:
+
+- Frontmatter wird in der Preview nicht als normaler Dokumentinhalt gerendert
+- Referenzmarker koennen in der normalen Preview zunaechst roh oder vereinfacht erscheinen
+- der Export erzeugt das fachlich korrekte Ergebnis
+
+### Phase 2
+
+Spaeter moegliche Varianten:
+
+- serverseitige exportnahe Vorschau fuer wissenschaftliche Dokumente
+- Paged Preview auf Basis serverseitig erzeugten, semantisch aufgeloesten HTMLs
+
+Empfehlung:
+
+- fuer wissenschaftliche Zuverlaessigkeit eher serverseitige Vorschau als eigene Frontend-Heuristiken
 
 ## Nicht-Ziele im ersten Schritt
 
 - eigener Citation-Formatter im Frontend
+- perfekte WYSIWYG-Vorschau fuer alle Zitationsstile in jeder Tippbewegung
+- proprietaere Parallelsyntax fuer bibliografische Kerndaten ohne YAML-Kompatibilitaet
 - automatische Konvertierung freier Literaturangaben in strukturierte Datensaetze
-- perfekte WYSIWYG-Vorschau fuer alle Zitationsstile
-- echte Seitenfussnoten im Chromium-Paged-Export ohne separaten Spezialpfad
+- echte Seitenfussnoten im Chromium-Paged-Export ohne Spezialpfad
 
 ## Technische Konsequenzen fuer mdedit
 
-## Noetige Aenderungen am Exportpfad
+### Noetige Aenderungen an der Dokumentstruktur
 
-- Der Markdown-Fallback fuer wissenschaftliche Dokumente darf nicht auf `gfm` als Eingabeformat begrenzt bleiben.
-- Fuer Zitationsdokumente muss ein Pandoc-faehiger Reader mit `citations` verwendet werden.
-- Vor dem Paged-Chromium-PDF muss Citeproc auf Markdown und Bibliografie angewandt werden.
-- Der HTML-Exportpfad fuer Paged-PDF wird damit semantisch aufgewertet: nicht nur gerendertes Preview-HTML, sondern citeproc-verarbeitetes Export-HTML.
+- echtes YAML-Frontmatter in Preview und Export erkennen
+- Editoroperationen frontmatter-sicher machen
+- `layout`-Block und Frontmatter strikt trennen
 
-## Noetige Aenderungen an der Dokumentstruktur
+### Noetige Aenderungen am semantischen Modell
 
-- echtes YAML-Frontmatter unterstuetzen
-- Bibliografie- und CSL-Ressourcen im Exportpfad aufloesen
-- Platzierung des Literaturverzeichnisses ueber `#refs` oder Dokumentende unterstuetzen
+- Labels fuer referenzierbare Objekte einfuehren
+- Caption-/Nummerierungslogik auf Bilder, Tabellen und Mermaid ausdehnen
+- Cross-Reference-Aufloesung vorbereiten
+- Appendix- und spaeter Gleichungsnummerierung anschlussfaehig gestalten
 
-## Noetige Aenderungen fuer Fussnotenstile
+### Noetige Aenderungen am Exportpfad
 
-- bei note-style CSL nicht automatisch denselben PDF-Pfad wie fuer Autor-Jahr verwenden
-- stattdessen Stilklasse erkennen oder explizit vom Nutzer waehlbar machen:
-  - `paged-html` fuer Literaturverzeichnis-orientierte Stile
-  - `latex-footnotes` fuer echte Fussnotenstile
+- Pandoc-Reader fuer wissenschaftliche Dokumente korrekt waehlen
+- Frontmatter, Bibliografie und CSL aufloesen
+- citeproc-verarbeitetes HTML fuer Paged-PDF erzeugen
+- separaten PDF-Pfad fuer note-style-Fussnoten etablieren
 
 ## Risiken
 
-- Uneinheitliche Vorschau, wenn Export schon citeproc nutzt, die Live-Vorschau aber noch nicht
-- Pfad- und Ressourcenprobleme bei externen `.bib`- oder `.csl`-Dateien
-- Erwartungsbruch, wenn Nutzer bei note-style Zitationen echte Seitenfussnoten erwarten, aber nur Endnoten erhalten
-- spaetere Komplexitaet bei Mehrdokument-Projekten mit gemeinsamer Bibliografie
+- Erwartungsbruch, wenn Preview und Export semantisch unterschiedlich weit sind
+- Pfad- und Ressourcenprobleme bei `.bib`- und `.csl`-Dateien
+- halbfertige Caption-/Nummerierungsfeatures ohne Referenzkern erzeugen mehr Verwirrung als Nutzen
+- Appendix- und Fussnotenfunktionen koennen leicht zu frueh versprochen werden
+- Namenskonflikt mit bestehendem `preset-scientific`: Der CSS-Preset `preset-scientific` in `app.js` und `styles.css` ist ein rein visuelles Typo-Preset ohne dokumentsemantische Bedeutung. Der neue wissenschaftliche Dokumentmodus muss einen davon klar getrennten Bezeichner und eine eigene Zustandsrepraesentation erhalten, um Kollisionen im Code und in der UI zu vermeiden.
 
 ## Empfehlung fuer die Umsetzung
 
-## Phase 1
+### Phase 1
 
-- echtes YAML-Frontmatter fuer wissenschaftliche Metadaten
-- Bibliografie-Datei und CSL-Stil im Export unterstuetzen
-- PDF-Pfad fuer `Markdown -> Pandoc citeproc -> HTML -> Paged/Chromium -> PDF`
-- DOCX-Pfad fuer `Markdown -> Pandoc citeproc -> DOCX`
-- Literaturverzeichnis ueber `#refs` oder Dokumentende
+- YAML-Frontmatter offiziell einfuehren
+- wissenschaftliche Exportmetadaten verarbeiten
+- Citeproc fuer PDF/DOCX produktiv machen
 
-Ergebnis:
+### Phase 2
 
-- wissenschaftlich brauchbare Arbeiten mit zentralem Literaturverzeichnis
-- druckechte PDF-Ausgabe fuer die meisten Stile ohne Fussnotenpflicht
+- Referenzmodell fuer Sections, Bilder, Tabellen und Mermaid einfuehren
+- automatische Nummerierung und Cross-References aufbauen
+- native Captions anschliessen
 
-## Phase 2
+### Phase 3
 
-- UI fuer Bibliografie-Auswahl und Zitationshilfe
-- serverseitige exportnahe Zitationsvorschau
-- projektweite Quellenverwaltung
+- wissenschaftliche Exportmodi, Appendix, Fussnotenpfad und exportnahe Vorschau ausbauen
 
-## Phase 3
+## Akzeptanzkriterien fuer das Zielbild
 
-- separater PDF-Pfad fuer note-style Zitationen mit echten Seitenfussnoten
-- optionale Hochschulvorlagen fuer DOCX und PDF
-
-## Akzeptanzkriterien
-
-- Ein Dokument mit Pandoc-Zitationssyntax und `.bib`-Datei erzeugt in PDF und DOCX korrekt formatierte Zitate.
-- Ein `#refs`-Platzhalter fuehrt im Export zu einem Literaturverzeichnis an definierter Stelle.
-- Derselbe Quelltext kann mit anderem CSL-Stil ohne manuelle Textaenderungen neu ausgegeben werden.
-- Der Paged-Chromium-PDF-Pfad ist fuer Literaturverzeichnis-orientierte Stile belastbar.
-- Note-Style-Zitationen werden nicht ueber denselben Pfad versprochen, solange echte Seitenfussnoten dort nicht abgesichert sind.
+- Ein wissenschaftliches Dokument kann gleichzeitig YAML-Frontmatter und `layout`-Block enthalten, ohne dass einer den anderen zerstoert.
+- PDF und DOCX koennen ein Dokument mit Pandoc-Zitationssyntax, `.bib` und `.csl` fachlich korrekt exportieren.
+- Bilder, Tabellen und Mermaid-Diagramme koennen mit IDs und Captions referenzierbar gemacht werden.
+- Kapitel-, Tabellen- und Abbildungsnummern werden stabil und reproduzierbar erzeugt.
+- Cross-References koennen im Export in nummerierte Referenzen aufgeloest werden.
+- note-style-Fussnoten werden nicht ueber denselben Paged-PDF-Pfad versprochen wie Literaturverzeichnis-Stile.
 
 ## Entscheidungsvorlage
 
-Fuer mdedit ist die fachlich und technisch sauberste Richtung:
+Die fachlich und technisch sauberste Richtung fuer mdedit ist:
 
+- wissenschaftliche Dokumente als eigenen Produktmodus behandeln
 - Zitationslogik an Pandoc+Citeproc delegieren
-- Paged/Chromium fuer druckechte PDF-Ausgabe mit zentralem Literaturverzeichnis verwenden
+- Referenzmodell zentral fuer Captions, Nummerierung und Verweise aufbauen
+- Paged/Chromium fuer Literaturverzeichnis-orientierte Stile nutzen
 - echte Fussnotenstile ueber einen separaten PDF-Pfad behandeln
 
-Damit wird keine proprietaere Zitationslogik aufgebaut, und die vorhandene Druckvisualisierung kann dort genutzt werden, wo sie belastbar ist.
+Damit entwickelt sich mdedit von "Markdown mit gutem PDF-Export" zu einem belastbaren wissenschaftlichen Markdown-Workflow.

@@ -102,9 +102,17 @@ const sanitizeRenderedHtml = (html) => {
     Array.from(element.attributes).forEach((attribute) => {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim();
+      const insideKatex = element.closest(".katex, .katex-display") !== null;
 
-      if (name.startsWith("on") || name === "srcdoc" || name === "style") {
+      if (name.startsWith("on") || name === "srcdoc") {
         element.removeAttribute(attribute.name);
+        return;
+      }
+
+      if (name === "style") {
+        if (!insideKatex) {
+          element.removeAttribute(attribute.name);
+        }
         return;
       }
 

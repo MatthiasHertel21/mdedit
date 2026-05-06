@@ -23,6 +23,7 @@ services:
       - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-300}
       - MAX_PASTES_PER_SESSION=${MAX_PASTES_PER_SESSION:-100}
       - MAX_CONCURRENT_EXPORTS=${MAX_CONCURRENT_EXPORTS:-3}
+      - ENABLE_STATS_PAGE=${ENABLE_STATS_PAGE:-1}
       # Cleanup: delete sessions/pastes inactive for this many days (default 180)
       - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-180}
       # Storage quotas and disk-aware cleanup
