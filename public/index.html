@@ -336,24 +336,18 @@
       <div class="modal-body">
         <section id="tipsIntroCard" class="tips-intro-card" aria-label="mdedit.io intro">
           <div class="tips-hero-row">
-            <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
+            <div class="tips-brand-row">
+              <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
+              <span class="tips-beta-badge" data-i18n="tipsBetaBadge">Public Beta</span>
+            </div>
             <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">A no-account Markdown editor for longer documents</h3>
           </div>
           <p class="tips-intro-lead" data-i18n="tipsIntroLead">Write in Markdown and export print-ready pages without needing Word, LaTeX, or a desktop publishing tool.</p>
-          <div class="tips-feature-grid" aria-label="Core features">
-            <div class="tips-feature-item">
-              <strong data-i18n="tipsFeaturePrintTitle">Print-ready layouts</strong>
-              <span data-i18n="tipsFeaturePrintText">Paged view, headers, margins and document presets for reliable PDF output.</span>
-            </div>
-            <div class="tips-feature-item">
-              <strong data-i18n="tipsFeatureMarkupTitle">Technical writing built in</strong>
-              <span data-i18n="tipsFeatureMarkupText">Mermaid, KaTeX, tables, citations and structured markdown in one editor.</span>
-            </div>
-            <div class="tips-feature-item">
-              <strong data-i18n="tipsFeatureWorkflowTitle">Fast workflow</strong>
-              <span data-i18n="tipsFeatureWorkflowText">Live preview, outline, local autosave, collaboration and export without setup overhead.</span>
-            </div>
-          </div>
+          <ul class="tips-feature-list" aria-label="Core features">
+            <li data-i18n="tipsFeaturePrintBullet">Print-ready output without Word or LaTeX: lay out your text with page preview, headers, and margins.</li>
+            <li data-i18n="tipsFeatureMarkupBullet">Complex content with tables, formulas, images, and Mermaid diagrams.</li>
+            <li data-i18n="tipsFeatureWorkflowBullet">Fast teamwork: send one link and edit together.</li>
+          </ul>
           <div class="tips-cta-row">
             <button id="tipsDemoBtn" class="tips-cta-btn" type="button" data-i18n="tipsDemoCta">Open demo document</button>
             <button id="tipsStartBtn" class="tips-cta-btn is-preferred" type="button" data-i18n="tipsStartCta">Start writing</button>
@@ -375,12 +369,8 @@
               <span data-i18n="settingShowStartupTips">Tipps beim Start anzeigen</span>
             </label>
             <div class="tips-footer-meta">
-              <div class="tips-stat-inline">
-                <span class="tips-stat-label" data-i18n="tipsStoredDocsLabel">Documents currently stored</span>
-                <strong id="tipsDocumentCount" class="tips-stat-value">0</strong>
-              </div>
-              <button id="tipsImprintBtn" class="tips-inline-link" type="button" data-i18n="aboutImprint">Imprint</button>
               <a id="tipsHelpLink" class="tips-inline-link" href="/help-en.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
+              <button id="tipsImprintBtn" class="tips-inline-link tips-imprint-link" type="button" data-i18n="aboutImprint">Imprint</button>
             </div>
             <div class="tips-footer-buttons">
               <button id="nextTipBtn" class="btn-primary tips-next-btn">
