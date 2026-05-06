@@ -3281,13 +3281,6 @@ section {
 .tips-hero-row {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-}
-
-.tips-brand-row {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
 }
 
 .tips-hero-copy {
@@ -3297,6 +3290,19 @@ section {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+}
+
+.tips-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.tips-brand-row {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .tips-brand-lockup {
@@ -3628,6 +3634,12 @@ section {
 
   .tips-hero-copy {
     width: 100%;
+  }
+
+  .tips-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .tips-intro-title {
