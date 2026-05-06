@@ -3280,16 +3280,23 @@ section {
 
 .tips-hero-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
 }
 
 .tips-brand-row {
   display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.tips-hero-copy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  flex: 0 0 auto;
+  gap: 10px;
 }
 
 .tips-brand-lockup {
@@ -3315,11 +3322,11 @@ section {
 
 .tips-intro-title {
   margin: 0;
-  flex: 1 1 auto;
   font-size: 23px;
   line-height: 1.16;
   color: var(--primary);
-  max-width: 18ch;
+  max-width: none;
+  white-space: nowrap;
 }
 
 .tips-intro-text,
@@ -3332,10 +3339,10 @@ section {
 }
 
 .tips-intro-lead {
-  font-size: 22px;
-  line-height: 1.25;
-  color: var(--primary);
-  max-width: 26ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 64ch;
 }
 
 .tips-intro-body {
@@ -3619,13 +3626,18 @@ section {
     align-items: flex-start;
   }
 
+  .tips-hero-copy {
+    width: 100%;
+  }
+
   .tips-intro-title {
     font-size: 24px;
     max-width: none;
+    white-space: normal;
   }
 
   .tips-intro-lead {
-    font-size: 18px;
+    font-size: 15px;
     max-width: none;
   }
 
