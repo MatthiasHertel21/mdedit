@@ -1653,6 +1653,10 @@ section {
   display: none;
 }
 
+#tipsModal.is-first-visit .tips-header-intro {
+  display: none;
+}
+
 #tipsModal .modal-body {
   flex: 1 1 auto;
   display: flex;
@@ -2388,7 +2392,7 @@ section {
   #tipsModal .modal-header {
     padding: 12px 14px;
     min-height: 0;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
   }
 
@@ -2399,11 +2403,12 @@ section {
 
   .tips-header-intro {
     gap: 10px;
+    align-items: center;
   }
 
-  .tips-brand-icon {
-    width: 24px;
-    height: 24px;
+  .tips-header-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .tips-header-copy h2 {
@@ -3419,6 +3424,34 @@ section {
   text-underline-offset: 2px;
 }
 
+.tips-header-intro {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tips-header-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.tips-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tips-brand-name {
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+
 .tips-subtitle {
   font-size: 12px;
   color: var(--muted);
@@ -3442,18 +3475,12 @@ section {
   flex: 1;
 }
 
-.tip-text strong {
-  display: block;
-  color: var(--text);
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
 .tip-item-title {
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 750;
+  margin-bottom: 10px;
 }
 
 .tip-text p {
@@ -3462,17 +3489,17 @@ section {
   line-height: 1.5;
 }
 
-.tip-text > div {
+.tip-text > div:not(.tip-item-title) {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
-.tip-text > div > :first-child {
+.tip-text > div:not(.tip-item-title) > :first-child {
   margin-top: 0;
 }
 
-.tip-text > div > :last-child {
+.tip-text > div:not(.tip-item-title) > :last-child {
   margin-bottom: 0;
 }
 
@@ -3657,7 +3684,7 @@ section {
   padding-right: 12px;
   padding-bottom: 2px;
   border-top: 1px solid var(--border);
-  background: linear-gradient(to bottom, rgba(237, 245, 251, 0), rgba(237, 245, 251, 0.92) 18px);
+  background: transparent;
   z-index: 1;
 }
 

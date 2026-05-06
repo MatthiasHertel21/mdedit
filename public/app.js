@@ -2706,14 +2706,12 @@ const displayRandomTip = async () => {
   const selectedTips = tipPool.slice(0, 1);
   tipContainerEl.innerHTML = selectedTips.map((tip, index) => {
     const renderedText = sanitizeRenderedHtml(md.render(String(tip.text || "").trim()));
-    const tipSectionLabel = t("randomTip") || "Tipp";
     const tipTitle = escapeHtml(String(tip.title || "").trim());
     const renderedExample = renderTipExample(tip.example);
 
     return `
       <div class="tip-item">
         <div class="tip-text">
-          <strong>${escapeHtml(tipSectionLabel)}</strong>
           ${tipTitle ? `<div class="tip-item-title">${tipTitle}</div>` : ""}
           <div>${renderedText}</div>
           ${renderedExample}
@@ -4405,8 +4403,10 @@ const exportFile = async (format) => {
     setStatus(t("emptyExport"), "error");
     return false;
   }
-  const html = await serializePreviewForExport();
-  const paged = Boolean(printPreview?.isActive);
+  const html = await serializePreviewForExport({ forPdf: format === "pdf" });
+  const paged = format === "pdf"
+    ? Boolean(printPreview?.isActive || previewPreset === "scientific" || previewPreset === "document")
+    : Boolean(printPreview?.isActive);
   const res = await fetch(`/api/export/${format}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4569,35 +4569,38 @@ const svgToPngDataUrl = (svgEl) => new Promise((resolve) => {
   img.src = url;
 });
 
-const collectPagedExportStyles = () => {
-  const marker = /(pagedjs|@page|print-content|page-break|column-break|md-columns|section-break)/i;
+const getStylesheetText = (sheet) => {
+  try {
+    return Array.from(sheet.cssRules || []).map((rule) => rule.cssText).join("\n");
+  } catch {
+    return "";
+  }
+};
+
+const collectExportStyles = ({ includePrintStyles = false } = {}) => {
+  const stylesheetPattern = /(?:\/styles\.css|\/static\/vendor\/katex\/katex\.min\.css)(?:$|\?)/i;
   const chunks = [];
 
-  document.querySelectorAll("style").forEach((styleEl) => {
-    const text = styleEl.textContent || "";
-    if (text && marker.test(text)) {
-      chunks.push(text);
-    }
-  });
-
   Array.from(document.styleSheets).forEach((sheet) => {
-    try {
-      const rules = Array.from(sheet.cssRules || []);
-      const selected = rules
-        .map((rule) => rule.cssText)
-        .filter((cssText) => marker.test(cssText));
-      if (selected.length) {
-        chunks.push(selected.join("\n"));
-      }
-    } catch {
-      // Ignore stylesheets with inaccessible cssRules
+    const href = sheet.href || "";
+    const isInlineSheet = !href;
+    const isBaseExportSheet = stylesheetPattern.test(href);
+    const isPrintSheet = /\/print\.css(?:$|\?)/i.test(href);
+
+    if (!isInlineSheet && !isBaseExportSheet && !(includePrintStyles && isPrintSheet)) {
+      return;
+    }
+
+    const cssText = getStylesheetText(sheet);
+    if (cssText.trim()) {
+      chunks.push(cssText);
     }
   });
 
   return chunks.join("\n\n");
 };
 
-const serializePreviewForExport = async () => {
+const serializePreviewForExport = async ({ forPdf = false } = {}) => {
   await renderMermaid();
   const sourceRoot = getActivePreviewRoot() || elements.preview;
   const clone = sourceRoot.cloneNode(true);
@@ -4652,17 +4655,17 @@ const serializePreviewForExport = async () => {
     }
   }
 
-  if (printPreview?.isActive) {
+  if (printPreview?.isActive || forPdf) {
     const markdown = getMarkdown();
     const layout = getEffectiveDocumentLayout(markdown, { usePreviewPreset: true });
     const layoutCss = layoutCSSGenerator.generate(layout);
-    const pagedStyles = [layoutCss, collectPagedExportStyles()]
+    const pagedStyles = [collectExportStyles({ includePrintStyles: true }), layoutCss]
       .filter(Boolean)
       .join("\n\n");
     if (pagedStyles) {
-      return `<style data-export-paged="1">${pagedStyles}</style>${clone.outerHTML}`;
+      return `<style data-export-paged="1">${pagedStyles}</style><div class="print-content">${clone.innerHTML}</div>`;
     }
-    return clone.outerHTML;
+    return `<div class="print-content">${clone.innerHTML}</div>`;
   }
   return clone.innerHTML;
 };

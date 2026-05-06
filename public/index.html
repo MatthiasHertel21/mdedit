@@ -328,7 +328,13 @@
     <div id="tipsOverlay" class="modal-overlay hidden"></div>
     <div id="tipsModal" class="modal hidden">
       <div class="modal-header">
-        <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+        <div class="tips-header-intro">
+          <img class="tips-header-logo" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
+          <div class="tips-header-copy">
+            <span class="tips-brand-name">mdedit.io</span>
+            <h2 id="tipsTitle" data-i18n="tipsTitle">Tipps für den Einstieg</h2>
+          </div>
+        </div>
         <button id="tipsClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -357,7 +363,6 @@
         <div id="randomTipContainer" class="tips-content" aria-live="polite">
           <div class="tip-item">
             <div class="tip-text">
-              <strong>Tipp</strong>
               <div>Drücken Sie F2 für zufällige Tipps.</div>
             </div>
           </div>
