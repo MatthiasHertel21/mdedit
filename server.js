@@ -1349,6 +1349,11 @@ const renderStatsPage = async () => {
       background: var(--panel);
       box-shadow: 0 10px 30px rgba(18, 40, 56, 0.05);
     }
+    .table-shell {
+      margin-top: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     .metric {
       font-size: 28px;
       line-height: 1.1;
@@ -1358,14 +1363,15 @@ const renderStatsPage = async () => {
     }
     table {
       width: 100%;
+      min-width: 620px;
       border-collapse: collapse;
-      margin-top: 8px;
     }
     th, td {
       text-align: left;
       padding: 12px 14px;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
+      white-space: nowrap;
     }
     th {
       font-size: 13px;
@@ -1394,6 +1400,29 @@ const renderStatsPage = async () => {
       background: rgba(0, 137, 207, 0.12);
       color: var(--text);
     }
+    @media (max-width: 720px) {
+      main {
+        padding: 24px 14px 40px;
+      }
+      .hero,
+      .card {
+        padding: 16px;
+        border-radius: 14px;
+      }
+      .table-shell {
+        margin: 8px -4px 0;
+        padding: 0 4px 2px;
+      }
+      table {
+        min-width: 560px;
+      }
+      th,
+      td,
+      tbody th {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1405,18 +1434,20 @@ const renderStatsPage = async () => {
 
     <section class="card" style="margin-bottom: 24px;">
       <h2>Nutzung</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Zeitraum</th>
-            <th>Aktive App-Sessions</th>
-            <th>Browser-Sessions</th>
-            <th>Neue Dokumente</th>
-            <th>Freigaben</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Zeitraum</th>
+              <th>Aktive App-Sessions</th>
+              <th>Browser-Sessions</th>
+              <th>Neue Dokumente</th>
+              <th>Freigaben</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
     </section>
 
     <section class="grid">
