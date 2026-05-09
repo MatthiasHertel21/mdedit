@@ -1519,6 +1519,73 @@ const extractEmbeddedPagedStyles = (html) => {
   return { bodyHtml, embeddedCss };
 };
 
+/**
+ * Post-processes the Paged.js serialised HTML to merge near-empty pages into the
+ * preceding page.  Paged.js sometimes places a section heading + a few lines on a
+ * fresh page even when the preceding page has ample room (e.g. after a flex-column
+ * block whose rendered height was over-counted during layout).  The result is a PDF
+ * page that is almost entirely blank, which looks unprofessional.
+ *
+ * Algorithm:
+ *  1. Split the HTML into a sequence of pagedjs_page chunks.
+ *  2. Count the visible text in each chunk (tags stripped, whitespace normalised).
+ *  3. If a page has fewer than MERGE_THRESHOLD characters of text AND it is not the
+ *     only content page (page 1 is typically a cover), extract its inner content div
+ *     and append it to the preceding page's content area, then drop the empty page.
+ *
+ * This is intentionally conservative: only pages with very little text are merged
+ * (the threshold is well below any real content page) and the merge happens at most
+ * once per call (the first near-empty page found).
+ */
+const mergeNearEmptyPagedPages = (html) => {
+  const MERGE_THRESHOLD = 250; // visible chars – tune if needed
+
+  // Split at pagedjs_page div boundaries (keep the separator)
+  const pagePattern = /(?=<div[^>]+\bdata-page-number=["'])/g;
+  const parts = html.split(pagePattern);
+
+  // Strip tags to count visible text in a chunk
+  const visibleText = (chunk) =>
+    chunk.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  // Find the first near-empty page (skip index 0 which is HTML before page 1)
+  let mergeIdx = -1;
+  for (let i = 1; i < parts.length; i++) {
+    const txt = visibleText(parts[i]);
+    if (txt.length < MERGE_THRESHOLD && i > 1) {
+      mergeIdx = i;
+      break;
+    }
+  }
+  if (mergeIdx === -1) return html; // nothing to merge
+
+  // Extract the inner content of the near-empty page's pagedjs_page_content div.
+  const emptyPage = parts[mergeIdx];
+  const contentMatch = emptyPage.match(
+    /class="pagedjs_page_content"[^>]*>([\s\S]*?)<\/div>\s*<div class="pagedjs_footnote_area"/
+  );
+  if (!contentMatch) return html; // unexpected structure – bail out safely
+  const innerContent = contentMatch[1]; // e.g. <div><div class="print-content">…</div></div>
+
+  // Append innerContent before the closing </div> of the preceding page's
+  // pagedjs_page_content.  That closing </div> is followed by the footnote area.
+  const prevPage = parts[mergeIdx - 1];
+  const insertPoint = prevPage.lastIndexOf(
+    '</div>\n                                <div class="pagedjs_footnote_area"'
+  );
+  if (insertPoint === -1) return html; // structure mismatch – bail out safely
+
+  parts[mergeIdx - 1] =
+    prevPage.slice(0, insertPoint) +
+    innerContent +
+    prevPage.slice(insertPoint);
+
+  // Drop the near-empty page
+  parts.splice(mergeIdx, 1);
+
+  return parts.join("");
+};
+
 const stripAtPageFromAllStyleTags = (html) => {
   if (!html || !html.includes("<style")) return html || "";
   return html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (full, attrs, cssText) => {
@@ -1526,16 +1593,51 @@ const stripAtPageFromAllStyleTags = (html) => {
     return `<style${attrs}>${cleaned}</style>`;
   });
 };
-
 const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
   const chromiumCmd = await getChromiumCommand();
   if (!chromiumCmd) return { ok: false, reason: "chromium-not-found" };
 
   const pagedHtmlPath = path.join(tmpDir, "paged-chromium.html");
-  const { bodyHtml, embeddedCss } = extractEmbeddedPagedStyles(html);
+  const { bodyHtml: rawBodyHtml, embeddedCss } = extractEmbeddedPagedStyles(html);
+
+  // Paged.js sets column-width on .pagedjs_page_content inline styles for its own
+  // pagination algorithm (overflowing to CSS column 2 detects when a page is full).
+  // The pages are already laid out in the captured HTML, so we don't need this.
+  // In Chromium's PDF rendering, column-width creates a CSS multi-column container
+  // that can push flex blocks (.md-columns) into the off-screen column 2, making
+  // them visually invisible while subsequent text renders correctly in column 1.
+  // Only strip column-width from inline style attributes (not from <style> CSS blocks).
+  // Strip @page rules from ALL <style> tags in the body HTML.
+  // The serialized Paged.js DOM can contain @page rules from the Scientific Layout
+  // (e.g. @page { size: A4; margin: 2.1cm 2.1cm 2.1cm 2.5cm; }) that are later in
+  // document order than our head <style> block. The last @page rule wins in CSS, so
+  // any un-stripped body @page would override our explicit margin: 0 override below,
+  // causing Chromium to apply extra CSS page margins. With those margins active,
+  // width: 100% on .pagedjs_page only spans the shrunken content area, not full A4.
+  // All visual margins already live in the Paged.js DOM structure (.pagedjs_area
+  // positioning), so stripping CSS @page margins from the body is safe.
+  const bodyHtml = mergeNearEmptyPagedPages(
+    stripAtPageFromAllStyleTags(
+      rawBodyHtml
+        .replace(
+          /(<[^>]+\bclass="[^"]*pagedjs_page_content[^"]*"[^>]*\bstyle=")([^"]*)"/gi,
+          (match, prefix, styleVal) => prefix + styleVal.replace(/\bcolumn-width\s*:\s*[^;]+;?\s*/gi, '') + '"'
+        )
+        // Paged.js sets break-before:column on elements that follow flex-column blocks.
+        // In Chromium's print context (no multi-column container), break-before:column
+        // is treated as break-before:page, creating spurious empty pages.
+        // Replace with auto so these elements continue normal page flow.
+        .replace(/(<[^>]+\bstyle="[^"]*)\bbreak-before\s*:\s*column\b([^"]*")/gi,
+          (match, before, after) => before + 'break-before: auto' + after)
+    )
+  );
+
   const hasEmbeddedPagedStyles = Boolean(embeddedCss);
   const printCssPath = path.join(__dirname, "public", "print.css");
+  const katexCssPath = path.join(__dirname, "public", "vendor", "katex", "katex.min.css");
   let printCss = "";
+  let katexFontFaceCss = "";
+
   if (!hasEmbeddedPagedStyles) {
     try {
       printCss = await fs.promises.readFile(printCssPath, "utf8");
@@ -1544,11 +1646,23 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
     }
   }
 
+  // Embed full KaTeX CSS with file:// rewritten URLs so Chromium can render math correctly.
+  // (Previously only @font-face was embedded, but that left display math unstyled.)
+  try {
+    const rawKatexCss = await fs.promises.readFile(katexCssPath, "utf8");
+    const katexDir = path.dirname(katexCssPath);
+    katexFontFaceCss = rawKatexCss.replace(/url\((['"]?)([^)'"]+)\1\)/g, (_, q, url) => {
+      if (/^(https?:|data:|file:)/.test(url)) return `url(${q}${url}${q})`;
+      return `url("file://${path.resolve(katexDir, url)}")`;
+    });
+  } catch { /* KaTeX CSS not critical */ }
+
   const wrappedHtml = `<!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
   <meta charset="utf-8">
   <style>
+    ${katexFontFaceCss}
     ${printCss}
     ${embeddedCss}
     html, body {
@@ -1622,6 +1736,60 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       z-index: 1;
       position: relative;
     }
+    /* Disable Paged.js CSS multi-column on page content area.
+       Paged.js sets column-width via inline style for its own pagination,
+       but Chromium mis-renders flex blocks across CSS columns causing
+       wrong visual order (md-columns content appears after subsequent headings).
+       column-count:1 would still create a 1-column multi-column container,
+       so we need BOTH auto to fully disable multi-column. */
+    .pagedjs_page_content {
+      column-width: auto !important;
+      column-count: auto !important;
+      column-fill: initial !important;
+    }
+    /* Freeze table wrapping for PDF export even when the browser still sends an
+       older embedded stylesheet from cache. Thesis tables should wrap at spaces,
+       not split long German words mid-token. */
+    .print-content table th,
+    .print-content table td {
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+      hyphens: manual !important;
+      -webkit-hyphens: manual !important;
+    }
+    /* The serialized paged DOM already has the correct reading order. These
+       static-export guards keep KaTeX in its original inline/block flow when
+       Chromium paints the frozen pages without the live Paged.js runtime. */
+    .print-content p .katex {
+      display: inline-block !important;
+      white-space: nowrap !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      vertical-align: baseline !important;
+    }
+    .print-content .katex .katex-html {
+      display: inline-block !important;
+      white-space: nowrap !important;
+    }
+    .print-content .katex .katex-mathml {
+      display: none !important;
+    }
+    .print-content .math-block,
+    .print-content .math-block.display-math,
+    .print-content .katex-display {
+      float: none !important;
+      clear: both !important;
+      position: relative !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      overflow: visible !important;
+    }
+    /* Absolute @page override — must be last in this style block so it wins over
+       any @page rules from printCss / embeddedCss above.
+       size: 210mm 297mm  → Chromium uses A4 paper (with preferCSSPageSize: true).
+       margin: 0          → zero CSS page-box margins; all visual margins are already
+                            baked into the Paged.js DOM (.pagedjs_area positioning). */
+    @page { size: 210mm 297mm; margin: 0 !important; }
   </style>
 </head>
 <body>
@@ -1641,8 +1809,7 @@ ${bodyHtml}
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
-    await page.goto(`file://${pagedHtmlPath}`, { waitUntil: "networkidle0" });
+    await page.setContent(wrappedHtml, { waitUntil: "networkidle0" });
     await page.evaluate(async () => {
       if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
@@ -1651,7 +1818,7 @@ ${bodyHtml}
     await page.emulateMediaType("print");
     await page.pdf({
       path: outputPath,
-      format: "A4",
+      scale: 1,
       printBackground: true,
       preferCSSPageSize: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" }

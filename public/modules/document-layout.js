@@ -18,10 +18,10 @@ export class DocumentLayout {
         orientation: 'portrait',
         margins: {
           top: '2.1cm',
-          right: '1.7cm',
-          bottom: '1.7cm',
-          left: '2.1cm',
-          firstPageTop: '2.7cm'
+          right: '2.1cm',
+          bottom: '2.1cm',
+          left: '2.5cm',
+          firstPageTop: '2.1cm'
         },
         bindingOffset: '0',
         mirrorMargins: false
@@ -139,13 +139,13 @@ export class DocumentLayout {
           block: {
             fontSize: '9pt',
             lineHeight: 1.4,
-            background: '#f5f5f5',
-            border: '#dddddd'
+            background: '#e8e8e8',
+            border: '#c0c0c0'
           }
         },
         links: {
           color: '#000000',
-          showUrls: true
+          showUrls: false
         },
         blockquote: {
           color: '#555555',

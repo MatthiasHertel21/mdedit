@@ -267,15 +267,18 @@ export class LayoutPreprocessor {
 
     this.hydrateLayoutTokens(doc);
     this.wrapColumnBlocks(doc);
+    this.applyPageBreakMarkers(doc);
 
     // Apply column styles
     this.applyColumnStyles(doc);
 
     this.hydrateTableOfContents(doc);
     this.applyChapterMarkers(doc);
+    this.applyFlowGuards(doc);
 
     // Apply table layouts
     this.applyTableLayouts(doc);
+    this.applyColumnsGuard(doc);
 
     // Apply section breaks
     this.applySectionBreaks(doc);
@@ -287,18 +290,34 @@ export class LayoutPreprocessor {
     return doc.body.innerHTML;
   }
 
+  applyPageBreakMarkers(doc) {
+    doc.querySelectorAll('.page-break').forEach((marker) => {
+      if (marker.dataset.break) {
+        return;
+      }
+
+      let next = marker.nextElementSibling;
+
+      while (next && next.classList.contains('page-break')) {
+        next = next.nextElementSibling;
+      }
+
+      if (next) {
+        next.dataset.breakBefore = 'page';
+      }
+
+      marker.remove();
+    });
+  }
+
   applyChapterMarkers(doc) {
     const keepWithHeadingSelector = [
       'p',
       'h2',
-      'h3',
       'ul',
       'ol',
-      'pre',
-      'table',
       'blockquote',
-      '.math-block',
-      '.md-columns'
+      '.math-block'
     ].join(', ');
 
     doc.querySelectorAll('.chapter-marker').forEach((marker) => {
@@ -314,12 +333,99 @@ export class LayoutPreprocessor {
 
       const wrapper = doc.createElement('div');
       wrapper.className = 'chapter-start';
+      // Set data-break-before directly so Paged.js reads it during fragmentation.
+      // Paged.js uses dataset.breakBefore (not CSS break-before) when explicit
+      // polisherStylesheets are passed, because processBreaks only runs on those
+      // stylesheets and never sees the inline <style> block from styledHTML.
+      wrapper.dataset.breakBefore = 'page';
       marker.replaceWith(wrapper);
       wrapper.appendChild(target);
 
       const firstContent = wrapper.nextElementSibling;
       if (firstContent?.matches(keepWithHeadingSelector)) {
         wrapper.appendChild(firstContent);
+      }
+    });
+
+    // The last chapter doesn't need a forced page break – let it flow from the
+    // preceding page so the conclusion + footnote land on the same page.
+    const chapterStarts = doc.querySelectorAll('.chapter-start');
+    if (chapterStarts.length > 1) {
+      const last = chapterStarts[chapterStarts.length - 1];
+      last.classList.add('chapter-start-last');
+      // Remove the inline break-before from the last chapter's heading
+      const lastHeading = last.querySelector('h1, h2, h3, h4');
+      if (lastHeading) {
+        lastHeading.style.removeProperty('break-before');
+        lastHeading.style.removeProperty('page-break-before');
+      }
+    }
+  }
+
+  applyFlowGuards(doc) {
+    const wrapSequence = (nodes, className) => {
+      const first = nodes[0];
+      if (!first || !first.parentNode) return null;
+      const wrapper = doc.createElement('div');
+      wrapper.className = className;
+      first.parentNode.insertBefore(wrapper, first);
+      nodes.forEach((node) => wrapper.appendChild(node));
+      return wrapper;
+    };
+
+    const markKeepWithNextBlock = (heading, intro, target) => {
+      heading.dataset.breakAfter = 'avoid';
+      heading.classList.add('keep-with-next-block-heading');
+
+      if (intro) {
+        intro.dataset.breakAfter = 'avoid';
+        intro.classList.add('keep-with-next-block-intro');
+      }
+
+      if (target) {
+        target.dataset.breakBefore = 'avoid';
+        target.dataset.previousBreakAfter = 'avoid';
+        target.classList.add('keep-with-next-block-target');
+      }
+    };
+
+    // List intro: no DOM wrapping or break-after needed – let Paged.js flow naturally
+    // (break-after: avoid-page on p caused list reordering in Paged.js)
+
+    Array.from(doc.querySelectorAll('h2, h3, h4')).forEach((heading) => {
+      if (heading.closest('.keep-with-next-table')) return;
+      let next = heading.nextElementSibling;
+      if (!next) return;
+
+      const nodes = [heading];
+      let intro = null;
+      if (next.tagName === 'P') {
+        intro = next;
+        nodes.push(next);
+        next = next.nextElementSibling;
+      }
+
+      if (!next) return;
+
+      if (next.tagName === 'TABLE') {
+        const bodyRowCount = next.querySelectorAll('tbody tr').length || next.querySelectorAll('tr').length;
+        if (bodyRowCount <= 8) {
+          next.classList.add('table-keep-together');
+        }
+        markKeepWithNextBlock(heading, intro, next);
+        nodes.push(next);
+        wrapSequence(nodes, 'keep-with-next-table');
+      } else if (next.tagName === 'PRE') {
+        markKeepWithNextBlock(heading, intro, next);
+        nodes.push(next);
+        wrapSequence(nodes, 'keep-with-next-block');
+      }
+    });
+
+    Array.from(doc.querySelectorAll('table')).forEach((table) => {
+      const bodyRowCount = table.querySelectorAll('tbody tr').length || table.querySelectorAll('tr').length;
+      if (bodyRowCount > 0 && bodyRowCount <= 8) {
+        table.classList.add('table-keep-together');
       }
     });
   }
@@ -376,15 +482,20 @@ export class LayoutPreprocessor {
       case 'page-break':
         marker.className = 'page-break';
         if (token.attrs.break) marker.dataset.break = token.attrs.break;
+        // Paged.js reads data-break-after during fragmentation (not CSS break-after).
+        marker.dataset.breakAfter = 'page';
         break;
       case 'column-break':
         marker.className = 'column-break';
+        // Paged.js reads data-break-before during fragmentation, not CSS break-before.
+        marker.dataset.breakBefore = 'column';
         break;
       case 'columns-open':
         marker.className = 'md-columns-token-start';
         marker.dataset.count = token.attrs.count || '2';
         marker.dataset.gap = token.attrs.gap || '20pt';
         marker.dataset.rule = token.attrs.rule || 'false';
+        marker.dataset.layout = 'columns';
         break;
       case 'columns-close':
         marker.className = 'md-columns-token-end';
@@ -419,7 +530,7 @@ export class LayoutPreprocessor {
   hydrateLayoutTokens(doc) {
     Array.from(doc.body.querySelectorAll('*')).forEach((element) => {
       if (element.childElementCount > 0) return;
-      if (element.closest('code, pre')) return;
+      if (element.closest('code, pre, .katex, .katex-display')) return;
 
       const token = parseLayoutToken(element.textContent || '');
       if (!token) return;
@@ -477,6 +588,26 @@ export class LayoutPreprocessor {
 
   applyColumnStyles(doc) {
     doc.querySelectorAll('.md-columns').forEach(el => {
+      const count = el.dataset.count || '2';
+      const gap = el.dataset.gap || '20pt';
+      const rule = el.dataset.rule === 'true';
+
+      // Idempotency guard: if already split into .md-column divs, just reapply CSS vars
+      if (el.querySelector(':scope > .md-column')) {
+        el.style.display = 'flex'; // prevent Paged.js UndisplayedFilter from hiding this element
+        el.style.setProperty('--md-columns-count', count);
+        el.style.setProperty('--md-columns-gap', gap);
+        el.style.columnGap = gap;
+        if (rule) {
+          el.style.setProperty('--md-columns-rule-width', '1pt');
+          el.style.setProperty('--md-columns-rule-color', '#ccc');
+        } else {
+          el.style.removeProperty('--md-columns-rule-width');
+          el.style.removeProperty('--md-columns-rule-color');
+        }
+        return;
+      }
+
       const columns = [];
       let currentColumn = doc.createElement('div');
       currentColumn.className = 'md-column';
@@ -494,12 +625,6 @@ export class LayoutPreprocessor {
           return;
         }
 
-        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('md-column')) {
-          Array.from(node.childNodes).forEach((child) => currentColumn.appendChild(child));
-          node.remove();
-          return;
-        }
-
         currentColumn.appendChild(node);
       });
 
@@ -511,13 +636,9 @@ export class LayoutPreprocessor {
         el.replaceChildren(...columns);
       }
 
-      const count = el.dataset.count || '2';
-      const gap = el.dataset.gap || '20pt';
-      const rule = el.dataset.rule === 'true';
-
+      el.style.display = 'flex'; // prevent Paged.js UndisplayedFilter from hiding this element
       el.style.setProperty('--md-columns-count', count);
       el.style.setProperty('--md-columns-gap', gap);
-      el.style.columnCount = count;
       el.style.columnGap = gap;
       if (rule) {
         el.style.setProperty('--md-columns-rule-width', '1pt');
@@ -549,6 +670,24 @@ export class LayoutPreprocessor {
     });
   }
 
+  /**
+   * Column Guard
+   * Prevents content following a column block from being pulled into empty space
+   * on the page where the column block started, which can cause reordering.
+   */
+  applyColumnsGuard(doc) {
+    doc.querySelectorAll('.md-columns').forEach(el => {
+      let next = el.nextElementSibling;
+      while (next && (next.classList.contains('md-columns-token-end') || next.tagName === 'BR')) {
+        next = next.nextElementSibling;
+      }
+      if (next && (next.tagName.startsWith('H') || next.tagName === 'P')) {
+        next.style.breakBefore = 'column';
+        next.style.pageBreakBefore = 'column';
+      }
+    });
+  }
+
   applySectionBreaks(doc) {
     doc.querySelectorAll('.section-break').forEach(el => {
       const type = el.dataset.type;
@@ -557,18 +696,15 @@ export class LayoutPreprocessor {
       // Add appropriate classes based on type
       switch(type) {
         case 'new-page':
-          el.style.breakBefore = 'page';
-          el.style.pageBreakBefore = 'always';
+          el.dataset.breakBefore = 'page';
           break;
         case 'odd-page':
         case 'right':
-          el.style.breakBefore = 'page';
-          el.style.pageBreakBefore = 'always';
+          el.dataset.breakBefore = 'right';
           break;
         case 'even-page':
         case 'left':
-          el.style.breakBefore = 'page';
-          el.style.pageBreakBefore = 'always';
+          el.dataset.breakBefore = 'left';
           break;
         case 'continuous':
           // No page break
@@ -590,7 +726,7 @@ export class LayoutPreprocessor {
   removeResidualLayoutTokenText(doc) {
     Array.from(doc.body.querySelectorAll('*')).forEach((element) => {
       if (element.childElementCount > 0) return;
-      if (element.closest('code, pre')) return;
+      if (element.closest('code, pre, .katex, .katex-display')) return;
 
       const text = (element.textContent || '').trim();
       if (!text) return;

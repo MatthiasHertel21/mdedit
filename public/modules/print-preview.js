@@ -6,6 +6,7 @@
 import { documentLayout } from './document-layout.js';
 import { layoutCSSGenerator } from './layout-css-generator.js';
 import { layoutPreprocessor } from './layout-preprocessor.js';
+import { buildPagedRenderContract } from './paged-render-contract.js';
 
 export class PrintPreview {
   constructor() {
@@ -19,7 +20,6 @@ export class PrintPreview {
     this.zoomStep = 0.1;
     this.isRendering = false;
     this.pendingRender = false;
-    this.sourceElement = null; // Store reference to source element
     this.elements = {
       previewBody: document.getElementById('previewBody'),
       printPreviewBody: document.getElementById('printPreviewBody'),
@@ -37,24 +37,63 @@ export class PrintPreview {
     this.init();
     this.setupErrorSuppression();
   }
+
+  getKatexPrintCss() {
+    if (typeof this.katexPrintCss === 'string') {
+      return this.katexPrintCss;
+    }
+
+    const absolutizeCssUrls = (cssText, baseHref) => {
+      if (!cssText || !baseHref) {
+        return cssText;
+      }
+
+      return cssText.replace(/url\((['"]?)([^)'"\s]+)\1\)/g, (match, quote, rawUrl) => {
+        if (/^(?:data:|https?:|file:|blob:|\/)/i.test(rawUrl)) {
+          return match;
+        }
+
+        try {
+          const absoluteUrl = new URL(rawUrl, baseHref).href;
+          const wrappedUrl = quote || '"';
+          return `url(${wrappedUrl}${absoluteUrl}${wrappedUrl})`;
+        } catch {
+          return match;
+        }
+      });
+    };
+
+    let katexCss = '';
+    Array.from(document.styleSheets || []).forEach((sheet) => {
+      try {
+        const href = String(sheet.href || '');
+        const rules = Array.from(sheet.cssRules || []);
+        if (!/katex/i.test(href) && !rules.some((rule) => /\.katex\b/.test(rule.cssText))) {
+          return;
+        }
+        katexCss += `${rules.map((rule) => absolutizeCssUrls(rule.cssText, href)).join('\n')}\n`;
+      } catch {
+        // Ignore inaccessible stylesheets.
+      }
+    });
+
+    this.katexPrintCss = katexCss;
+    return katexCss;
+  }
   
   setupErrorSuppression() {
-    // Wrap requestAnimationFrame to catch Paged.js errors
-    // These errors don't affect print preview functionality but pollute the console
+    // Wrap requestAnimationFrame to suppress cosmetic Paged.js errors.
+    // Only active while the preview is visible to avoid swallowing unrelated errors.
+    const self = this;
     const originalRAF = window.requestAnimationFrame;
     window.requestAnimationFrame = function(callback) {
       return originalRAF.call(window, function(...args) {
         try {
           return callback(...args);
         } catch (error) {
-          // Check if error is from Paged.js
-          if (error.stack && error.stack.includes('paged.js')) {
-            // Suppress - these are cosmetic errors from Paged.js's resize handlers
-            // They occur when Paged.js tries to access elements during async operations
-            // but don't affect the actual print preview output
+          if (self.isActive && error.stack && error.stack.includes('paged.js')) {
             return;
           }
-          // Re-throw other errors
           throw error;
         }
       });
@@ -67,6 +106,42 @@ export class PrintPreview {
         console.warn('[Paged.js internal rejection suppressed]', event.reason);
       }
     });
+  }
+
+  canRenderInPlace() {
+    const root = this.elements.printPreview;
+    if (!root || !root.isConnected) {
+      return false;
+    }
+
+    return root.getClientRects().length > 0;
+  }
+
+  createStagingRenderTarget() {
+    const target = document.createElement('div');
+    target.className = 'print-content print-preview-staging';
+    target.setAttribute('aria-hidden', 'true');
+    target.style.position = 'absolute';
+    target.style.left = '-20000px';
+    target.style.top = '0';
+    target.style.width = '1400px';
+    target.style.minHeight = '100vh';
+    target.style.overflow = 'hidden';
+    target.style.pointerEvents = 'none';
+    target.style.visibility = 'hidden';
+    document.body.appendChild(target);
+    return target;
+  }
+
+  moveRenderedPreview(source, target) {
+    if (!source || !target || source === target) {
+      return;
+    }
+
+    target.innerHTML = '';
+    while (source.firstChild) {
+      target.appendChild(source.firstChild);
+    }
   }
 
   init() {
@@ -128,6 +203,13 @@ export class PrintPreview {
     if (this.elements.printPreviewBody) {
       this.elements.printPreviewBody.style.display = 'flex';
     }
+
+    // Let the browser commit the visibility/layout change before Paged.js reads
+    // container bounds. Without this, export-triggered hidden renders can hit
+    // null/unstable layout measurements inside Paged.js Layout().
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
     
     // Generate print preview
     await this.generatePreview();
@@ -152,12 +234,6 @@ export class PrintPreview {
     // Clear print preview
     if (this.elements.printPreview) {
       this.elements.printPreview.innerHTML = '';
-    }
-
-    // Clean up source element
-    if (this.sourceElement) {
-      this.sourceElement.remove();
-      this.sourceElement = null;
     }
   }
 
@@ -249,6 +325,9 @@ export class PrintPreview {
     // Show loading state
     this.elements.printPreview.innerHTML = '<div class="loading-preview">Bereite Druckansicht vor...</div>';
     
+    let renderTarget = this.elements.printPreview;
+    let stagingTarget = null;
+
     try {
       // Get current preview HTML
       const previewHTML = this.elements.preview.innerHTML;
@@ -259,14 +338,6 @@ export class PrintPreview {
       // Clear previous content/pages
       this.elements.printPreview.innerHTML = '';
 
-      // Clean up old source element
-      if (this.sourceElement) {
-        this.sourceElement.remove();
-        this.sourceElement = null;
-      }
-
-      // No need for offscreen element - pass HTML directly to Paged.js
-      
       // Wait for Paged.js to be ready
       await this.waitForPagedJS();
       
@@ -278,6 +349,8 @@ export class PrintPreview {
       
       // Generate CSS from layout
       const layoutCSS = layoutCSSGenerator.generate(layout);
+      const katexPrintCss = this.getKatexPrintCss();
+
       const debugPagedHeaders = window.localStorage?.getItem('debugPagedHeaders') === '1';
 
       if (debugPagedHeaders) {
@@ -288,123 +361,30 @@ export class PrintPreview {
       
       // Initialize Paged.js
       if (window.Paged && window.Paged.Previewer) {
+        if (this.paged) {
+          try { this.paged.chunker.removePages(); } catch (e) {}
+          this.paged = null;
+        }
         this.paged = new window.Paged.Previewer();
-        
-        // Add inline styles with dynamic layout CSS
-        const debugCSS = debugPagedHeaders
-          ? `
-            /* Debug: visualize margin boxes and inject test content */
-            .pagedjs_margin,
-            .pagedjs_margin-top,
-            .pagedjs_margin-bottom,
-            .pagedjs_margin-left,
-            .pagedjs_margin-right,
-            .pagedjs_margin-top-left,
-            .pagedjs_margin-top-center,
-            .pagedjs_margin-top-right,
-            .pagedjs_margin-bottom-left,
-            .pagedjs_margin-bottom-center,
-            .pagedjs_margin-bottom-right,
-            .pagedjs_margin-left-top,
-            .pagedjs_margin-left-middle,
-            .pagedjs_margin-left-bottom,
-            .pagedjs_margin-right-top,
-            .pagedjs_margin-right-middle,
-            .pagedjs_margin-right-bottom,
-            .pagedjs_margin-content {
-              background: rgba(255, 230, 0, 0.12) !important;
-              outline: 1px dashed rgba(255, 140, 0, 0.7) !important;
-              color: #111 !important;
-            }
 
-            @page {
-              @top-center { content: "DEBUG HEADER"; }
-              @bottom-center { content: "DEBUG FOOTER"; }
-            }
-          `
-          : '';
-
-        const styledHTML = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              ${layoutCSS}
-
-              ${debugCSS}
-
-              /* Ensure margin boxes are visible in preview */
-              .pagedjs_margin,
-              .pagedjs_margin-top,
-              .pagedjs_margin-bottom,
-              .pagedjs_margin-left,
-              .pagedjs_margin-right,
-              .pagedjs_margin-top-left,
-              .pagedjs_margin-top-center,
-              .pagedjs_margin-top-right,
-              .pagedjs_margin-bottom-left,
-              .pagedjs_margin-bottom-center,
-              .pagedjs_margin-bottom-right,
-              .pagedjs_margin-left-top,
-              .pagedjs_margin-left-middle,
-              .pagedjs_margin-left-bottom,
-              .pagedjs_margin-right-top,
-              .pagedjs_margin-right-middle,
-              .pagedjs_margin-right-bottom,
-              .pagedjs_margin-content {
-                display: block !important;
-                visibility: visible !important;
-              }
-              
-              /* Layout command styling */
-              .page-break {
-                break-after: page;
-                page-break-after: always;
-              }
-              
-              .column-break {
-                break-before: column;
-                column-break-before: always;
-                height: 0;
-                margin: 0;
-              }
-              
-              .md-columns {
-                /* Styles applied via inline styles in preprocessing */
-              }
-              
-              .section-break[data-type="new-page"] {
-                break-before: page;
-              }
-              
-              .section-break[data-type="odd-page"],
-              .section-break[data-type="right"] {
-                break-before: right;
-              }
-              
-              .section-break[data-type="even-page"],
-              .section-break[data-type="left"] {
-                break-before: left;
-              }
-            </style>
-          </head>
-          <body>
-            ${printHTML}
-          </body>
-          </html>
-        `;
-        
-        // Render pages
-        await this.paged.preview(styledHTML, [], this.elements.printPreview);
-        this.restoreSplitTableHeaders();
-        
-        // Clean up source element after rendering
-        if (this.sourceElement) {
-          this.sourceElement.remove();
-          this.sourceElement = null;
+        if (!this.canRenderInPlace()) {
+          stagingTarget = this.createStagingRenderTarget();
+          renderTarget = stagingTarget;
         }
         
+        const { styledHTML, polisherStylesheets } = buildPagedRenderContract({
+          printHTML,
+          layoutCss,
+          katexCss: katexPrintCss,
+          debugPagedHeaders,
+          stylesheetUrl: window.location.href
+        });
+        await this.paged.preview(styledHTML, polisherStylesheets, renderTarget);
+        if (stagingTarget) {
+          this.moveRenderedPreview(stagingTarget, this.elements.printPreview);
+        }
+        this.restoreSplitTableHeaders();
+
         // Count pages within the print preview container
         this.totalPages = this.elements.printPreview?.querySelectorAll('.pagedjs_page').length || 0;
         this.currentPage = 1;
@@ -457,6 +437,7 @@ export class PrintPreview {
         </div>
       `;
     } finally {
+      stagingTarget?.remove();
       this.isRendering = false;
       if (this.pendingRender) {
         this.pendingRender = false;
@@ -582,9 +563,13 @@ export class PrintPreview {
       }
     });
     
-    // Re-run post-processing on the serialized preview HTML before handing it to Paged.js.
-    temp.innerHTML = layoutPreprocessor.postProcessHTML(temp.innerHTML);
-    
+    // Re-apply layout inline styles stripped by the preview HTML sanitizer.
+    // The sanitizer (sanitizeRenderedHtml) removes all style="" attributes for
+    // security. Column gap and flow-guard properties must be re-set here since
+    // they are read from data-* attributes (which survive sanitization).
+    layoutPreprocessor.applyColumnStyles(temp);
+    layoutPreprocessor.applyColumnsGuard(temp);
+
     // Get the HTML as a string to break all DOM references
     const cleanHTML = `<div class="print-content">${temp.innerHTML}</div>`;
     
@@ -691,7 +676,7 @@ export class PrintPreview {
         <title>Drucken</title>
         <style>
           @page {
-            size: A4;
+            size: ${layout.page.size} ${layout.page.orientation};
             margin: 0;
           }
           
@@ -737,7 +722,6 @@ export class PrintPreview {
             .pagedjs_page:last-child {
               page-break-after: auto;
             }
-            ${marginBoxCSS}
           }
         </style>
       </head>

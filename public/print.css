@@ -7,30 +7,25 @@
 
 @page {
   size: A4;
-  margin: 2.5cm 2cm 2cm 2.5cm;
+  margin: 2.1cm 2.1cm 2.1cm 2.5cm;
   
   /* No automatic headers/footers - user controls these manually */
 }
 
 /* First page: Larger top margin */
 @page :first {
-  margin-top: 4cm;
+  margin-top: 2.1cm;
 }
 
 /* Left and right pages: Balanced margins, no automatic page numbers */
 @page :left {
-  margin-left: 3cm;
-  margin-right: 2cm;
+  margin-left: 2.5cm;
+  margin-right: 2.1cm;
 }
 
 @page :right {
-  margin-left: 2cm;
-  margin-right: 3cm;
-}
-
-/* Named pages for special layouts */
-@page chapter {
-  margin-top: 1.8cm;
+  margin-left: 2.5cm;
+  margin-right: 2.1cm;
 }
 
 /* ===== BASE TYPOGRAPHY ===== */
@@ -48,14 +43,22 @@
 .print-content p {
   orphans: 2;
   widows: 2;
+  text-align-last: auto;
 }
 
 /* ===== HEADINGS ===== */
 
 .print-content .chapter-start {
-  page: chapter;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-before: page;
+  page-break-before: always;
+  break-inside: auto;
+  page-break-inside: auto;
+  page: auto; /* neutralise document-level 'page: chapter' which confuses Paged.js fragmentation */
+}
+
+.print-content .chapter-start-last {
+  break-before: auto;
+  page-break-before: auto;
 }
 
 .print-content .chapter-start > :first-child {
@@ -65,6 +68,8 @@
 .print-content h1 {
   font-size: 24pt;
   font-weight: 700;
+  text-align: left;
+  text-align-last: auto;
   margin-top: 0;
   margin-bottom: 12pt;
   break-after: avoid;
@@ -78,12 +83,16 @@
 .print-content h2 {
   font-size: 18pt;
   font-weight: 600;
-  margin-top: 24pt;
+  text-align: left;
+  text-align-last: auto;
+  margin-top: 18pt;
   margin-bottom: 10pt;
   break-after: avoid;
   page-break-after: avoid;
   break-inside: avoid;
   page-break-inside: avoid;
+  break-before: auto;
+  page-break-before: auto;
   color: #000;
 }
 
@@ -92,40 +101,33 @@
 .print-content h1 + h3,
 .print-content h1 + ul,
 .print-content h1 + ol,
-.print-content h1 + pre,
-.print-content h1 + table,
 .print-content h1 + blockquote,
 .print-content h1 + .math-block,
 .print-content h1 + .table-of-contents,
-.print-content h1 + .md-columns,
 .print-content h2 + p,
 .print-content h2 + ul,
 .print-content h2 + ol,
-.print-content h2 + table,
-.print-content h2 + pre,
 .print-content h2 + blockquote,
 .print-content h2 + .math-block,
 .print-content h3 + p,
 .print-content h3 + ul,
 .print-content h3 + ol,
-.print-content h3 + pre,
-.print-content h3 + table,
 .print-content h3 + blockquote,
 .print-content h3 + .math-block,
 .print-content h4 + p,
 .print-content h4 + ul,
 .print-content h4 + ol,
-.print-content h4 + pre,
-.print-content h4 + table,
 .print-content h4 + blockquote,
 .print-content h4 + .math-block {
-  break-before: avoid;
+  break-before: avoid-page;
   page-break-before: avoid;
 }
 
 .print-content h3 {
   font-size: 14pt;
   font-weight: 600;
+  text-align: left;
+  text-align-last: auto;
   margin-top: 18pt;
   margin-bottom: 9pt;
   break-after: avoid;
@@ -138,6 +140,8 @@
 .print-content h4 {
   font-size: 12pt;
   font-weight: 600;
+  text-align: left;
+  text-align-last: auto;
   margin-top: 14pt;
   margin-bottom: 7pt;
   break-after: avoid;
@@ -149,6 +153,8 @@
 .print-content h6 {
   font-size: 11pt;
   font-weight: 600;
+  text-align: left;
+  text-align-last: auto;
   margin-top: 12pt;
   margin-bottom: 6pt;
   break-after: avoid;
@@ -189,6 +195,8 @@
 .print-content ol {
   margin: 18pt 0;
   padding-left: 1.5em;
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .print-content ul {
@@ -203,20 +211,19 @@
 
 .print-content li {
   margin-bottom: 10pt;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  text-align-last: auto;
 }
 
+
+
 .print-content ul > li {
-  position: relative;
   padding-left: 1.1em;
+  text-indent: -0.8em;
 }
 
 .print-content ul > li::before {
   content: "•";
-  position: absolute;
-  left: 0;
-  top: 0;
+  display: inline-block;
   width: 0.8em;
 }
 
@@ -254,16 +261,21 @@
 .print-content pre {
   margin: 14pt 0 16pt;
   padding: 13pt 15pt;
-  background: #edf1f5;
-  border: 1pt solid #c9d2db;
-  border-left: 4pt solid #8d9baa;
-  border-radius: 4pt;
+  background: #f8f9fa;
+  border: 0.5pt solid #d1d5db;
+  border-left: 4pt solid #4f46e5;
+  border-left: 5pt solid #7a8fa0;
+  border-radius: 3pt;
   font-family: 'Courier New', Courier, monospace;
   font-size: 9.2pt;
   line-height: 1.5;
   overflow-x: auto;
   break-inside: avoid;
   page-break-inside: avoid;
+  text-align: left;
+  text-align-last: auto;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
 .print-content pre code {
@@ -280,8 +292,8 @@
   width: 100%;
   margin: 18pt 0;
   border-collapse: collapse;
-  font-size: 10pt;
-  table-layout: fixed;
+  font-size: 9.5pt;
+  table-layout: auto;
   break-inside: auto;
   page-break-inside: auto;
 }
@@ -294,20 +306,23 @@
   background: #f0f0f0;
   font-weight: 600;
   text-align: left;
-  padding: 8pt;
+  text-align-last: auto;
+  padding: 5pt 8pt;
   border: 1pt solid #ccc;
   white-space: normal;
-  overflow-wrap: anywhere;
   word-break: break-word;
+  overflow-wrap: break-word;
   hyphens: auto;
 }
 
 .print-content td {
-  padding: 8pt;
+  text-align: left;
+  text-align-last: auto;
+  padding: 5pt 8pt;
   border: 1pt solid #ccc;
   white-space: normal;
-  overflow-wrap: anywhere;
   word-break: break-word;
+  overflow-wrap: break-word;
   hyphens: auto;
 }
 
@@ -435,14 +450,14 @@
 
 /* Map preview columns to print columns */
 .print-content .md-columns {
-  display: grid;
-  grid-template-columns: repeat(var(--md-columns-count, 2), minmax(0, 1fr));
-  gap: var(--md-columns-gap, 1.5cm);
-  margin: 12pt 0;
-  align-items: start;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.5cm;
+  margin: 8pt 0;
   position: relative;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .print-content .md-columns[data-rule="true"]::before {
@@ -453,15 +468,34 @@
   left: calc(50% - (var(--md-columns-rule-width, 1pt) / 2));
   width: var(--md-columns-rule-width, 1pt);
   background: var(--md-columns-rule-color, #ddd);
+  pointer-events: none;
 }
 
 .print-content .md-column {
+  flex: 1 1 0%;
+  min-width: 0;
   break-inside: auto;
   page-break-inside: auto;
   padding: 0;
-  margin: 0 0 12pt 0;
+  margin: 0;
   background: none;
   border: none;
+}
+
+.print-content .md-column p,
+.print-content .md-column li,
+.print-content .md-column blockquote,
+.print-content .md-column table,
+.print-content .md-column th,
+.print-content .md-column td,
+.print-content .md-column h1,
+.print-content .md-column h2,
+.print-content .md-column h3,
+.print-content .md-column h4,
+.print-content .md-column h5,
+.print-content .md-column h6 {
+  text-align: left;
+  text-align-last: auto;
 }
 
 .print-content .md-column > :first-child {
@@ -485,19 +519,12 @@
 /* ===== MATH (KaTeX) ===== */
 
 .print-content .math-block {
-  margin: 18pt 0;
+  margin: 16pt 0;
+  text-align: center;
+  break-before: avoid-page;
+  page-break-before: avoid;
   break-inside: avoid;
   page-break-inside: avoid;
-}
-
-.print-content .katex,
-.print-content .katex * {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.print-content .katex {
-  white-space: nowrap;
 }
 
 .print-content .katex .katex-mathml {
@@ -507,6 +534,7 @@
 .print-content .katex-display {
   margin: 0;
   text-align: center;
+  text-align-last: auto;
   overflow: visible;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -515,16 +543,27 @@
 .print-content .katex-display > .katex {
   display: block;
   max-width: 100%;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }
 
-.print-content .katex > .katex-html,
 .print-content .katex-display .katex-html {
   display: inline-block;
   max-width: 100%;
+  white-space: nowrap !important;
 }
 
-.print-content .katex-display .katex-html {
-  white-space: nowrap;
+.print-content .katex .base {
+  white-space: nowrap !important;
+}
+
+.print-content p + .math-block,
+.print-content p + .katex-display,
+.print-content .math-block + p,
+.print-content .katex-display + p {
+  break-before: avoid-page;
+  page-break-before: avoid;
 }
 
 /* ===== SPECIAL ELEMENTS ===== */
@@ -569,15 +608,19 @@
 }
 
 .print-content .table-of-contents ul {
-  list-style-type: none;
+  list-style: none !important;
   padding-left: 0;
   margin: 0;
 }
 
 .print-content .table-of-contents ol {
-  list-style: none;
+  list-style: none !important;
   padding-left: 0;
   margin: 0;
+}
+
+.print-content .table-of-contents li::marker {
+  content: "";
 }
 
 .print-content .table-of-contents li + li {
@@ -616,18 +659,32 @@
 /* ===== FOOTNOTES ===== */
 
 .print-content .footnotes {
-  margin-top: 36pt;
-  padding-top: 18pt;
+  margin-top: 14pt;
+  padding-top: 8pt;
   border-top: 1pt solid #ccc;
-  font-size: 9pt;
+  font-size: 8.5pt;
+  break-before: avoid-page;
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .print-content .footnotes ol {
+  margin: 0;
   padding-left: 1.5em;
+}
+
+.print-content .footnotes li,
+.print-content .footnotes p {
+  margin: 0;
 }
 
 .print-content .footnote-backref {
   display: none;
+}
+
+.print-content .footnotes a[href^="#fnref"],
+.print-content .footnotes a[role="doc-backlink"] {
+  display: none !important;
 }
 
 /* ===== DEBUG / DEVELOPMENT ===== */

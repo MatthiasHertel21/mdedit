@@ -294,11 +294,10 @@ export const buildMarkdownIt = (settings) => {
 
   if (settings.toc) {
     usePlugin(markdownItAnchor, { permalink: false });
-    usePlugin(markdownItToc, { level: [1, 2, 3, 4, 5, 6], listType: "ul" });
   }
 
   if (settings.attrs) usePlugin(markdownItAttrs);
-  if (settings.math) usePlugin(markdownItKatex);
+  if (settings.math) usePlugin(markdownItKatex, { output: 'html' });
 
   if (settings.admonitions) {
     addAdmonition(instance, "info", "Info");

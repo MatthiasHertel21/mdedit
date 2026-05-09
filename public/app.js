@@ -774,7 +774,6 @@ const buildMarkdownIt = (settings) => {
 
   if (settings.toc) {
     usePlugin(markdownItAnchor, { permalink: false });
-    usePlugin(markdownItToc, { level: [1, 2, 3, 4, 5, 6], listType: "ul" });
   }
 
   if (settings.attrs) {
@@ -782,7 +781,7 @@ const buildMarkdownIt = (settings) => {
   }
 
   if (settings.math) {
-    usePlugin(markdownItKatex);
+    usePlugin(markdownItKatex, { output: "html" });
   }
 
   if (settings.admonitions) {
@@ -917,6 +916,47 @@ const sanitizeInlineStyle = (styleValue) => {
     .join("; ");
 };
 
+const sanitizeKatexInlineStyle = (styleValue) => {
+  const allowedProperties = new Set([
+    "border-bottom-width",
+    "height",
+    "left",
+    "margin-left",
+    "margin-right",
+    "min-width",
+    "padding-left",
+    "position",
+    "right",
+    "top",
+    "vertical-align",
+    "width"
+  ]);
+
+  const safeLengthPattern = /^-?(?:\d+|\d*\.\d+)(?:em|ex|ch|rem|px|pt|pc|in|cm|mm|q|%)$/i;
+
+  return String(styleValue || "")
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separatorIndex = entry.indexOf(":");
+      if (separatorIndex === -1) return null;
+
+      const property = entry.slice(0, separatorIndex).trim().toLowerCase();
+      const value = entry.slice(separatorIndex + 1).trim();
+      if (!allowedProperties.has(property)) return null;
+      if (!value || /url\s*\(|expression\s*\(|javascript:/i.test(value)) return null;
+
+      if (property === "position") {
+        return /^(?:relative|absolute)$/i.test(value) ? `${property}: ${value}` : null;
+      }
+
+      return safeLengthPattern.test(value) ? `${property}: ${value}` : null;
+    })
+    .filter(Boolean)
+    .join("; ");
+};
+
 const sanitizeRenderedHtml = (html, options = {}) => {
   const template = document.createElement("template");
   template.innerHTML = String(html || "");
@@ -974,12 +1014,25 @@ const sanitizeRenderedHtml = (html, options = {}) => {
       }
 
       if (name === "style") {
+        const preserveKatexStyles = element.closest(".katex, .katex-display") !== null;
         if (!options.allowInlineStyles) {
-          element.removeAttribute(attribute.name);
+          if (!preserveKatexStyles) {
+            element.removeAttribute(attribute.name);
+            return;
+          }
+
+          const sanitizedKatexStyle = sanitizeKatexInlineStyle(value);
+          if (sanitizedKatexStyle) {
+            element.setAttribute(attribute.name, sanitizedKatexStyle);
+          } else {
+            element.removeAttribute(attribute.name);
+          }
           return;
         }
 
-        const sanitizedStyle = sanitizeInlineStyle(value);
+        const sanitizedStyle = preserveKatexStyles
+          ? sanitizeKatexInlineStyle(value) || sanitizeInlineStyle(value)
+          : sanitizeInlineStyle(value);
         if (sanitizedStyle) {
           element.setAttribute("style", sanitizedStyle);
         } else {
@@ -1010,6 +1063,11 @@ const sanitizeRenderedHtml = (html, options = {}) => {
 const toSafeFilename = (value, fallback) => {
   const base = slugify(value || "") || fallback;
   return base.replace(/^-+/, "").replace(/-+$/, "") || fallback;
+};
+
+const buildExportFilename = (format) => {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return `export-${stamp}.${format}`;
 };
 
 const healMermaidSyntax = (code) => {
@@ -4403,7 +4461,13 @@ const exportFile = async (format) => {
     setStatus(t("emptyExport"), "error");
     return false;
   }
-  const html = await serializePreviewForExport({ forPdf: format === "pdf" });
+  let html;
+  try {
+    html = await serializePreviewForExport({ forPdf: format === "pdf" });
+  } catch (error) {
+    setStatus(`${t("exportFailed")}: ${error?.message || t("exportFailed")}`, "error");
+    return false;
+  }
   const paged = format === "pdf"
     ? Boolean(printPreview?.isActive || previewPreset === "scientific" || previewPreset === "document")
     : Boolean(printPreview?.isActive);
@@ -4428,7 +4492,7 @@ const exportFile = async (format) => {
     const fallbackUrl = URL.createObjectURL(fallbackBlob);
     const fallbackLink = document.createElement("a");
     fallbackLink.href = fallbackUrl;
-    fallbackLink.download = `export.${format}`;
+    fallbackLink.download = buildExportFilename(format);
     document.body.appendChild(fallbackLink);
     fallbackLink.click();
     fallbackLink.remove();
@@ -4439,7 +4503,7 @@ const exportFile = async (format) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `export.${format}`;
+  a.download = buildExportFilename(format);
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -4569,9 +4633,30 @@ const svgToPngDataUrl = (svgEl) => new Promise((resolve) => {
   img.src = url;
 });
 
+const absolutizeCssUrls = (cssText, baseHref = '') => {
+  if (!cssText || !baseHref) {
+    return cssText;
+  }
+
+  return String(cssText).replace(/url\((['"]?)([^)'"\s]+)\1\)/g, (match, quote, rawUrl) => {
+    if (/^(?:data:|https?:|file:|blob:|\/)/i.test(rawUrl)) {
+      return match;
+    }
+
+    try {
+      const absoluteUrl = new URL(rawUrl, baseHref).href;
+      const wrappedUrl = quote || '"';
+      return `url(${wrappedUrl}${absoluteUrl}${wrappedUrl})`;
+    } catch {
+      return match;
+    }
+  });
+};
+
 const getStylesheetText = (sheet) => {
   try {
-    return Array.from(sheet.cssRules || []).map((rule) => rule.cssText).join("\n");
+    const baseHref = String(sheet?.href || '');
+    return Array.from(sheet.cssRules || []).map((rule) => absolutizeCssUrls(rule.cssText, baseHref)).join("\n");
   } catch {
     return "";
   }
@@ -4600,10 +4685,93 @@ const collectExportStyles = ({ includePrintStyles = false } = {}) => {
   return chunks.join("\n\n");
 };
 
+const getPagedExportHtml = async ({ layoutCss, requirePagedOutput = false } = {}) => {
+  if (!printPreview?.isActive) {
+    if (requirePagedOutput) {
+      throw new Error("Print preview is not active for paged PDF export.");
+    }
+    return null;
+  }
+
+  const readPagedHtml = async () => {
+    const printPreviewRoot = document.getElementById("printPreview");
+    if (!printPreviewRoot?.querySelector(".pagedjs_pages")) {
+      return null;
+    }
+
+    const ppClone = printPreviewRoot.cloneNode(true);
+    ppClone.querySelectorAll("script, iframe, object, embed").forEach((el) => el.remove());
+
+    const ppImgs = Array.from(ppClone.querySelectorAll("img"));
+    for (const img of ppImgs) {
+      const src = img.getAttribute("src");
+      if (src && src.startsWith("/assets/")) {
+        try {
+          const response = await fetch(src);
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let j = 0; j < bytes.byteLength; j += 1) binary += String.fromCharCode(bytes[j]);
+          img.setAttribute("src", `data:${blob.type || "image/png"};base64,${btoa(binary)}`);
+        } catch (err) {
+          console.warn("Failed to embed image:", src, err);
+        }
+      }
+    }
+
+    const marker = /(pagedjs|@page|print-content|page-break|column-break|md-columns|section-break|katex)/i;
+    const cssChunks = [];
+    document.querySelectorAll("style").forEach((styleEl) => {
+      const text = styleEl.textContent || "";
+      if (text && marker.test(text)) cssChunks.push(text);
+    });
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        const cssText = getStylesheetText(sheet);
+        if (cssText && marker.test(cssText)) cssChunks.push(cssText);
+      } catch {
+        // Ignore inaccessible stylesheets.
+      }
+    });
+    if (layoutCss) cssChunks.push(layoutCss);
+
+    return `<style data-export-paged="1">${cssChunks.join("\n\n")}</style>${ppClone.outerHTML}`;
+  };
+
+  let pagedHtml = await readPagedHtml();
+  if (!pagedHtml && typeof printPreview?.refresh === "function") {
+    await printPreview.refresh();
+    pagedHtml = await readPagedHtml();
+  }
+
+  if (!pagedHtml && requirePagedOutput) {
+    throw new Error("Paged PDF export requires rendered print preview pages.");
+  }
+
+  return pagedHtml;
+};
+
 const serializePreviewForExport = async ({ forPdf = false } = {}) => {
   await renderMermaid();
+  const requiresPagedPdf = Boolean(forPdf && (previewPreset === "scientific" || previewPreset === "document"));
+  const shouldForcePagedCapture = Boolean(
+    requiresPagedPdf
+    && !printPreview?.isActive
+  );
+
+  if (shouldForcePagedCapture) {
+    await printPreview.show();
+  }
+
   const sourceRoot = forPdf ? elements.preview : (getActivePreviewRoot() || elements.preview);
   const clone = sourceRoot.cloneNode(true);
+
+  const removableExportNodes = forPdf
+    ? "annotation, annotation-xml, .footnote-backref, .footnotes a[href^='#fnref'], .footnotes a[role='doc-backlink']"
+    : ".katex-mathml, annotation, annotation-xml, .footnote-backref, .footnotes a[href^='#fnref'], .footnotes a[role='doc-backlink']";
+  clone.querySelectorAll(removableExportNodes).forEach((node) => node.remove());
+
   const svgs = Array.from(sourceRoot.querySelectorAll("svg"));
   const cloneSvgs = Array.from(clone.querySelectorAll("svg"));
   for (let i = 0; i < svgs.length; i += 1) {
@@ -4655,19 +4823,37 @@ const serializePreviewForExport = async ({ forPdf = false } = {}) => {
     }
   }
 
-  if (printPreview?.isActive || forPdf) {
-    const markdown = getMarkdown();
-    const layout = getEffectiveDocumentLayout(markdown, { usePreviewPreset: true });
-    const layoutCss = layoutCSSGenerator.generate(layout);
-    const pagedStyles = [collectExportStyles({ includePrintStyles: true }), layoutCss]
-      .filter(Boolean)
-      .join("\n\n");
-    if (pagedStyles) {
-      return `<style data-export-paged="1">${pagedStyles}</style><div class="print-content">${clone.innerHTML}</div>`;
+  try {
+    if (printPreview?.isActive || forPdf) {
+      const markdown = getMarkdown();
+      const layout = getEffectiveDocumentLayout(markdown, { usePreviewPreset: true });
+      const layoutCss = layoutCSSGenerator.generate(layout);
+      const pagedPreviewHtml = await getPagedExportHtml({
+        layoutCss,
+        requirePagedOutput: requiresPagedPdf
+      });
+      if (pagedPreviewHtml) {
+        return pagedPreviewHtml;
+      }
+
+      // Fallback is only allowed for export paths that do not require full Paged.js output.
+      const pagedStyles = [collectExportStyles({ includePrintStyles: true }), layoutCss]
+        .filter(Boolean)
+        .join("\n\n");
+      const pagedHtml = typeof printPreview?.prepareHTMLForPrint === "function"
+        ? printPreview.prepareHTMLForPrint(clone.innerHTML)
+        : `<div class="print-content">${layoutPreprocessor.postProcessHTML(clone.innerHTML)}</div>`;
+      if (pagedStyles) {
+        return `<style data-export-paged="1">${pagedStyles}</style>${pagedHtml}`;
+      }
+      return pagedHtml;
     }
-    return `<div class="print-content">${clone.innerHTML}</div>`;
+    return clone.innerHTML;
+  } finally {
+    if (shouldForcePagedCapture) {
+      printPreview.hide();
+    }
   }
-  return clone.innerHTML;
 };
 
 const stripMarkdown = (markdown) => markdown
@@ -7328,6 +7514,9 @@ window.printPreview = printPreview;
 window.showStatus = setStatus;  // For modules like ImageManager
 window.getEffectiveDocumentLayout = getEffectiveDocumentLayout;
 window.renderMarkdownToHtml = (text) => sanitizeRenderedHtml(md.render(String(text || "")));
+window.__mdTestApi = {
+  serializePreviewForExport
+};
 
 // Restore toggle states
 const savedView = localStorage.getItem("currentView");

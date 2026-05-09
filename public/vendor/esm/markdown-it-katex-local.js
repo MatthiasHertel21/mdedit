@@ -132,7 +132,7 @@ export default function markdownItKatexLocal(md, options = {}) {
   const katexBlock = (latex) => {
     const renderOptions = { ...options, displayMode: true };
     try {
-      return `<div class="math-block">${katexInstance.renderToString(latex, renderOptions)}</div>`;
+      return `<div class="math-block display-math">${katexInstance.renderToString(latex, renderOptions)}</div>`;
     } catch (error) {
       if (options.throwOnError) console.log(error);
       return latex;
