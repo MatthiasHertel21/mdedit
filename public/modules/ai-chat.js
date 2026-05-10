@@ -188,7 +188,7 @@ export class AIChat {
     }
   }
 
-  getAiRequestConfig() {
+  getAiRequestConfigs() {
     const supportedProviders = new Map([
       ['groq', { provider: 'groq', enabledId: 'aiGroqEnabled', modelId: 'aiGroqModel', keyId: 'aiGroqKey' }],
       ['gemini', { provider: 'gemini', enabledId: 'aiGeminiEnabled', modelId: 'aiGeminiModel', keyId: 'aiGeminiKey' }],
@@ -200,20 +200,31 @@ export class AIChat {
       .map((input) => supportedProviders.get(input.dataset.aiProvider))
       .filter(Boolean);
 
-    const selected = providerControls.find(({ enabledId }) => document.getElementById(enabledId)?.checked);
+    return providerControls
+      .filter(({ enabledId }) => document.getElementById(enabledId)?.checked)
+      .map((selected) => {
+        const model = document.getElementById(selected.modelId)?.value?.trim();
+        const apiKey = document.getElementById(selected.keyId)?.value?.trim();
 
-    if (!selected) {
-      return null;
-    }
+        return {
+          provider: selected.provider,
+          model: model || undefined,
+          apiKey: apiKey || undefined
+        };
+      });
+  }
 
-    const model = document.getElementById(selected.modelId)?.value?.trim();
-    const apiKey = document.getElementById(selected.keyId)?.value?.trim();
+  getAiRequestConfig() {
+    return this.getAiRequestConfigs()[0] || null;
+  }
 
-    return {
-      provider: selected.provider,
-      model: model || undefined,
-      apiKey: apiKey || undefined
-    };
+  shouldTryNextProvider(error) {
+    const rawMessage = error?.message || String(error || '');
+
+    return rawMessage === 'AI service unavailable'
+      || rawMessage === 'Invalid API key'
+      || rawMessage === 'Failed to fetch'
+      || /API key not configured$/i.test(rawMessage);
   }
 
   async sendMessage() {
@@ -230,46 +241,77 @@ export class AIChat {
 
     // Show loading indicator
     const loadingId = this.addLoadingMessage();
+    let aiConfig = null;
 
     try {
       // Get current markdown content
       const currentDoc = window.editor ? window.editor.getValue() : '';
-      const aiConfig = this.getAiRequestConfig();
+      const aiConfigs = this.getAiRequestConfigs();
+      aiConfig = aiConfigs[0] || null;
 
       if (!aiConfig) {
         this.removeLoadingMessage(loadingId);
         this.showToast(window.t?.('aiProviderSelectRequired') || 'Bitte aktiviere mindestens einen KI-Anbieter.', 'error');
         return;
       }
-      
-      console.log('AI Chat - Sending request:', {
-        provider: aiConfig.provider,
-        model: aiConfig.model,
-        prompt: message.substring(0, 50) + '...',
-        documentLength: currentDoc.length,
-        hasEditor: !!window.editor
-      });
 
-      // Call API with new structured format
-      const response = await fetch('/api/chat/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: message,
-          document: currentDoc,
-          history: this.history,
+      let data = null;
+      let lastError = null;
+
+      for (let index = 0; index < aiConfigs.length; index += 1) {
+        aiConfig = aiConfigs[index];
+
+        console.log('AI Chat - Sending request:', {
           provider: aiConfig.provider,
           model: aiConfig.model,
-          apiKey: aiConfig.apiKey
-        })
-      });
+          prompt: message.substring(0, 50) + '...',
+          documentLength: currentDoc.length,
+          hasEditor: !!window.editor,
+          attempt: index + 1,
+          totalProviders: aiConfigs.length
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'API error');
+        try {
+          const response = await fetch('/api/chat/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: message,
+              document: currentDoc,
+              history: this.history,
+              provider: aiConfig.provider,
+              model: aiConfig.model,
+              apiKey: aiConfig.apiKey
+            })
+          });
+
+          if (!response.ok) {
+            let errorPayload = null;
+            try {
+              errorPayload = await response.json();
+            } catch {
+              errorPayload = null;
+            }
+            throw new Error(errorPayload?.error || 'API error');
+          }
+
+          data = await response.json();
+          break;
+        } catch (error) {
+          lastError = error;
+          const canFallback = index < aiConfigs.length - 1 && this.shouldTryNextProvider(error);
+
+          if (!canFallback) {
+            throw error;
+          }
+
+          console.warn(`AI Chat - Provider ${aiConfig.provider} failed, trying next provider`, error);
+        }
       }
 
-      const data = await response.json();
+      if (!data) {
+        throw lastError || new Error('AI error');
+      }
       
       console.log('AI Chat - Received response:', {
         action: data.action,
