@@ -11,3 +11,7 @@ data.sqlite*
 .DS_Store
 test-*.md
 docs
+!docs/
+docs/*
+!docs/examples/
+!docs/examples/*.md

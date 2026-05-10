@@ -10,6 +10,8 @@ services:
     volumes:
       # Persist SQLite database
       - ./data:/app/data
+      # Demo reference documents for the welcome-screen sample loader
+      - ./docs/examples:/app/docs/examples:ro
       # Optional: Mount public folder for easier updates
       - ./public:/app/public:ro
     environment:

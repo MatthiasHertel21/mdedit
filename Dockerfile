@@ -31,6 +31,7 @@ RUN npm ci --only=production
 # Copy application files
 COPY server.js .
 COPY db.js .
+COPY docs/examples ./docs/examples/
 COPY public ./public/
 COPY scripts ./scripts/
 
