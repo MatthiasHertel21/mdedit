@@ -6,6 +6,7 @@
 import { documentLayout } from './document-layout.js';
 import { layoutCSSGenerator } from './layout-css-generator.js';
 import { layoutPreprocessor } from './layout-preprocessor.js';
+import { sanitizeRenderedHtml } from './markdown-renderer.js';
 import { buildPagedRenderContract } from './paged-render-contract.js';
 
 export class PrintPreview {
@@ -79,6 +80,32 @@ export class PrintPreview {
 
     this.katexPrintCss = katexCss;
     return katexCss;
+  }
+
+  async getCitationPrintHtml(markdown) {
+    if (typeof window.isCitationDocument !== 'function' || !window.isCitationDocument(markdown)) {
+      return null;
+    }
+
+    const previewMarkdown = typeof window.buildCitationPreviewMarkdown === 'function'
+      ? window.buildCitationPreviewMarkdown(markdown)
+      : markdown;
+    const response = await fetch('/api/preview/citations/html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown, previewMarkdown })
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload?.error || `HTTP ${response.status}`);
+    }
+    if (!payload?.isCitationDocument || !payload?.html) {
+      return null;
+    }
+
+    const processedHtml = layoutPreprocessor.postProcessHTML(payload.html);
+    return this.prepareHTMLForPrint(sanitizeRenderedHtml(processedHtml));
   }
   
   setupErrorSuppression() {
@@ -329,11 +356,12 @@ export class PrintPreview {
     let stagingTarget = null;
 
     try {
-      // Get current preview HTML
-      const previewHTML = this.elements.preview.innerHTML;
-      
-      // Apply print-specific transformations
-      const printHTML = this.prepareHTMLForPrint(previewHTML);
+      const markdown = window.editor ? window.editor.getValue() : '';
+      let printHTML = await this.getCitationPrintHtml(markdown);
+      if (!printHTML) {
+        const previewHTML = this.elements.preview.innerHTML;
+        printHTML = this.prepareHTMLForPrint(previewHTML);
+      }
       
       // Clear previous content/pages
       this.elements.printPreview.innerHTML = '';
@@ -342,7 +370,6 @@ export class PrintPreview {
       await this.waitForPagedJS();
       
       // Load layout configuration from document
-      const markdown = window.editor ? window.editor.getValue() : '';
       const layout = window.getEffectiveDocumentLayout
         ? window.getEffectiveDocumentLayout(markdown, { usePreviewPreset: true })
         : documentLayout.parseFromMarkdown(markdown);
@@ -372,7 +399,7 @@ export class PrintPreview {
           renderTarget = stagingTarget;
         }
         
-        const { styledHTML, polisherStylesheets } = buildPagedRenderContract({
+        const { styledHTML, polisherStylesheets, polisherCSS } = buildPagedRenderContract({
           printHTML,
           layoutCss: layoutCSS,
           katexCss: katexPrintCss,
@@ -403,7 +430,11 @@ export class PrintPreview {
           console.info('[print-preview] Margin box count:', marginCount);
         }
 
-        if (layout.header.enabled || layout.footer.enabled) {
+        // The Paged.js polisher handles @top-* / @bottom-* natively via CSS counters.
+        // Only run the JS fallback when the polisher CSS does NOT include margin-box rules
+        // — otherwise both mechanisms run simultaneously and page numbers appear twice.
+        const polisherHandlesMargins = /@(top|bottom)-/.test(polisherCSS || '');
+        if ((layout.header.enabled || layout.footer.enabled) && !polisherHandlesMargins) {
           this.applyMarginBoxFallback(layout, debugPagedHeaders);
         }
 

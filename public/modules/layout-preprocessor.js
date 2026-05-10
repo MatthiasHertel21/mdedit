@@ -938,7 +938,7 @@ export class LayoutPreprocessor {
       li.className = 'lof-entry';
       const a = doc.createElement('a');
       a.setAttribute('href', `#${id}`);
-      a.innerHTML = `<span class="lof-num">Abb.\u00a0${num}</span>${caption ? ': ' + caption : ''}`;
+      a.innerHTML = `<span class="lof-num">Abb.\u00a0${num}:</span>${caption ? ' ' + caption : ''}`;
       li.appendChild(a);
       ol.appendChild(li);
     });
@@ -956,7 +956,7 @@ export class LayoutPreprocessor {
       li.className = 'lot-entry';
       const a = doc.createElement('a');
       a.setAttribute('href', `#${id}`);
-      a.innerHTML = `<span class="lot-num">Tab.\u00a0${num}</span>${caption ? ': ' + caption : ''}`;
+      a.innerHTML = `<span class="lot-num">Tab.\u00a0${num}:</span>${caption ? ' ' + caption : ''}`;
       li.appendChild(a);
       ol.appendChild(li);
     });
