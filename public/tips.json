@@ -446,5 +446,47 @@
     "title": "Zusammenarbeit in Echtzeit",
     "text": "Teile ein Dokument per Kollaborations-Link und schreibe gemeinsam mit anderen. Cursor und Änderungen werden in Echtzeit synchronisiert.",
     "example": null
+  },
+  {
+    "id": 66,
+    "category": "markdown",
+    "title": "Bildausrichtung und -breite",
+    "text": "Mit `<!-- img: align=right width=40% -->` direkt vor einem Bild kannst du Ausrichtung (`left`, `right`, `center`) und Breite steuern. Rechtsbündige Bilder werden vom Text umflossen.",
+    "example": "<!-- img: align=right width=45% -->\n![Abbildung 1: Mein Diagramm](bild.png)\n\nDieser Text läuft links neben dem Bild."
+  },
+  {
+    "id": 67,
+    "category": "markdown",
+    "title": "Bildunterschriften automatisch nummerieren",
+    "text": "Wenn der Alt-Text eines Bildes mit `Abbildung N:` beginnt, wird das Bild automatisch nummeriert und mit Bildunterschrift versehen. Der Eintrag erscheint auch im Abbildungsverzeichnis.",
+    "example": "![Abbildung 1: Systemübersicht mit Datenpipeline](schema.png)"
+  },
+  {
+    "id": 68,
+    "category": "markdown",
+    "title": "Bildrahmen und visuelle Effekte",
+    "text": "Die Bildmarker unterstützen `frame` für einen dezenten Rahmen, `shadow` für einen Schatten und `filter=grayscale` oder `filter=sepia` für Farbeffekte.",
+    "example": "<!-- img: align=center width=70% frame shadow -->\n![Abbildung 2: Mit Rahmen und Schatten](bild.png)"
+  },
+  {
+    "id": 69,
+    "category": "markdown",
+    "title": "Abbildungsverzeichnis einfügen",
+    "text": "Mit `<!-- list-of-figures -->` an der gewünschten Stelle im Dokument wird automatisch ein Abbildungsverzeichnis aller nummerierten Abbildungen erzeugt.",
+    "example": "<!-- list-of-figures -->\n\n# Abbildungsverzeichnis"
+  },
+  {
+    "id": 70,
+    "category": "markdown",
+    "title": "Tabellenverzeichnis einfügen",
+    "text": "Mit `<!-- list-of-tables -->` wird ein Tabellenverzeichnis erzeugt. Tabellen werden automatisch erkannt, wenn ihnen ein Absatz wie `Tabelle 1: Meine Tabelle` vorangestellt ist.",
+    "example": "**Tabelle 1: Übersicht der Layoutbereiche.**\n\n| Bereich | Status |\n|---|---|\n| Ränder | ☑ |"
+  },
+  {
+    "id": 71,
+    "category": "markdown",
+    "title": "Tabellenunterschriften automatisch erkennen",
+    "text": "Ein Absatz direkt vor einer Tabelle, der mit `Tabelle N:` beginnt, wird automatisch als Tabellenunterschrift (`<caption>`) erkannt, nummeriert und in das Tabellenverzeichnis aufgenommen.",
+    "example": "Tabelle 2: Vergleich der Layoutoptionen.\n\n| Option | Wert |\n|---|---|\n| Rand | 2,1 cm |"
   }
 ]

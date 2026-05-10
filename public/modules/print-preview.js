@@ -374,7 +374,7 @@ export class PrintPreview {
         
         const { styledHTML, polisherStylesheets } = buildPagedRenderContract({
           printHTML,
-          layoutCss,
+          layoutCss: layoutCSS,
           katexCss: katexPrintCss,
           debugPagedHeaders,
           stylesheetUrl: window.location.href
@@ -487,8 +487,12 @@ export class PrintPreview {
     const box = page.querySelector(selector);
     if (!box) return;
 
+    // If the entire margin box already has text content (e.g. from Paged.js polisher
+    // processing @page margin rules), skip to avoid duplicating page numbers.
+    if (box.textContent?.trim()) return;
+
     const content = box.querySelector('.pagedjs_margin-content') || box;
-    if (!content || (content.textContent && content.textContent.trim())) return;
+    if (!content) return;
 
     const sectionHeading = page.querySelector('.pagedjs_pagebox h1, .pagedjs_pagebox h2, .pagedjs_pagebox h3');
     const section = sectionHeading ? sectionHeading.textContent.trim() : '';

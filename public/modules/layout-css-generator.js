@@ -362,8 +362,8 @@ ${selector} {
   ${(name === 'scientific' || name === 'default') ? 'table-layout: fixed;' : ''}
   break-inside: auto;
   page-break-inside: auto;
-  ${tLayout.borderTop ? `border-top: ${tLayout.borderTop.width} solid ${tLayout.borderTop.color};` : ''}
-  ${tLayout.borderBottom ? `border-bottom: ${tLayout.borderBottom.width} solid ${tLayout.borderBottom.color};` : ''}
+  ${(name !== 'scientific' && tLayout.borderTop) ? `border-top: ${tLayout.borderTop.width} solid ${tLayout.borderTop.color};` : ''}
+  ${(name !== 'scientific' && tLayout.borderBottom) ? `border-bottom: ${tLayout.borderBottom.width} solid ${tLayout.borderBottom.color};` : ''}
 }
 
 ${selector} thead {
@@ -395,12 +395,32 @@ ${selector} td {
   text-align-last: auto;
   font-family: inherit;
   line-height: inherit;
+  font-weight: normal;
   vertical-align: top;
   white-space: normal;
   overflow-wrap: normal;
   word-break: normal;
   hyphens: manual;
 }`;
+
+      // Scientific tables: Booktabs-style rules via cell borders (more reliable
+      // than table-level border with border-collapse: collapse in paged renderers)
+      if (name === 'scientific' && tLayout.borderTop) {
+        css += `
+
+/* Booktabs top rule */
+${selector} thead tr:first-child th {
+  border-top: ${tLayout.borderTop.width} solid ${tLayout.borderTop.color};
+}`;
+      }
+      if (name === 'scientific' && tLayout.borderBottom) {
+        css += `
+
+/* Booktabs bottom rule */
+${selector} tbody tr:last-child td {
+  border-bottom: ${tLayout.borderBottom.width} solid ${tLayout.borderBottom.color};
+}`;
+      }
 
       css += `
 
@@ -433,6 +453,16 @@ ${selector} caption {
   margin-top: ${tLayout.caption.marginTop};
   margin-bottom: ${tLayout.caption.marginBottom};
   text-align: left;
+  /* Keep caption glued to table — prevent page break between caption and first row */
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* Prevent a page break between the table caption and the header row */
+${selector} caption + thead,
+${selector} caption + tbody {
+  break-before: avoid;
+  page-break-before: avoid;
 }`;
       }
     });

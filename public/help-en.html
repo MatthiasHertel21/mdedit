@@ -288,6 +288,7 @@
           <a href="#math">Math with KaTeX</a>
           <a href="#extended">Extended syntax</a>
           <a href="#layout">Layout, print &amp; images</a>
+          <a href="#figures">Figures &amp; tables</a>
           <a href="#shortcuts">Keyboard shortcuts</a>
         </nav>
       </aside>
@@ -580,12 +581,71 @@ $$</code></pre>
               </ul>
             </article>
             <article class="card">
-              <h3>Images</h3>
+              <h3>Inserting images</h3>
               <ul>
                 <li>Images can be inserted into the editor by paste or drag and drop.</li>
                 <li>The app stores the asset and inserts the matching Markdown image link.</li>
                 <li>Assets are included in ZIP exports.</li>
               </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="figures">
+          <h2>Figures &amp; tables</h2>
+          <p>mdedit.io automatically detects numbered figures and table captions and can generate figure and table lists from them.</p>
+
+          <h3>Image attributes</h3>
+          <p>Place <code>&lt;!-- img: ... --&gt;</code> directly before an image link to control alignment, size, and visual effects:</p>
+          <table class="compact-table">
+            <thead><tr><th>Option</th><th>Example</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td><code>align</code></td><td><code>align=right</code></td><td><code>left</code>, <code>right</code>, or <code>center</code> (default). Left/right images are wrapped by text.</td></tr>
+              <tr><td><code>width</code></td><td><code>width=60%</code></td><td>Explicit width in %, cm, pt, or px.</td></tr>
+              <tr><td><code>frame</code></td><td><code>frame</code></td><td>Subtle border around the image.</td></tr>
+              <tr><td><code>shadow</code></td><td><code>shadow</code></td><td>Light drop shadow.</td></tr>
+              <tr><td><code>filter</code></td><td><code>filter=grayscale</code></td><td><code>grayscale</code> or <code>sepia</code> for print optimization.</td></tr>
+            </tbody>
+          </table>
+          <div class="two-col">
+            <article class="card">
+              <h3>Image with marker</h3>
+              <pre><code>&lt;!-- img: align=right width=40% frame --&gt;
+![Figure 1: Description](image.png)</code></pre>
+            </article>
+            <article class="card">
+              <h3>Centered with grayscale</h3>
+              <pre><code>&lt;!-- img: align=center width=80% filter=grayscale --&gt;
+![Figure 2: Print test](schema.png)</code></pre>
+            </article>
+          </div>
+
+          <h3>Figure captions</h3>
+          <p>If the alt text starts with <code>Figure N:</code>, the image is automatically numbered with a caption.</p>
+          <pre><code>![Figure 1: System overview with data pipeline](schema.png)</code></pre>
+
+          <h3>Table captions</h3>
+          <p>A paragraph immediately before a table that starts with <code>Table N:</code> is recognized as a table caption:</p>
+          <pre><code>Table 1: Comparison of layout areas.
+
+| Area | Status |
+|---|---|
+| Margins | &#x2611; |</code></pre>
+
+          <h3>List of figures and list of tables</h3>
+          <p>Place one of the following markers at the desired location in the document:</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>List of figures</h3>
+              <pre><code>&lt;!-- list-of-figures --&gt;
+
+# List of Figures</code></pre>
+            </article>
+            <article class="card">
+              <h3>List of tables</h3>
+              <pre><code>&lt;!-- list-of-tables --&gt;
+
+# List of Tables</code></pre>
             </article>
           </div>
         </section>

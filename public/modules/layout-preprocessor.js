@@ -59,6 +59,8 @@ export class LayoutPreprocessor {
     this.tableCounter = 0;
     this.figureCounter = 0;
     this.chapterNumber = 0;
+    this.figureRegistry = [];
+    this.tableRegistry = [];
   }
 
   /**
@@ -75,6 +77,9 @@ export class LayoutPreprocessor {
     processed = this.processChapters(processed);
     processed = this.processSections(processed);
     processed = this.processTableMarkers(processed);
+    processed = this.processImageMarkers(processed);
+    processed = this.processListOfFigures(processed);
+    processed = this.processListOfTables(processed);
     processed = this.processTitlePage(processed);
     processed = this.processBlankPages(processed);
 
@@ -267,12 +272,21 @@ export class LayoutPreprocessor {
 
     this.hydrateLayoutTokens(doc);
     this.wrapColumnBlocks(doc);
+
+    // Figures and table captions — must run before list building
+    this.applyFigures(doc);
+    this.applyTableCaptions(doc);
+
     this.applyPageBreakMarkers(doc);
 
     // Apply column styles
     this.applyColumnStyles(doc);
 
     this.hydrateTableOfContents(doc);
+
+    // Build figure/table lists from registered entries
+    this.hydrateListsOfFiguresAndTables(doc);
+
     this.applyChapterMarkers(doc);
     this.applyFlowGuards(doc);
 
@@ -520,6 +534,20 @@ export class LayoutPreprocessor {
       case 'blank-page':
         marker.className = 'blank-page-marker';
         break;
+      case 'list-of-figures':
+        marker.className = 'list-of-figures-placeholder';
+        break;
+      case 'list-of-tables':
+        marker.className = 'list-of-tables-placeholder';
+        break;
+      case 'img':
+        marker.className = 'image-layout-marker';
+        if (token.attrs.align) marker.dataset.align = token.attrs.align;
+        if (token.attrs.width) marker.dataset.width = token.attrs.width;
+        if (token.attrs.frame === 'true') marker.dataset.frame = 'true';
+        if (token.attrs.shadow === 'true') marker.dataset.shadow = 'true';
+        if (token.attrs.filter) marker.dataset.filter = token.attrs.filter;
+        break;
       default:
         return null;
     }
@@ -717,13 +745,254 @@ export class LayoutPreprocessor {
     });
   }
 
+  /**
+   * Image layout markers
+   * Supports: <!-- img: align=right width=40% frame shadow filter=grayscale -->
+   */
+  processImageMarkers(markdown) {
+    return markdown.replace(
+      /<!--\s*img:\s*([^>]*?)-->/gi,
+      (match, optStr) => {
+        const attrs = {};
+        optStr.trim().replace(/(\w+)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g, (m, key, dq, sq, bare) => {
+          attrs[key] = dq !== undefined ? dq : (sq !== undefined ? sq : (bare !== undefined ? bare : 'true'));
+        });
+        return createLayoutToken('img', attrs);
+      }
+    );
+  }
+
+  /**
+   * List of figures placeholder
+   * Supports: <!-- list-of-figures --> or ::: list-of-figures
+   */
+  processListOfFigures(markdown) {
+    return markdown
+      .replace(/<!--\s*list-of-figures\s*-->/gi, createLayoutToken('list-of-figures'))
+      .replace(/^\s*:::\s*list-of-figures\s*$/gim, createLayoutToken('list-of-figures'));
+  }
+
+  /**
+   * List of tables placeholder
+   * Supports: <!-- list-of-tables --> or ::: list-of-tables
+   */
+  processListOfTables(markdown) {
+    return markdown
+      .replace(/<!--\s*list-of-tables\s*-->/gi, createLayoutToken('list-of-tables'))
+      .replace(/^\s*:::\s*list-of-tables\s*$/gim, createLayoutToken('list-of-tables'));
+  }
+
+  /**
+   * Apply figure wrapping and captions to all relevant images.
+   * Processes:
+   *   - Images preceded by <!-- img: ... --> markers (explicit attributes)
+   *   - Images with alt text starting "Abbildung N:" or "Figure N:" (auto-detect)
+   * Populates this.figureRegistry for list-of-figures.
+   */
+  applyFigures(doc) {
+    this.figureRegistry = [];
+    let figureNum = 0;
+    const processed = new WeakSet();
+
+    // Map: img element → marker element (for explicit <!-- img: --> markers)
+    const markerMap = new Map();
+    doc.querySelectorAll('.image-layout-marker').forEach(marker => {
+      let next = marker.nextElementSibling;
+      while (next && next.tagName !== 'IMG' && !next.querySelector('img')) {
+        next = next.nextElementSibling;
+      }
+      if (!next) { marker.remove(); return; }
+      const img = next.tagName === 'IMG' ? next : next.querySelector('img');
+      if (img) {
+        markerMap.set(img, { marker, container: next });
+      } else {
+        marker.remove();
+      }
+    });
+
+    // Process all images in document order
+    Array.from(doc.querySelectorAll('img')).forEach(img => {
+      if (processed.has(img) || img.closest('figure')) return;
+      processed.add(img);
+
+      const mdata = markerMap.get(img);
+      const altText = img.getAttribute('alt') || '';
+
+      // Extract caption from alt text: "Abbildung N: description" or "Figure N: description"
+      const altMatch = altText.match(/^(?:Abbildung|Abb\.|Figure|Fig\.)\s*\d*\s*:?\s*(.+)/i);
+      const altCaption = altMatch ? altMatch[1].trim() : '';
+
+      // Only process if explicit marker OR alt text has a proper caption prefix
+      if (!mdata && !altCaption) return;
+
+      figureNum++;
+      const figureId = `figure-${figureNum}`;
+      const caption = altCaption || '';
+      this.figureRegistry.push({ id: figureId, num: figureNum, caption });
+
+      // Build <figure> wrapper
+      const figure = doc.createElement('figure');
+      figure.id = figureId;
+      figure.className = 'md-figure';
+      const align = mdata?.marker?.dataset?.align || 'center';
+      figure.classList.add(`md-figure--${align}`);
+      if (mdata?.marker?.dataset?.frame === 'true') figure.classList.add('md-figure--frame');
+      if (mdata?.marker?.dataset?.shadow === 'true') figure.classList.add('md-figure--shadow');
+      if (mdata?.marker?.dataset?.filter) figure.classList.add(`md-figure--filter-${mdata.marker.dataset.filter}`);
+
+      // Apply explicit width — to the figure for floated alignments, to the img for block
+      const width = mdata?.marker?.dataset?.width;
+      if (width) {
+        if (align === 'left' || align === 'right') {
+          figure.style.width = width;
+          figure.style.maxWidth = '100%';
+          img.style.width = '100%';
+        } else {
+          img.style.width = width;
+          img.style.maxWidth = '100%';
+        }
+      }
+
+      // Find container (img is usually wrapped in a <p>)
+      const container = mdata?.container || img.parentElement;
+      if (container && container.parentNode) {
+        container.parentNode.insertBefore(figure, container);
+      } else if (img.parentNode) {
+        img.parentNode.insertBefore(figure, img);
+      }
+      figure.appendChild(img);
+
+      // Add <figcaption>
+      if (caption) {
+        const fc = doc.createElement('figcaption');
+        fc.innerHTML = `<span class="figure-label">Abb.\u00a0${figureNum}:</span> ${caption}`;
+        figure.appendChild(fc);
+      }
+
+      // Remove the now-empty container
+      if (container && container !== img && container.parentNode && !container.textContent.trim()) {
+        container.remove();
+      }
+
+      // Remove the marker
+      if (mdata?.marker) mdata.marker.remove();
+    });
+
+    // Clean up any remaining unmatched image-layout-markers
+    doc.querySelectorAll('.image-layout-marker').forEach(el => el.remove());
+  }
+
+  /**
+   * Detect table captions from preceding paragraphs: "Tabelle N: description"
+   * Moves caption text into a proper <caption> element and populates tableRegistry.
+   */
+  applyTableCaptions(doc) {
+    this.tableRegistry = [];
+    let tableNum = 0;
+
+    Array.from(doc.querySelectorAll('table')).forEach(table => {
+      if (table.closest('figure') || table.querySelector('caption')) return;
+
+      // Walk backwards skipping layout marker elements (e.g. .table-layout-marker)
+      // to find the preceding caption paragraph
+      let prev = table.previousElementSibling;
+      while (prev && prev.tagName !== 'P' && (
+        prev.classList.contains('table-layout-marker') ||
+        prev.classList.contains('page-break') ||
+        prev.classList.contains('chapter-marker') ||
+        prev.dataset.mdLayoutToken
+      )) {
+        prev = prev.previousElementSibling;
+      }
+      if (!prev || prev.tagName !== 'P') return;
+
+      // Match "Tabelle N: caption", "Tabelle: caption", "Table N: caption"
+      const rawText = prev.textContent.trim();
+      const match = rawText.match(/^(?:Tabelle|Tabl\.|Table|Tab\.)\s*\d*\s*:?\s*(.+)/i);
+      if (!match) return;
+
+      tableNum++;
+      const tableId = `table-${tableNum}`;
+      table.id = tableId;
+      const captionText = match[1].trim();
+      this.tableRegistry.push({ id: tableId, num: tableNum, caption: captionText });
+
+      // Insert <caption> as first child of table
+      const captionEl = doc.createElement('caption');
+      captionEl.innerHTML = `<span class="table-label">Tab.\u00a0${tableNum}:</span> ${captionText}`;
+      table.insertBefore(captionEl, table.firstChild);
+
+      // Remove the preceding <p>
+      prev.remove();
+    });
+  }
+
+  buildFigureList(doc) {
+    if (this.figureRegistry.length === 0) return null;
+    const nav = doc.createElement('nav');
+    nav.className = 'list-of-figures';
+    const ol = doc.createElement('ol');
+    nav.appendChild(ol);
+    this.figureRegistry.forEach(({ id, num, caption }) => {
+      const li = doc.createElement('li');
+      li.className = 'lof-entry';
+      const a = doc.createElement('a');
+      a.setAttribute('href', `#${id}`);
+      a.innerHTML = `<span class="lof-num">Abb.\u00a0${num}</span>${caption ? ': ' + caption : ''}`;
+      li.appendChild(a);
+      ol.appendChild(li);
+    });
+    return nav;
+  }
+
+  buildTableList(doc) {
+    if (this.tableRegistry.length === 0) return null;
+    const nav = doc.createElement('nav');
+    nav.className = 'list-of-tables';
+    const ol = doc.createElement('ol');
+    nav.appendChild(ol);
+    this.tableRegistry.forEach(({ id, num, caption }) => {
+      const li = doc.createElement('li');
+      li.className = 'lot-entry';
+      const a = doc.createElement('a');
+      a.setAttribute('href', `#${id}`);
+      a.innerHTML = `<span class="lot-num">Tab.\u00a0${num}</span>${caption ? ': ' + caption : ''}`;
+      li.appendChild(a);
+      ol.appendChild(li);
+    });
+    return nav;
+  }
+
+  hydrateListsOfFiguresAndTables(doc) {
+    doc.querySelectorAll('.list-of-figures-placeholder').forEach((el, index) => {
+      const list = this.buildFigureList(doc);
+      if (list) {
+        el.replaceWith(index === 0 ? list : list.cloneNode(true));
+      } else {
+        el.remove();
+      }
+    });
+    doc.querySelectorAll('.list-of-tables-placeholder').forEach((el, index) => {
+      const list = this.buildTableList(doc);
+      if (list) {
+        el.replaceWith(index === 0 ? list : list.cloneNode(true));
+      } else {
+        el.remove();
+      }
+    });
+  }
+
   cleanupMarkers(doc) {
     // Remove marker divs that are no longer needed
     // (but keep them if they have styling applied)
-    doc.querySelectorAll('.table-layout-marker, .md-columns-token-start, .md-columns-token-end, .chapter-marker').forEach(el => el.remove());
+    doc.querySelectorAll(
+      '.table-layout-marker, .md-columns-token-start, .md-columns-token-end, ' +
+      '.chapter-marker, .image-layout-marker, .list-of-figures-placeholder, .list-of-tables-placeholder'
+    ).forEach(el => el.remove());
   }
 
   removeResidualLayoutTokenText(doc) {
+    // Pass 1: remove whole leaf elements that are only a layout token or TOC placeholder
     Array.from(doc.body.querySelectorAll('*')).forEach((element) => {
       if (element.childElementCount > 0) return;
       if (element.closest('code, pre, .katex, .katex-display')) return;
@@ -732,6 +1001,27 @@ export class LayoutPreprocessor {
       if (!text) return;
       if (parseLayoutToken(text) || isTocPlaceholder(text)) {
         element.remove();
+      }
+    });
+
+    // Pass 2: strip any residual [[MDLAYOUT:...]] text nodes that survived
+    // (e.g. tokens that appeared inside mixed-content paragraphs)
+    const walker = doc.createTreeWalker(doc.body, 0x4 /* NodeFilter.SHOW_TEXT */);
+    const toRemove = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement && node.parentElement.closest('code, pre, .katex, .katex-display')) continue;
+      if (/\[\[MDLAYOUT:/i.test(node.textContent)) {
+        toRemove.push(node);
+      }
+    }
+    toRemove.forEach(node => {
+      // If the parent element has no other content, remove the parent
+      const parent = node.parentElement;
+      if (parent && parent.childNodes.length === 1) {
+        parent.remove();
+      } else {
+        node.remove();
       }
     });
   }
@@ -743,6 +1033,8 @@ export class LayoutPreprocessor {
     this.tableCounter = 0;
     this.figureCounter = 0;
     this.chapterNumber = 0;
+    this.figureRegistry = [];
+    this.tableRegistry = [];
   }
 }
 

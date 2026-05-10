@@ -446,5 +446,47 @@
     "title": "Real-time collaboration",
     "text": "Share a document via a collaboration link and write together with others. Cursors and changes are synchronized in real time.",
     "example": null
+  },
+  {
+    "id": 66,
+    "category": "markdown",
+    "title": "Image alignment and width",
+    "text": "Use `<!-- img: align=right width=40% -->` directly before an image to control alignment (`left`, `right`, `center`) and width. Right-aligned images are wrapped by text.",
+    "example": "<!-- img: align=right width=45% -->\n![Figure 1: My diagram](image.png)\n\nThis text flows to the left of the image."
+  },
+  {
+    "id": 67,
+    "category": "markdown",
+    "title": "Auto-numbered figure captions",
+    "text": "If an image's alt text starts with `Figure N:`, it is automatically numbered and receives a figure caption. The entry also appears in the list of figures.",
+    "example": "![Figure 1: System overview with data pipeline](schema.png)"
+  },
+  {
+    "id": 68,
+    "category": "markdown",
+    "title": "Image frames and visual effects",
+    "text": "Image markers support `frame` for a subtle border, `shadow` for a drop shadow, and `filter=grayscale` or `filter=sepia` for color effects.",
+    "example": "<!-- img: align=center width=70% frame shadow -->\n![Figure 2: With frame and shadow](image.png)"
+  },
+  {
+    "id": 69,
+    "category": "markdown",
+    "title": "Insert a list of figures",
+    "text": "Use `<!-- list-of-figures -->` at the desired location to automatically generate a list of all numbered figures.",
+    "example": "<!-- list-of-figures -->\n\n# List of Figures"
+  },
+  {
+    "id": 70,
+    "category": "markdown",
+    "title": "Insert a list of tables",
+    "text": "Use `<!-- list-of-tables -->` to generate a list of tables. Tables are automatically detected when preceded by a paragraph like `Table 1: My table`.",
+    "example": "**Table 1: Layout overview.**\n\n| Area | Status |\n|---|---|\n| Margins | ☑ |"
+  },
+  {
+    "id": 71,
+    "category": "markdown",
+    "title": "Auto-detected table captions",
+    "text": "A paragraph immediately before a table that begins with `Table N:` is automatically recognized as a table caption, numbered, and added to the list of tables.",
+    "example": "Table 2: Comparison of layout options.\n\n| Option | Value |\n|---|---|\n| Margin | 2.1 cm |"
   }
 ]

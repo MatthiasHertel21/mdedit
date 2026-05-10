@@ -61,7 +61,7 @@ export class DocumentLayout {
       },
       
       footer: {
-        enabled: false,
+        enabled: true,
         hideOnFirstPage: false,
         left: '',
         center: '{page} / {pages}',
@@ -256,7 +256,7 @@ export class DocumentLayout {
           header: {
             background: 'transparent',
             textColor: '#000000',
-            fontWeight: 700,
+            fontWeight: 600,
             textAlign: 'left',
             repeatOnPages: true
           },

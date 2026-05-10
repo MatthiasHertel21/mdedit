@@ -516,6 +516,157 @@
   height: auto;
 }
 
+/* ===== FIGURES (md-figure) ===== */
+
+.print-content figure.md-figure {
+  margin: 14pt 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content figure.md-figure--center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.print-content figure.md-figure--left {
+  float: left;
+  margin: 0 1.5em 1em 0;
+  /* no break-inside on floats — Paged.js handles them separately */
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.print-content figure.md-figure--right {
+  float: right;
+  margin: 0 0 1em 1.5em;
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+/* Establish a new block formatting context for the sibling after a float,
+   so that text in subsequent paragraphs wraps correctly in Paged.js */
+.print-content figure.md-figure--left + *,
+.print-content figure.md-figure--right + * {
+  overflow: hidden;
+}
+
+/* Clear floats at section headings and explicit breaks */
+.print-content h1, .print-content h2, .print-content h3,
+.print-content h4, .print-content h5, .print-content h6,
+.print-content [data-break-before] {
+  clear: both;
+}
+
+.print-content figure.md-figure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.print-content figure.md-figure--center img {
+  margin: 0 auto;
+}
+
+.print-content figure.md-figure--frame img {
+  border: 0.5pt solid #bbb;
+  padding: 4pt;
+}
+
+.print-content figure.md-figure--shadow img {
+  box-shadow: 0 2pt 6pt rgba(0, 0, 0, 0.18);
+}
+
+.print-content figure.md-figure--filter-grayscale img {
+  filter: grayscale(100%);
+}
+
+.print-content figure.md-figure--filter-sepia img {
+  filter: sepia(80%);
+}
+
+.print-content figcaption {
+  font-size: 9pt;
+  color: #444;
+  margin-top: 5pt;
+  text-align: center;
+  font-style: italic;
+  text-align-last: auto;
+  break-before: avoid-page;
+}
+
+.print-content .figure-label {
+  font-weight: 600;
+  font-style: normal;
+  color: #222;
+}
+
+/* ===== TABLE CAPTIONS ===== */
+
+.print-content table caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 9pt;
+  font-style: italic;
+  color: #444;
+  padding-bottom: 5pt;
+  text-align-last: auto;
+}
+
+.print-content table caption .table-label {
+  font-weight: 600;
+  font-style: normal;
+  color: #222;
+}
+
+/* ===== LIST OF FIGURES / LIST OF TABLES ===== */
+
+.print-content .list-of-figures,
+.print-content .list-of-tables {
+  margin: 0;
+}
+
+.print-content .list-of-figures ol,
+.print-content .list-of-tables ol {
+  list-style: none !important;
+  padding-left: 0;
+  margin: 0;
+}
+
+.print-content .list-of-figures li::marker,
+.print-content .list-of-tables li::marker {
+  content: "";
+}
+
+.print-content .lof-entry,
+.print-content .lot-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 4pt;
+  padding: 3pt 0;
+  border-bottom: 0.25pt dotted #ccc;
+  font-size: 10pt;
+  break-inside: avoid;
+}
+
+.print-content .lof-entry a,
+.print-content .lot-entry a {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: baseline;
+  gap: 4pt;
+  width: 100%;
+}
+
+.print-content .lof-num,
+.print-content .lot-num {
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
 /* ===== MATH (KaTeX) ===== */
 
 .print-content .math-block {

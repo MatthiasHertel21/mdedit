@@ -288,6 +288,7 @@
           <a href="#math">Mathe mit KaTeX</a>
           <a href="#extended">Erweiterte Syntax</a>
           <a href="#layout">Layout, Druck &amp; Bilder</a>
+          <a href="#figures">Abbildungen &amp; Tabellen</a>
           <a href="#shortcuts">Tastenkürzel</a>
         </nav>
       </aside>
@@ -580,12 +581,71 @@ $$</code></pre>
               </ul>
             </article>
             <article class="card">
-              <h3>Bilder</h3>
+              <h3>Bilder einfügen</h3>
               <ul>
                 <li>Bilder lassen sich per Einfügen oder Drag &amp; Drop in den Editor übernehmen.</li>
                 <li>Die App speichert das Asset und erzeugt den passenden Markdown-Bildlink.</li>
                 <li>Assets werden bei ZIP-Exporten mitgenommen.</li>
               </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="figures">
+          <h2>Abbildungen &amp; Tabellenverzeichnis</h2>
+          <p>mdedit.io erkennt nummerierte Abbildungen und Tabellenunterschriften automatisch und kann daraus Abbildungs- und Tabellenverzeichnisse erzeugen.</p>
+
+          <h3>Bildattribute</h3>
+          <p>Platziere <code>&lt;!-- img: ... --&gt;</code> direkt vor einem Bild-Link, um Ausrichtung, Breite und visuelle Effekte zu steuern:</p>
+          <table class="compact-table">
+            <thead><tr><th>Option</th><th>Beispiel</th><th>Wirkung</th></tr></thead>
+            <tbody>
+              <tr><td><code>align</code></td><td><code>align=right</code></td><td><code>left</code>, <code>right</code> oder <code>center</code> (Standard). Links/rechts wird der Text umgeflossen.</td></tr>
+              <tr><td><code>width</code></td><td><code>width=60%</code></td><td>Explizite Breite in %, cm, pt oder px.</td></tr>
+              <tr><td><code>frame</code></td><td><code>frame</code></td><td>Dezenter Rahmen um das Bild.</td></tr>
+              <tr><td><code>shadow</code></td><td><code>shadow</code></td><td>Leichter Schlagschatten.</td></tr>
+              <tr><td><code>filter</code></td><td><code>filter=grayscale</code></td><td><code>grayscale</code> oder <code>sepia</code> für Druckoptimierung.</td></tr>
+            </tbody>
+          </table>
+          <div class="two-col">
+            <article class="card">
+              <h3>Bild mit Marker</h3>
+              <pre><code>&lt;!-- img: align=right width=40% frame --&gt;
+![Abbildung 1: Beschreibung](bild.png)</code></pre>
+            </article>
+            <article class="card">
+              <h3>Zentriert mit Graustufen</h3>
+              <pre><code>&lt;!-- img: align=center width=80% filter=grayscale --&gt;
+![Abbildung 2: Drucktest](schema.png)</code></pre>
+            </article>
+          </div>
+
+          <h3>Abbildungsunterschriften</h3>
+          <p>Wenn der Alt-Text mit <code>Abbildung N:</code> oder <code>Figure N:</code> beginnt, wird das Bild automatisch nummeriert und mit einer Unterschrift versehen.</p>
+          <pre><code>![Abbildung 1: Systemübersicht mit Datenpipeline](schema.png)</code></pre>
+
+          <h3>Tabellenunterschriften</h3>
+          <p>Ein Absatz direkt vor einer Tabelle, der mit <code>Tabelle N:</code> beginnt, wird als Tabellenunterschrift erkannt und in die Tabelle eingebunden:</p>
+          <pre><code>Tabelle 1: Vergleich der Layoutbereiche.
+
+| Bereich | Status |
+|---|---|
+| Ränder  | ☑    |</code></pre>
+
+          <h3>Abbildungs- und Tabellenverzeichnis</h3>
+          <p>Platziere einen der folgenden Marker an der gewünschten Stelle im Dokument:</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Abbildungsverzeichnis</h3>
+              <pre><code>&lt;!-- list-of-figures --&gt;
+
+# Abbildungsverzeichnis</code></pre>
+            </article>
+            <article class="card">
+              <h3>Tabellenverzeichnis</h3>
+              <pre><code>&lt;!-- list-of-tables --&gt;
+
+# Tabellenverzeichnis</code></pre>
             </article>
           </div>
         </section>
@@ -961,6 +1021,7 @@ $$</code></pre>
                 <a href="#math">Mathe mit KaTeX</a>
                 <a href="#extended">Erweiterte Syntax</a>
                 <a href="#layout">Layout, Druck &amp; Bilder</a>
+                <a href="#figures">Abbildungen &amp; Tabellen</a>
                 <a href="#shortcuts">Tastenkürzel</a>
               </nav>
             </aside>
@@ -1253,7 +1314,7 @@ $$</code></pre>
                     </ul>
                   </article>
                   <article class="card">
-                    <h3>Bilder</h3>
+                    <h3>Bilder einfügen</h3>
                     <ul>
                       <li>Bilder lassen sich per Einfügen oder Drag &amp; Drop in den Editor übernehmen.</li>
                       <li>Die App speichert das Asset und erzeugt den passenden Markdown-Bildlink.</li>
@@ -1261,6 +1322,36 @@ $$</code></pre>
                     </ul>
                   </article>
                 </div>
+              </section>
+
+              <section id="figures">
+                <h2>Abbildungen &amp; Tabellenverzeichnis</h2>
+                <p>mdedit.io erkennt nummerierte Abbildungen und Tabellenunterschriften automatisch und kann daraus Abbildungs- und Tabellenverzeichnisse erzeugen.</p>
+                <h3>Bildattribute</h3>
+                <table class="compact-table">
+                  <thead><tr><th>Option</th><th>Beispiel</th><th>Wirkung</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>align</code></td><td><code>align=right</code></td><td>left / right / center</td></tr>
+                    <tr><td><code>width</code></td><td><code>width=60%</code></td><td>Explizite Breite</td></tr>
+                    <tr><td><code>frame</code></td><td><code>frame</code></td><td>Dezenter Rahmen</td></tr>
+                    <tr><td><code>shadow</code></td><td><code>shadow</code></td><td>Schlagschatten</td></tr>
+                    <tr><td><code>filter</code></td><td><code>filter=grayscale</code></td><td>Graustufen / Sepia</td></tr>
+                  </tbody>
+                </table>
+                <pre><code>&lt;!-- img: align=right width=40% frame --&gt;
+![Abbildung 1: Beschreibung](bild.png)</code></pre>
+                <h3>Abbildungsverzeichnis</h3>
+                <pre><code>&lt;!-- list-of-figures --&gt;
+
+# Abbildungsverzeichnis</code></pre>
+                <h3>Tabellenverzeichnis</h3>
+                <pre><code>Tabelle 1: Meine Tabelle.
+
+| Spalte | Wert |
+|---|---|</code></pre>
+                <pre><code>&lt;!-- list-of-tables --&gt;
+
+# Tabellenverzeichnis</code></pre>
               </section>
 
               <section id="shortcuts">
