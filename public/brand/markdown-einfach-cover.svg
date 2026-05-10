@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Markdown einfach Cover</title>
+  <desc id="desc">Abstraktes Buchcover mit Markdown-Zeichen, Seitenstapeln und einer ruhigen Editorial-Farbpalette.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f0e6"/>
+      <stop offset="100%" stop-color="#e6dfd1"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b3a4b"/>
+      <stop offset="100%" stop-color="#102732"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d66b3d"/>
+      <stop offset="100%" stop-color="#b94d24"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect x="62" y="58" width="676" height="884" rx="30" fill="#fffaf1" stroke="#102732" stroke-width="3" filter="url(#shadow)"/>
+
+  <rect x="116" y="118" width="568" height="214" rx="26" fill="url(#panel)"/>
+  <rect x="116" y="356" width="270" height="24" rx="12" fill="#d9c8af" opacity="0.9"/>
+  <rect x="116" y="398" width="430" height="14" rx="7" fill="#d9c8af" opacity="0.7"/>
+  <rect x="116" y="430" width="350" height="14" rx="7" fill="#d9c8af" opacity="0.7"/>
+
+  <g transform="translate(510 480)">
+    <rect x="-82" y="-66" width="148" height="190" rx="10" fill="#fff6e4" stroke="#102732" stroke-width="3" transform="rotate(-8)"/>
+    <rect x="-58" y="-42" width="148" height="190" rx="10" fill="#f0e3ca" stroke="#102732" stroke-width="3" transform="rotate(4)"/>
+    <rect x="-38" y="-18" width="168" height="212" rx="12" fill="#ffffff" stroke="#102732" stroke-width="4"/>
+    <rect x="-18" y="16" width="128" height="18" rx="9" fill="#d8c7af"/>
+    <rect x="-18" y="48" width="108" height="12" rx="6" fill="#d8c7af" opacity="0.85"/>
+    <rect x="-18" y="72" width="118" height="12" rx="6" fill="#d8c7af" opacity="0.85"/>
+    <rect x="-18" y="96" width="78" height="12" rx="6" fill="#d8c7af" opacity="0.85"/>
+    <path d="M24 -98 L120 -98" stroke="#102732" stroke-width="5" stroke-linecap="round"/>
+    <path d="M72 -146 L72 -50" stroke="#102732" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="72" cy="-98" r="22" fill="url(#accent)"/>
+  </g>
+
+  <g fill="#fff7ec" font-family="Georgia, 'Times New Roman', serif">
+    <text x="156" y="196" font-size="96" font-weight="700">Markdown</text>
+    <text x="156" y="270" font-size="42" letter-spacing="3">EINFACH</text>
+  </g>
+
+  <g fill="#102732" font-family="Georgia, 'Times New Roman', serif">
+    <text x="118" y="548" font-size="42" font-weight="700">Syntax, Struktur, Export</text>
+    <text x="118" y="594" font-size="28">und alle mdedit-Sonderfunktionen</text>
+  </g>
+
+  <g transform="translate(120 654)">
+    <rect width="272" height="160" rx="18" fill="#f4ead8" stroke="#cfb895" stroke-width="2"/>
+    <text x="26" y="48" fill="#102732" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700">Vom ersten Satz</text>
+    <text x="26" y="84" fill="#102732" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700">bis zum PDF</text>
+    <text x="26" y="124" fill="#b94d24" font-family="'Courier New', monospace" font-size="24"># Listen</text>
+    <text x="26" y="150" fill="#b94d24" font-family="'Courier New', monospace" font-size="24">- Tabellen</text>
+  </g>
+
+  <rect x="116" y="866" width="568" height="20" rx="10" fill="#102732" opacity="0.12"/>
+  <text x="120" y="918" fill="#102732" font-family="Arial, Helvetica, sans-serif" font-size="22" letter-spacing="2">mdedit.io reference edition</text>
+</svg>
