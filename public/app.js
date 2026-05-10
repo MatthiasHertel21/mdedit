@@ -2001,6 +2001,78 @@ const updateHelpLinks = () => {
   }
 };
 
+const localizeLayoutEditorControls = () => {
+  const modal = document.getElementById("layoutEditorModal");
+  if (!modal) return;
+
+  const optionTextByValue = new Map([
+    ["Custom", "layoutOptionCustom"],
+    ["default", "layoutOptionDefault"],
+    ["system-ui, -apple-system, 'Segoe UI', sans-serif", "layoutFontSystemStandard"],
+    ["-apple-system, BlinkMacSystemFont, sans-serif", "layoutFontSystemApple"],
+    ["'Segoe UI', Tahoma, sans-serif", "layoutFontSystemWindows"],
+    ["300", "layoutFontWeightLight"],
+    ["400", "layoutFontWeightNormal"],
+    ["500", "layoutFontWeightMedium"],
+    ["600", "layoutFontWeightSemiBold"],
+    ["700", "layoutFontWeightBold"],
+    ["800", "layoutFontWeightExtraBold"],
+    ["disc", "layoutMarkerDisc"],
+    ["circle", "layoutMarkerCircle"],
+    ["square", "layoutMarkerSquare"],
+    ["'–'", "layoutMarkerEnDash"],
+    ["'—'", "layoutMarkerEmDash"],
+    ["'►'", "layoutMarkerArrowRight"],
+    ["'‣'", "layoutMarkerTriangle"],
+    ["'✓'", "layoutMarkerCheck"],
+    ["'✗'", "layoutMarkerXMark"],
+    ["'•'", "layoutMarkerBullet"],
+    ["'◦'", "layoutMarkerWhiteBullet"],
+    ["'▪'", "layoutMarkerSmallSquare"],
+    ["'▫'", "layoutMarkerSmallWhiteSquare"],
+    ["'◊'", "layoutMarkerDiamond"]
+  ]);
+
+  modal.querySelectorAll("option").forEach((option) => {
+    const key = optionTextByValue.get(option.value);
+    if (key) {
+      option.textContent = t(key);
+    }
+  });
+
+  const setTitleForAll = (selector, key) => {
+    modal.querySelectorAll(selector).forEach((element) => {
+      element.setAttribute("title", t(key));
+    });
+  };
+
+  setTitleForAll('.layout-toggle-btn[id$="-italic"]', "layoutToggleItalic");
+  setTitleForAll('.layout-toggle-btn[id$="-underline"]', "layoutToggleUnderline");
+  setTitleForAll('.layout-toggle-btn[id$="-small-caps"]', "layoutToggleSmallCaps");
+  setTitleForAll('.layout-align-btn[data-align="left"]', "layoutAlignLeft");
+  setTitleForAll('.layout-align-btn[data-align="center"]', "layoutAlignCenter");
+  setTitleForAll('.layout-align-btn[data-align="right"]', "layoutAlignRight");
+  setTitleForAll('.layout-align-btn[data-align="justify"]', "layoutAlignJustify");
+  setTitleForAll('.layout-orientation-btn[data-orientation="portrait"]', "layoutPageOrientationPortrait");
+  setTitleForAll('.layout-orientation-btn[data-orientation="landscape"]', "layoutPageOrientationLandscape");
+
+  const colorTitleByValue = new Map([
+    ["#000000", "layoutColorBlack"],
+    ["#2d2d2d", "layoutColorDarkGray"],
+    ["#6b6b6b", "layoutColorGray"],
+    ["#22536b", "layoutColorDarkBlue"],
+    ["#0089cf", "layoutColorLightBlue"],
+    ["#f59e0b", "layoutColorDarkOrange"]
+  ]);
+
+  modal.querySelectorAll(".color-swatch[data-color]").forEach((button) => {
+    const key = colorTitleByValue.get(button.dataset.color);
+    if (key) {
+      button.setAttribute("title", t(key));
+    }
+  });
+};
+
 const applyTranslations = async () => {
   await loadTranslations(currentLocale);
   if (currentLocale !== "en") {
@@ -2019,6 +2091,7 @@ const applyTranslations = async () => {
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
     el.setAttribute("aria-label", t(el.dataset.i18nAria));
   });
+  localizeLayoutEditorControls();
   updatePreviewTitle();
   if (elements.previewPresetLabel) {
     const key = `preset${previewPreset[0].toUpperCase()}${previewPreset.slice(1)}`;
@@ -2364,7 +2437,7 @@ const populateTableLayoutProfileSelector = () => {
   layoutNames.forEach((name) => {
     const option = document.createElement("option");
     option.value = name;
-    option.textContent = name;
+    option.textContent = name === "default" ? t("layoutOptionDefault") : name;
     select.appendChild(option);
   });
 

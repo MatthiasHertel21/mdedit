@@ -79,7 +79,28 @@ const referenceText = fs.readFileSync(referencePath, "utf8");
 const referenceData = JSON.parse(referenceText);
 const referenceKeys = Object.keys(referenceData);
 
+function collectHtmlI18nKeys(text) {
+  const keys = [];
+  const pattern = /data-i18n(?:-[a-z]+)?="([^"]+)"/g;
+
+  for (const match of text.matchAll(pattern)) {
+    keys.push(match[1]);
+  }
+
+  return [...new Set(keys)].sort();
+}
+
 let hasErrors = false;
+
+const htmlReferencePath = path.join(process.cwd(), "public", "index.html");
+const htmlReferenceText = fs.readFileSync(htmlReferencePath, "utf8");
+const missingHtmlKeys = collectHtmlI18nKeys(htmlReferenceText).filter((key) => !(key in referenceData));
+
+if (missingHtmlKeys.length) {
+  hasErrors = true;
+  console.error(`\n${referenceFile}`);
+  console.error(`  missing HTML keys from public/index.html (${missingHtmlKeys.length}): ${missingHtmlKeys.join(", ")}`);
+}
 
 for (const file of localeFiles) {
   const filePath = path.join(i18nDir, file);
