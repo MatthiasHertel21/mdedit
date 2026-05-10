@@ -296,6 +296,8 @@
   table-layout: auto;
   break-inside: auto;
   page-break-inside: auto;
+  border-top: 1.5pt solid #222;
+  border-bottom: 1.5pt solid #222;
 }
 
 .print-content thead {
@@ -303,12 +305,11 @@
 }
 
 .print-content th {
-  background: #f0f0f0;
-  font-weight: 600;
+  font-weight: 700;
   text-align: left;
   text-align-last: auto;
-  padding: 5pt 8pt;
-  border: 1pt solid #ccc;
+  padding: 4pt 7pt;
+  border-bottom: 1pt solid #444;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -318,12 +319,17 @@
 .print-content td {
   text-align: left;
   text-align-last: auto;
-  padding: 5pt 8pt;
-  border: 1pt solid #ccc;
+  padding: 4pt 7pt;
+  border-bottom: 0.5pt solid #bbb;
+  vertical-align: top;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+}
+
+.print-content tr:last-child td {
+  border-bottom: none;
 }
 
 .print-content tr {
@@ -805,6 +811,31 @@
 
 .print-content .table-of-contents a::after {
   content: " " leader('.') " " target-counter(attr(href), page);
+}
+
+/* ===== FOOTNOTES ===== */
+
+/* ===== BIBLIOGRAPHY / REFERENCES ===== */
+
+.print-content .references,
+.print-content #refs {
+  text-align: left;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.print-content .csl-entry {
+  text-align: left;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.45em;
+  padding-left: 1.5em;
+  text-indent: -1.5em;
+}
+
+.print-content a.footnote-ref {
+  text-decoration: none;
+  color: inherit;
 }
 
 /* ===== FOOTNOTES ===== */

@@ -79,6 +79,7 @@ Der Text nach der Abbildung prüft den Abstand zwischen Figcaption und nächstem
 Ein Float-Bild rechts vom Text ist ein klassisches Mittel in Büchern. Das folgende Bild nimmt 38 % der Breite ein und wird vom Text umflossen. Der Textumfluss prüft, ob Zeilen sauber am Float-Rand umbrechen und ob kein Text mit dem Bild überlappt.
 
 <!-- img: align=right width=38% frame -->
+
 ![Abbildung 2: Quadratisches Messdiagramm mit Referenzwerten](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/9aeaae98.png)
 
 Der Fließtext umläuft das Bild. Dieser Absatz ist absichtlich länger, damit der Umfluss über mehrere Zeilen sichtbar wird. Beim Literature-Preset soll der Umfluss besonders sauber wirken, weil er in Büchern häufig vorkommt. Der Abstand zwischen Text und Bild (margin) soll ausreichend sein, damit Text und Bild nicht zu dicht nebeneinander stehen.

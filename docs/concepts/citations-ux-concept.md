@@ -1,6 +1,6 @@
 # Citations UX Concept
 
-Stand: 2026-05-06
+Stand: 2026-05-10
 Status: Bedienkonzept, keine Implementierung in diesem Schritt.
 
 Bezug: `citations-concept.md`, `citations-implementation-plan.md`
@@ -47,7 +47,7 @@ Konsequenz:
 
 ### UC-1 Quelle hinterlegen
 
-Als Autor moechte ich eine Bibliografie-Datei oder spaeter eine gemeinsam abgelegte serverseitige Bibliografie hinterlegen, damit ich aus ihr zitieren kann.
+Als Autor moechte ich eine dokumentgebundene lokale Bibliothek anlegen oder spaeter eine Zotero-Bibliothek anbinden, damit ich ohne manuelle Dateipfade aus ihr zitieren kann.
 
 ### UC-2 Zitat einfuegen
 
@@ -93,7 +93,8 @@ Inhalte:
 - Titel
 - Autor
 - Sprache
-- Bibliografie-Datei
+- Quellenmodus (`lokal im Dokument`, `Zotero`, spaeter `Hybrid-Snapshot`)
+- Sichtbarkeit der eingebetteten Bibliothek im Markdown
 - CSL-Stil
 - Modus fuer Literaturverzeichnis / Fussnoten
 
@@ -137,7 +138,10 @@ Felder:
 - Dokumenttitel
 - Autor(en)
 - Sprache
-- Bibliografie
+- Quellenmodus
+- lokale Bibliothek aktivieren
+- eingebettete Bibliothek im Markdown anzeigen
+- Zotero-Verbindung
 - CSL-Stil
 - Titel des Literaturverzeichnisses
 - Schalter `Literaturverzeichnis automatisch am Ende`
@@ -185,7 +189,7 @@ Zweck:
 
 Inhalte:
 
-- aktive Bibliografie-Datei
+- aktive Bibliothek oder aktiver Snapshot
 - Anzahl erkannter Quellen
 - Suchfeld
 - Liste zuletzt verwendeter Quellen
@@ -193,8 +197,11 @@ Inhalte:
 
 Aktionen:
 
+- `Quelle anlegen`
+- `BibTeX/RIS/CSL JSON importieren`
 - `Zitat einfuegen`
-- `Bibliografie wechseln`
+- `Mit Zotero verbinden`
+- `OpenAlex durchsuchen`
 - `Literaturverzeichnis einfuegen`
 
 ## 4. Exportdialog fuer wissenschaftliche Dokumente
@@ -206,7 +213,7 @@ Zweck:
 Anzeigen:
 
 - aktiver CSL-Stil
-- erkannte Bibliografie
+- erkannte Bibliothek oder aktiver Snapshot
 - erkannter Exportmodus
 - Validierungsstatus
 
@@ -218,9 +225,9 @@ Modi:
 
 Warnungen:
 
-- `Bibliografie-Datei fehlt`
+- `Keine lokale Bibliothek oder kein Snapshot vorhanden`
 - `CSL-Stil fehlt`
-- `Zitationssyntax gefunden, aber keine Bibliografie gesetzt`
+- `Zitationssyntax gefunden, aber keine Bibliothek aktiv`
 - `Fussnotenstil braucht anderen PDF-Pfad`
 
 ## Dokumentfluss aus Nutzersicht
@@ -228,9 +235,10 @@ Warnungen:
 ## Erstkonfiguration
 
 1. Nutzer aktiviert den wissenschaftlichen Dokumentmodus.
-2. Nutzer hinterlegt Bibliografie und Stil.
-3. mdedit erzeugt oder aktualisiert YAML-Metadaten.
-4. UI zeigt an, dass das Dokument zitierfaehig ist.
+2. Nutzer waehlt Quellenmodus und Stil.
+3. Nutzer legt eine lokale Bibliothek an oder verbindet Zotero.
+4. mdedit erzeugt oder aktualisiert YAML-Metadaten.
+5. UI zeigt an, dass das Dokument zitierfaehig ist.
 
 ## Zitieren im Schreibfluss
 
@@ -263,8 +271,9 @@ Empfehlung fuer die Bedienung:
 
 ## Phase 1
 
-Die normale Vorschau bleibt editornah.
-Ein deutlicher Hinweis ist noetig, dass die finale Zitationsdarstellung im Export verbindlich ist.
+Die normale unpaged Vorschau bleibt editornah.
+Fuer bibliography-orientierte wissenschaftliche Dokumente darf der paged Preview bereits exportnah sein und serverseitig finalisiertes Citeproc-HTML verwenden.
+Ein deutlicher Hinweis ist noetig, welche Ansicht gerade aktiv ist und welche Verbindlichkeit sie hat.
 
 Fuer Exportmodi gilt in Phase 1:
 
@@ -273,16 +282,18 @@ Fuer Exportmodi gilt in Phase 1:
 
 Geeignete Formulierung:
 
-- `Zitationsdarstellung wird fuer wissenschaftliche Exporte serverseitig finalisiert.`
+- `Editor-Vorschau: Zitationsdarstellung kann vereinfacht sein.`
+- `Paged Preview: Zitationsdarstellung wurde fuer den Export serverseitig vorbereitet.`
 
 ## Phase 2
 
-Fuer wissenschaftliche Dokumente kommt eine exportnahe Vorschau hinzu.
+Fuer wissenschaftliche Dokumente wird die exportnahe Vorschau ueber den paged Preview hinaus ausgebaut.
 
 Moegliche UI:
 
 - Toggle `Editor-Vorschau`
 - Toggle `Export-Vorschau`
+- Aktion `Paged Preview aktualisieren`
 
 Damit wird die unterschiedliche Verbindlichkeit der Ansichten fuer Nutzer transparent.
 
@@ -341,25 +352,27 @@ Im Exportdialog sichtbar:
 
 ## MVP-Empfehlung
 
-Fuer die erste Produktstufe reichen diese UI-Funktionen:
+Fuer die erste thesis-taugliche Produktstufe reichen diese UI-Funktionen:
 
-1. Dokumentdialog fuer Bibliografie und Stil
-2. einfacher Zitationsdialog mit Suche und Lokator
-3. Aktion `Literaturverzeichnis einfuegen`
-4. Exportdialog mit Moduswarnungen
+1. Dokumentdialog fuer Quellenmodus und Stil
+2. lokales Quellen-Modal mit Anlegen, Bearbeiten und Import
+3. einfacher Zitationsdialog mit Suche und Lokator
+4. Aktion `Literaturverzeichnis einfuegen`
+5. Exportdialog mit Moduswarnungen
 
 Noch nicht noetig (entspricht Phase 3 des Implementierungsplans):
 
-- komplette Quellenverwaltung in der App
-- Bearbeitung einzelner BibTeX-Eintraege im Produkt
-- komplexe Mehrbibliografie-Workflows
+- bidirektionale Synchronisation mit Zotero
+- mehrere gleichzeitige externe Bibliotheken im selben Dokument
+- automatische Hintergrund-Anreicherung ueber OpenAlex ohne Nutzerbestaetigung
 - vollstaendig exportnahe Live-Vorschau
 - Hochschulvorlagen per `reference.docx`
-- Verwaltung gemeinsam abgelegter Bibliografieressourcen im Produkt
+- Verwaltung serverseitiger Dateipfad-Bibliografien im Produkt
 
 ## Akzeptanzkriterien
 
-- Nutzer kann Bibliografie und CSL-Stil setzen, ohne YAML manuell zu schreiben.
+- Nutzer kann eine lokale Dokumentbibliothek anlegen, ohne YAML oder BibTeX manuell zu schreiben.
+- Nutzer kann steuern, ob die eingebettete Bibliothek im Markdown sichtbar ist.
 - Nutzer kann ein Zitat aus einer Quelle suchen und korrekt einfuegen.
 - Nutzer kann ein Literaturverzeichnis an definierter Stelle einbauen.
 - Der Exportdialog warnt vor fehlenden oder unpassenden Einstellungen.
@@ -368,11 +381,14 @@ Noch nicht noetig (entspricht Phase 3 des Implementierungsplans):
 
 ## Empfehlung
 
-Die UX sollte nicht versuchen, klassische Literaturverwaltungsprogramme zu ersetzen.
+Die UX soll lokale Dokumentbibliotheken zum Regelfall machen und externe Dienste nur gezielt anbinden.
 Fuer mdedit ist ein fokussierter Workflow sinnvoll:
 
-- Quellen anbinden
+- lokale Quellen im Dokument verwalten
 - Zitate korrekt einfuegen
+- optional Zotero anbinden
+- OpenAlex fuer Recherche und Metadatenimport nutzen
 - Export sicher steuern
 
+Filesystem-basierte `.bib`-Dateipfade gehoeren nicht mehr zum empfohlenen oder unterstuetzten Autorenworkflow.
 Damit bleibt das Produkt leichtgewichtig und wird trotzdem fuer wissenschaftliche Arbeiten praktisch nutzbar.

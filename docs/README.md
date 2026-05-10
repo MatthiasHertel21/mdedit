@@ -9,6 +9,7 @@
 
 - [AI API](operations/AI-API.md)
 - [Docker Setup](operations/DOCKER.md)
+- [Stage Uebersicht](operations/STAGES.md)
 - [Security Status](operations/SECURITY.md)
 
 ## Engineering

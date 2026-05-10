@@ -90,14 +90,29 @@ export class PrintPreview {
     const previewMarkdown = typeof window.buildCitationPreviewMarkdown === 'function'
       ? window.buildCitationPreviewMarkdown(markdown)
       : markdown;
-    const response = await fetch('/api/preview/citations/html', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown, previewMarkdown })
-    });
-    const payload = await response.json().catch(() => ({}));
+    let response;
+    let payload = {};
+
+    try {
+      response = await fetch('/api/preview/citations/html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown, previewMarkdown })
+      });
+      payload = await response.json().catch(() => ({}));
+    } catch (error) {
+      console.warn('[print-preview] Citation preview unavailable, using rendered preview fallback.', error);
+      return null;
+    }
 
     if (!response.ok) {
+      if (response.status === 404 || response.status === 501) {
+        console.warn('[print-preview] Citation preview endpoint unavailable, using rendered preview fallback.', {
+          status: response.status,
+          error: payload?.error || null
+        });
+        return null;
+      }
       throw new Error(payload?.error || `HTTP ${response.status}`);
     }
     if (!payload?.isCitationDocument || !payload?.html) {
@@ -532,6 +547,7 @@ export class PrintPreview {
       .replace(/{page}/g, String(pageNumber))
       .replace(/{pages}/g, String(totalPages))
       .replace(/{doc-title}/g, docTitle)
+      .replace(/{title}/g, docTitle)
       .replace(/{section}/g, section)
       .replace(/{date}/g, new Date().toLocaleDateString())
       .replace(/{author}/g, '');

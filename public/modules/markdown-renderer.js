@@ -68,7 +68,7 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 };
 
-const sanitizeRenderedHtml = (html) => {
+export const sanitizeRenderedHtml = (html) => {
   const template = document.createElement("template");
   template.innerHTML = String(html || "");
 

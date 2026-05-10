@@ -1,6 +1,6 @@
 # Citations Implementation Plan
 
-Stand: 2026-05-06
+Stand: 2026-05-10
 Status: Umsetzungsplan, keine Implementierung in diesem Schritt.
 
 Bezug: `citations-concept.md`
@@ -25,6 +25,14 @@ Das bedeutet:
 - keine Formatierung von Literaturangaben durch `markdown-it`
 - keine Kopplung von Stilfragen an CSS oder manuelle Fussnoten
 
+## Entscheidungsupdate 2026-05-10
+
+- filesystem-basierte `.bib`-Dateipfade werden als unterstuetzter Autorenworkflow per Breaking Change entfernt
+- die normative lokale Quelle fuer wissenschaftliche Dokumente ist eine dokumentgebundene eingebettete Bibliothek
+- Zotero ist der erste externe Bibliotheks-Connector; OpenAlex dient als offener Recherche- und Metadaten-Lookup
+- geteilte oder exportierte wissenschaftliche Dokumente muessen ohne Live-Zugriff auf externe Dienste reproduzierbar bleiben; dafuer gibt es einen lokalen Snapshot-Modus
+- `docs/examples/masterthesis-reference.md` und die zugehoerigen Thesis-Fixtures werden im Rollout auf das eingebettete Bibliografieformat migriert
+
 ## Ist-Architektur
 
 ### Relevante Komponenten
@@ -44,6 +52,8 @@ Damit fehlt im Paged-Pfad heute die semantische Zitationsaufloesung.
 
 Die Ziel-Architektur erweitert den bestehenden Exportpfad um einen serverseitigen Citeproc-Vorverarbeitungsschritt. Dieser Schritt wird ausgefuehrt, bevor das HTML an Paged/Chromium uebergeben wird. Fuer DOCX laeuft Citeproc direkt als Teil des Pandoc-Aufrufs. Fuer den LaTeX-basierten Fussnotenpfad entfaellt der HTML-Zwischenschritt vollstaendig; Pandoc erzeugt das PDF direkt.
 
+Der bestehende Paged-Render-Stack fuer Layout, Margin-Boxes und Seitenaufteilung bleibt dabei erhalten. Der Citeproc-Pfad ersetzt fuer Zitationsdokumente nicht die Layoutlogik, sondern die semantische HTML-Quelle. Dieselbe citeproc-verarbeitete HTML-Quelle soll fuer bibliography-orientierte Dokumente sowohl den paged Preview als auch den paged PDF-Pfad speisen.
+
 ## Exportmodi
 
 Es werden drei Exportmodi unterschieden.
@@ -59,7 +69,7 @@ Verwendung:
 
 Pipeline:
 
-`Markdown + Metadaten + Bibliografie -> Pandoc --citeproc -> HTML -> Paged/Chromium -> PDF`
+`Markdown + Metadaten + eingebettete Bibliothek oder Snapshot -> Pandoc --citeproc -> HTML -> Paged/Chromium -> PDF`
 
 ### 2. `pdf-latex-footnotes`
 
@@ -70,7 +80,7 @@ Verwendung:
 
 Pipeline:
 
-`Markdown + Metadaten + Bibliografie -> Pandoc --citeproc -> PDF via LaTeX`
+`Markdown + Metadaten + eingebettete Bibliothek oder Snapshot -> Pandoc --citeproc -> PDF via LaTeX`
 
 ### 3. `docx-citations`
 
@@ -81,37 +91,48 @@ Verwendung:
 
 Pipeline:
 
-`Markdown + Metadaten + Bibliografie -> Pandoc --citeproc -> DOCX`
+`Markdown + Metadaten + eingebettete Bibliothek oder Snapshot -> Pandoc --citeproc -> DOCX`
 
 ## Metadatenmodell
 
-Zitationsrelevante Metadaten muessen bei jedem Export vollstaendig und konsistent verarbeitbar sein. Sie koennen aus zwei Quellen stammen: dem dokumentinternen YAML-Frontmatter und expliziten API-Parametern. Dokumentinternes Frontmatter hat Vorrang; API-Parameter koennen gezielt einzelne Felder ueberschreiben, duerfen aber den Frontmatter-Block nicht zerstoeren.
+Zitationsrelevante Metadaten muessen bei jedem Export vollstaendig und konsistent verarbeitbar sein. Das dokumentinterne YAML-Frontmatter ist die normative Quelle fuer fachliche Zitationsmetadaten. Explizite API-Parameter sind zulaessig fuer operative Steuerung wie Exportmodus, Preview-Aktualisierung oder spaetere UI-Vorbelegungen; sie duerfen den Frontmatter-Block nicht zerstoeren.
 
 ## Dokumentquelle
 
-Das Dokument bleibt Markdown.
-Zitationsrelevante Metadaten muessen als echte Export-Metadaten verarbeitbar sein.
+Das Dokument bleibt Markdown. Zitationsrelevante Metadaten muessen als echte Export-Metadaten verarbeitbar sein.
 
 Notwendige Felder:
 
 - `title`
 - `author`
 - `lang`
-- `bibliography`
+- `citation-source`
 - `csl`
 - `reference-section-title`
 - `nocite`
 - `link-citations`
 - `link-bibliography`
 
+Optional zulaessig:
+
+- `bibliography-visible`
+- `zotero-library`
+- `zotero-collection`
+
 ## Ablagestrategie
 
-Kurzfristig genuegt eine einfache Kombination aus:
+Die Ablage ist local-first.
 
-- dokumentseitigen Metadaten
-- zentral abgelegten Ressourcen an einem festen Pfad im Server-Datenverzeichnis
+Normativer Regelfall:
 
-Hinweis: "projektweite Ressourcen" bedeutet in mdedit konkret Dateien an vereinbarten Pfaden relativ zum Server-Datenverzeichnis (z.B. `/app/data/bibliography/`). Ein allgemeines Projektkonzept existiert in mdedit derzeit nicht.
+- dokumentseitige Metadaten im YAML-Frontmatter
+- dokumentgebundene eingebettete Bibliothek als versionierter Block im Markdown
+
+Externe Anbindungen sind nachgelagert:
+
+- Zotero als read-only Bibliotheks-Connector
+- OpenAlex als offener Lookup fuer Recherche und Metadatenimport
+- `hybrid` als Dokumentmodus, der fuer Export und Teilen einen lokalen Snapshot der verwendeten Quellen festschreibt
 
 Beispiel:
 
@@ -121,16 +142,37 @@ title: Meine Arbeit
 author:
   - Max Mustermann
 lang: de-DE
-bibliography:
-  - bibliography/references.bib
+citation-source: embedded
 csl: csl/apa.csl
 reference-section-title: Literaturverzeichnis
+bibliography-visible: false
 ---
 ```
 
+Beispiel fuer die eingebettete Bibliothek:
+
+````markdown
+```mdedit-bibliography
+{
+  "version": 1,
+  "format": "csl-json",
+  "items": [
+    {
+      "id": "doe2020",
+      "type": "book",
+      "title": "Example Book",
+      "author": [{ "family": "Doe", "given": "Jane" }],
+      "issued": { "date-parts": [[2020]] },
+      "publisher": "Example Press"
+    }
+  ]
+}
+```
+````
+
 ## Serverseitige Umsetzung
 
-Die serverseitige Umsetzung erweitert die bestehenden Pandoc-Hilfsfunktionen um einen dedizierten Citeproc-Vorverarbeitungsschritt. Bestehende Exportpfade bleiben unveraendert aktiv; der neue Pfad wird nur eingeschlagen, wenn Zitationsmetadaten oder Zitationssyntax erkannt werden.
+Die serverseitige Umsetzung erweitert die bestehenden Pandoc-Hilfsfunktionen um einen dedizierten Citeproc-Vorverarbeitungsschritt. Bestehende Exportpfade bleiben fuer nicht-wissenschaftliche Dokumente unveraendert aktiv; der neue Pfad wird eingeschlagen, sobald Zitationsmetadaten oder Zitationssyntax erkannt werden.
 
 ## Neue Kernfunktion
 
@@ -143,14 +185,15 @@ Beispielname:
 Verhaeltnis zu bestehenden Funktionen:
 
 - `renderCitationsToHtml()` ruft intern `runPandoc()` auf
-- `exportWithPandoc()` wird fuer den bestehenden HTML-basierten Exportpfad unveraendert beibehalten
+- `exportWithPandoc()` bleibt fuer den bestehenden HTML-basierten Exportpfad erhalten
 - der neue Pfad ersetzt `exportWithPandoc()` nur fuer Dokumente mit erkannter Zitationssyntax; alle anderen Dokumente laufen wie bisher
 
 Input:
 
 - Markdown-Dokument
 - optional explizite Exportoptionen
-- Ressourcenpfad fuer `.bib`, `.csl` und Medien
+- extrahierte eingebettete Bibliothek oder lokaler Snapshot
+- optionaler Ressourcenpfad fuer `.csl` und Medien
 
 Output:
 
@@ -226,6 +269,7 @@ Erforderlich im MVP (clientseitig):
 
 - Erkennung, dass ein Dokument Zitationsmetadaten besitzt
 - Uebergabe von Markdown plus Exportmetadaten an den Server
+- explizite Aktualisierung eines paged Preview, der fuer bibliography-orientierte Dokumente serverseitig erzeugtes Citeproc-HTML verwendet
 
 Erforderlich ab Phase 2 / SCI-019 (clientseitig):
 
@@ -235,11 +279,12 @@ Erforderlich im MVP (serverseitig):
 
 - Normalisierung oder klare Eingrenzung der wissenschaftlichen Markdown-Teilmenge vor dem Pandoc-Aufruf
 - Routing-Logik fuer bibliography- versus footnote-orientierte Exportpfade
+- Bereitstellung derselben citeproc-verarbeiteten HTML-Quelle fuer paged Preview und paged PDF
 
 ## Nicht im ersten Schritt noetig
 
 - live gerenderte Citeproc-Vorschau in jeder Editor-Aenderung
-- lokale Zitationsdatenbank im Browser
+- bidirektionale Synchronisation mit Zotero
 - clientseitige CSL-Auswertung
 
 ## API-Aenderungen
@@ -255,16 +300,15 @@ Beispiel:
   "markdown": "...",
   "title": "...",
   "paged": true,
-  "citationMode": "bibliography",
-  "citationStyle": "apa.csl",
-  "bibliography": ["bibliography/references.bib"]
+  "citationMode": "bibliography"
 }
 ```
 
 Wichtig:
 
+- Bibliografie-, CSL- und Sprachangaben kommen im MVP aus dem YAML-Frontmatter des Dokuments
 - der Server muss weiterhin den dokumentinternen YAML-Block respektieren
-- explizite API-Parameter duerfen nur gezielt ueberschreiben
+- explizite API-Parameter duerfen nur operative Steuerung leisten oder spaeter gezielt und validiert ueberschreiben
 
 ## DOCX-Export-Request
 
@@ -276,7 +320,6 @@ Analog zum PDF-Export, aber ohne Paged-spezifische Felder.
 
 Es braucht einen klaren Ressourcenpfad fuer:
 
-- `.bib`
 - `.csl`
 - eingebettete Bilder
 - spaeter `reference.docx`
@@ -290,17 +333,18 @@ Empfehlung:
 
 Vor dem Pandoc-Lauf muessen folgende Dinge serverseitig validiert werden:
 
-- Bibliografiedateien existieren
+- eingebettete Bibliothek oder lokaler Snapshot sind parsebar
 - CSL-Datei existiert
 - YAML ist parsebar
 - Eingabe ist groessenbegrenzt
 - Ressourcenpfade liegen innerhalb des erlaubten Datenverzeichnisses (Path-Traversal-Schutz)
 
-Path-Traversal-Schutz ist Pflicht: Pfade fuer `.bib`- und `.csl`-Dateien koennen aus dem Dokument oder dem API-Request stammen. Vor jedem Pandoc-Aufruf muss `path.resolve()` auf den angegebenen Pfad angewendet und das Ergebnis gegen das erlaubte Basisverzeichnis (Server-Datenverzeichnis) abgeglichen werden. Pfade ausserhalb dieses Verzeichnisses oder absolute Pfade werden abgelehnt.
+Path-Traversal-Schutz bleibt fuer `.csl`, Medien und spaetere Vorlagenpflicht. Dokumente mit filesystem-basierten `.bib`-Pfaden gelten nach der Breaking Change als ungueltig und muessen mit einer klaren Migrationsfehlermeldung abgelehnt werden.
 
 Bei Fehlern braucht es klare Exportfehler:
 
-- Bibliografie nicht gefunden
+- eingebettete Bibliothek fehlt oder ist ungueltig
+- legacy `.bib`-Pfadworkflow wird nicht mehr unterstuetzt
 - CSL nicht gefunden
 - Pandoc-Zitationsfehler
 - ungueltige Metadaten
@@ -311,41 +355,46 @@ Bei Fehlern braucht es klare Exportfehler:
 
 Normativ ist der Export, nicht die Live-Vorschau.
 
-Optional sinnvoll:
+Im MVP sinnvoll und fuer paged Paritaet noetig:
 
-- eigener Button `Export-Vorschau aktualisieren`
-- serverseitig generiertes Citeproc-HTML fuer wissenschaftliche Layoutkontrolle
+- serverseitig generiertes Citeproc-HTML fuer bibliography-orientierte Dokumente
+- explizite Aktualisierung des paged Preview ueber denselben HTML-Stand wie der paged PDF-Export
+- normale unpaged Preview darf editornah bleiben
 
 ## Phase 2
 
-Optionaler Endpunkt:
+Ausbau des Preview-Pfads:
 
 - `POST /api/preview/citations/html`
 
 Rueckgabe:
 
-- citeproc-verarbeitetes HTML fuer eine exportnahe Ansicht
+- citeproc-verarbeitetes HTML plus Validierungs- oder Statusinformationen fuer exportnahe Ansichten ausserhalb des paged Preview
 
-Damit kann spaeter der Paged-Preview-Modus auf denselben HTML-Stand wie der PDF-Export gehoben werden.
+Damit kann die exportnahe wissenschaftliche Vorschau ueber den paged Preview hinaus ausgebaut werden, ohne eine zweite semantische Zitationslogik im Frontend einzufuehren.
 
 ## Tests
 
 ## Unit- und Integrationsfaelle
 
-- Zitationssyntax wird mit `.bib` korrekt aufgeloest
+- Zitationssyntax wird mit eingebetteter Bibliothek korrekt aufgeloest
 - `#refs` fuehrt zu Literaturverzeichnis an definierter Stelle
 - Wechsel des CSL-Stils aendert Darstellung ohne Quelldateiaenderung
 - DOCX enthaelt Zitate und Literaturverzeichnis
 - Paged-PDF enthaelt aufgeloeste Zitate statt Rohsyntax
+- paged Preview und paged PDF liefern auf derselben Runtime fuer dieselbe citeproc-verarbeitete HTML-Quelle dieselbe Seitenzahl und dieselbe Platzierung des Literaturverzeichnisses
 - note-style PDF laeuft ueber separaten Fussnotenpfad (SCI-023/Sprint 6, kein Teil des Citeproc Export MVP)
+- `masterthesis-reference.md` funktioniert nach der Migration ohne externe `.bib`-Datei
 
 ## Visuelle Tests
 
 Erweiterung des bestehenden visuellen Smoke-Tests um:
 
 - fixture mit Literaturverzeichnis im Paged-Modus
+- fixture mit Paritaetscheck zwischen paged Preview und paged PDF fuer bibliography-orientierte Zitationsdokumente
 - fixture mit note-style zur gezielten Pfadentscheidung
 - fixture mit mehreren Zitatformen und Lokatoren
+- fixture mit eingebetteter Bibliothek und ausgeblendeter Rohdarstellung im Editor
 
 ## Migrationsstrategie
 
@@ -353,21 +402,27 @@ Erweiterung des bestehenden visuellen Smoke-Tests um:
 
 - Backend kann Citeproc-HTML fuer Exporte erzeugen
 - Backend definiert und validiert die wissenschaftliche Markdown-Eingabe fuer Pandoc
+- Backend extrahiert die eingebettete Bibliothek oder einen lokalen Snapshot aus dem Dokument und erzeugt daraus die temporaere Citeproc-Ressource
 - bestehender Paged-PDF-Pfad wird fuer Zitationsdokumente serverseitig ueber dieses HTML gespeist
+- bibliography-orientierte Zitationsdokumente koennen denselben serverseitig erzeugten HTML-Stand im paged Preview verwenden
 - serverseitige Exportentscheidung fuer bibliography-orientierte Pfade ist implementiert
 - Requests fuer den footnote-orientierten Modus geben bis SCI-023 einen klaren Fehler zurueck
 - DOCX-Export bekommt Citeproc-Unterstuetzung
+- legacy Dokumente mit filesystem-basierten `.bib`-Pfaden erhalten einen klaren Breaking-Change-Hinweis statt stiller Weiterverarbeitung
 
 ## Phase 2
 
 - Frontend bietet Exportmodi fuer Zitationsdokumente an
 - Frontend erkennt YAML-Metadaten und zeigt wissenschaftlichen Exportzustand an
+- Frontend fuehrt eine dokumentgebundene lokale Bibliothek inklusive Sichtbarkeitsoptionen ein
+- `masterthesis-reference.md` und verwandte Thesis-Fixtures werden in das eingebettete Format migriert
 
 ## Phase 3
 
 - produktiver LaTeX-Footnote-Pfad fuer note-style-Dokumente
-- exportnahe serverseitige Vorschau
-- optionale Verwaltung gemeinsam abgelegter Bibliografieressourcen im Server-Datenverzeichnis
+- breiter ausgebaute exportnahe serverseitige Vorschau jenseits des paged Preview
+- read-only Zotero-Connector plus lokaler Snapshot-Modus
+- OpenAlex-Lookup fuer Recherche und Metadatenimport
 - echte Vorlagenunterstuetzung fuer Hochschulen
 
 ## Risiko- und Aufwandseinschaetzung
@@ -381,22 +436,24 @@ Erweiterung des bestehenden visuellen Smoke-Tests um:
 ### Mittlerer Aufwand
 
 - Exportmodus-Umschaltung im UI
-- robuste Dateipfad-Validierung
-- serverseitige Vorschau
+- robuste Validierung fuer eingebettete Bibliotheken und Snapshots
+- breiter ausgebaute serverseitige Vorschau ausserhalb des paged Citations-MVP
 
 ### Hoeherer Aufwand
 
 - echte Fussnotenstile mit gesondertem PDF-Pfad
-- komfortable Bibliografieverwaltung im Produkt
+- dokumentgebundene Quellenverwaltung im Produkt
+- Zotero-Connector und Snapshot-Logik
 
 ## Empfohlene erste Implementierung
 
 1. Wissenschaftliche Markdown-Teilmenge und Pandoc-Reader vertraglich festlegen.
 2. Citeproc im Server fuer DOCX aktivieren.
-3. Citeproc-HTML fuer Paged-PDF erzeugen.
+3. Citeproc-HTML als gemeinsame semantische Quelle fuer paged Preview und Paged-PDF erzeugen.
 4. YAML-Metadaten im Exportpfad offiziell unterstuetzen.
-5. Serverseitige Exportentscheidung fuer den Paged-PDF-Pfad einfuehren. (Der Fussnoten-PDF-Pfad folgt erst mit SCI-023/Sprint 6; Requests auf diesen Modus geben bis dahin einen klaren Fehler zurueck.)
-6. Danach den Exportmodus im UI sichtbar machen.
-7. Visuelle und inhaltliche Exporttests fuer Zitationsdokumente ergaenzen.
+5. Serverseitige Exportentscheidung und paged Preview-Aktualisierung fuer den Paged-Citeproc-Pfad einfuehren. (Der Fussnoten-PDF-Pfad folgt erst mit SCI-023/Sprint 6; Requests auf diesen Modus geben bis dahin einen klaren Fehler zurueck.)
+6. Danach dokumentgebundene eingebettete Bibliotheken mit lokalem Quellen-Modal einfuehren.
+7. Anschliessend Zotero read-only und OpenAlex Lookup auf diesen lokalen Kern aufsetzen.
+8. Visuelle und inhaltliche Exporttests fuer Zitationsdokumente inklusive `masterthesis-reference.md` im neuen Format ergaenzen.
 
-Damit wird mdedit schnell fuer wissenschaftliche Arbeiten mit zentralem Literaturverzeichnis nutzbar, ohne die Preview-Architektur sofort grundsaetzlich umzubauen.
+Damit wird mdedit schnell fuer wissenschaftliche Arbeiten mit zentralem Literaturverzeichnis nutzbar, ohne an filesystem-basierten `.bib`-Dateipfaden als Autorenworkflow festzuhalten.

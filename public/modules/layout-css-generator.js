@@ -736,6 +736,27 @@ ${selector} caption + tbody {
 .print-content .footnotes a[href^="#fnref"],
 .print-content .footnotes a[role="doc-backlink"] {
   display: none !important;
+}
+
+.print-content .references,
+.print-content #refs {
+  text-align: left;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.print-content .csl-entry {
+  text-align: left;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.45em;
+  padding-left: 1.5em;
+  text-indent: -1.5em;
+}
+
+.print-content a.footnote-ref {
+  text-decoration: none;
+  color: inherit;
 }`;
   }
 
@@ -775,11 +796,12 @@ ${selector} caption + tbody {
       '{page}': 'counter(page)',
       '{pages}': 'counter(pages)',
       '{doc-title}': 'string(doc-title)',
+      '{title}': 'string(doc-title)',
       '{section}': 'string(section-title)'
     };
 
     const parts = [];
-    const regex = /{page}|{pages}|{doc-title}|{section}|{date}|{author}/g;
+    const regex = /{page}|{pages}|{doc-title}|{title}|{section}|{date}|{author}/g;
     let lastIndex = 0;
     let match;
 

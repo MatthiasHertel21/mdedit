@@ -111,6 +111,7 @@ Diese Tabelle prüft das Compact-Preset: Gitternetz soll sichtbar sein, Schrift 
 Das Compact-Preset prüft, ob ein kleines Float-Bild (30 % Breite) den Text sauber umfließen lässt. Der Text soll direkt neben dem Bild laufen, ohne Überlappung.
 
 <!-- img: align=right width=30% shadow -->
+
 ![Abbildung 1: Quadratisches Referenzdiagramm (Float-Test)](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/9aeaae98.png)
 
 Dieser Text umfließt das Bild. Er ist kurz, aber lang genug, um den Float sichtbar zu machen. Das `shadow`-Attribut prüft, ob ein dezenter Schatten gesetzt wird. Beim Compact-Preset soll der Schatten nicht zu dominant wirken.
@@ -120,6 +121,7 @@ Nach dem Float: Der Text läuft wieder über die volle Breite.
 ## 4.2 Zentriertes Bild
 
 <!-- img: align=center width=60% -->
+
 ![Abbildung 2: Workflow-Diagramm — Datenfluss-Überblick](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/c5bfdaad.png)
 
 Das Bild nimmt 60 % der Breite ein und ist zentriert. Beim Compact-Preset sollen Bildabstände kleiner sein als beim Literature-Preset.

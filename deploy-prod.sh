@@ -74,8 +74,7 @@ fi
 echo "► Deploying version $NEW_VERSION"
 
 echo "  Running release checks ..."
-npm run audit:prod
-npm run smoke:visual
+npm run release:check
 
 # ── Bump version in package.json if changed ───────────────────────────────────
 if [[ "$NEW_VERSION" != "$CURRENT_VERSION" ]]; then

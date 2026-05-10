@@ -90,22 +90,29 @@
               <i class="fa-solid fa-layer-group"></i>
               <span id="mobileCurrentSpaceName">Standard</span>
             </button>
-            <div class="mobile-view-switch mobile-view-switch-inline" role="tablist" aria-label="Mobile workspace view">
-              <button id="mobileEditorToggle" class="mobile-view-btn active" type="button" data-mobile-view="editor" role="tab" aria-selected="true">
-                <span>M</span>
-              </button>
-              <button id="mobilePreviewToggle" class="mobile-view-btn" type="button" data-mobile-view="preview" role="tab" aria-selected="false">
-                <span>V</span>
-              </button>
-            </div>
-            <button id="mobileHistoryToggle" class="header-icon" type="button" aria-label="Verlauf" title="Verlauf">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-            </button>
             <div class="mobile-overflow-menu">
-              <button id="mobileOverflowToggle" class="header-icon" type="button" aria-label="Mehr" title="Mehr" aria-expanded="false" aria-controls="mobileOverflowPanel">
-                <i class="fa-solid fa-ellipsis"></i>
+              <button id="mobileOverflowToggle" class="header-icon" type="button" aria-label="Menü" title="Menü" aria-expanded="false" aria-controls="mobileOverflowPanel">
+                <i class="fa-solid fa-bars"></i>
               </button>
               <div id="mobileOverflowPanel" class="mobile-overflow-panel hidden" role="menu">
+                <div class="mobile-overflow-section" role="none">
+                  <div class="mobile-overflow-section-label" data-i18n="tabView">Ansicht</div>
+                  <div class="mobile-view-switch mobile-view-switch-menu" role="tablist" aria-label="Mobile workspace view">
+                    <button id="mobileEditorToggle" class="mobile-view-btn mobile-view-icon-btn active" type="button" data-mobile-view="editor" role="tab" aria-selected="true" data-i18n-title="markdown" data-i18n-aria="markdown" title="Markdown" aria-label="Markdown">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button id="mobilePreviewToggle" class="mobile-view-btn mobile-view-icon-btn" type="button" data-mobile-view="preview" role="tab" aria-selected="false" data-i18n-title="preview" data-i18n-aria="preview" title="Preview" aria-label="Preview">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button id="mobileStackedToggle" class="mobile-view-btn mobile-view-icon-btn" type="button" data-mobile-view="stacked" role="tab" aria-selected="false" title="Markdown + Preview" aria-label="Markdown + Preview">
+                      <i class="fa-solid fa-window-restore"></i>
+                    </button>
+                  </div>
+                </div>
+                <button id="mobileMenuHistoryToggle" class="mobile-overflow-item" type="button" role="menuitem" title="Verlauf" aria-label="Verlauf">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                  <span>Verlauf</span>
+                </button>
                 <button id="mobileTipsBtn" class="mobile-overflow-item" type="button" role="menuitem">
                   <i class="fa-solid fa-lightbulb"></i>
                   <span data-i18n="tips">Tipps</span>
@@ -305,6 +312,7 @@
               </div>
             </div>
           </section>
+          <div class="resizer preview-right-resizer" aria-hidden="true"></div>
         </div>
       </main>
     </div>
@@ -1576,8 +1584,130 @@
 
             <!-- Media Tab -->
             <div class="layout-editor-tab-content" data-content="media">
-              <h3>Medien</h3>
-              <p>Wird noch implementiert...</p>
+              <div class="layout-media-settings">
+                <div class="layout-page-grid">
+
+                  <!-- Figures -->
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutMediaFigures">Abbildungen</h4>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-figure-max-width" data-i18n="layoutMediaMaxWidth">Maximale Breite</label>
+                        <input type="text" id="media-figure-max-width" class="layout-form-input" placeholder="100%" value="100%">
+                      </div>
+                      <div class="layout-form-group">
+                        <label data-i18n="layoutMediaDefaultAlign">Standard-Ausrichtung</label>
+                        <select id="media-figure-align" class="layout-form-select">
+                          <option value="center" data-i18n="layoutMediaAlignCenter">Zentriert</option>
+                          <option value="left" data-i18n="layoutMediaAlignLeft">Links (Textfluss)</option>
+                          <option value="right" data-i18n="layoutMediaAlignRight">Rechts (Textfluss)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-figure-margin-top" data-i18n="layoutMediaMarginTop">Abstand oben</label>
+                        <input type="text" id="media-figure-margin-top" class="layout-form-input" placeholder="18pt" value="18pt">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="media-figure-margin-bottom" data-i18n="layoutMediaMarginBottom">Abstand unten</label>
+                        <input type="text" id="media-figure-margin-bottom" class="layout-form-input" placeholder="18pt" value="18pt">
+                      </div>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-float-gap" data-i18n="layoutMediaFloatGap">Textabstand (Textfluss)</label>
+                        <input type="text" id="media-float-gap" class="layout-form-input" placeholder="1.5em" value="1.5em">
+                      </div>
+                    </div>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="media-figure-frame">
+                      <label for="media-figure-frame" data-i18n="layoutMediaFrame">Rahmen standardmäßig</label>
+                    </div>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="media-figure-shadow">
+                      <label for="media-figure-shadow" data-i18n="layoutMediaShadow">Schatten standardmäßig</label>
+                    </div>
+                  </div>
+
+                  <!-- Caption -->
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutMediaCaption">Beschriftung</h4>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-caption-position" data-i18n="layoutMediaCaptionPosition">Position</label>
+                        <select id="media-caption-position" class="layout-form-select">
+                          <option value="below" data-i18n="layoutMediaCaptionBelow">Unterhalb</option>
+                          <option value="above" data-i18n="layoutMediaCaptionAbove">Oberhalb</option>
+                        </select>
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="media-caption-font-size" data-i18n="layoutMediaCaptionFontSize">Schriftgröße</label>
+                        <input type="text" id="media-caption-font-size" class="layout-form-input" placeholder="9pt" value="9pt">
+                      </div>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-caption-color" data-i18n="layoutMediaCaptionColor">Farbe</label>
+                        <input type="color" id="media-caption-color" class="layout-form-color" value="#666666">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="media-caption-margin-top" data-i18n="layoutMediaCaptionMarginTop">Abstand oben</label>
+                        <input type="text" id="media-caption-margin-top" class="layout-form-input" placeholder="5pt" value="5pt">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Numbering -->
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutMediaNumbering">Nummerierung</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="media-numbering-enabled" checked>
+                      <label for="media-numbering-enabled" data-i18n="layoutMediaNumberingEnabled">Abbildungen nummerieren</label>
+                    </div>
+                    <div class="layout-form-row row-2">
+                      <div class="layout-form-group">
+                        <label for="media-numbering-prefix" data-i18n="layoutMediaNumberingPrefix">Präfix</label>
+                        <input type="text" id="media-numbering-prefix" class="layout-form-input" placeholder="Abbildung" value="Abbildung">
+                      </div>
+                      <div class="layout-form-group">
+                        <label for="media-numbering-format" data-i18n="layoutMediaNumberingFormat">Format</label>
+                        <input type="text" id="media-numbering-format" class="layout-form-input" placeholder="{number}" value="{number}">
+                      </div>
+                    </div>
+                    <div class="layout-variables-info">
+                      <i class="fa-solid fa-circle-info"></i>
+                      <span data-i18n="layoutMediaNumberingInfo">Platzhalter: {number}, {chapter}</span>
+                    </div>
+                  </div>
+
+                  <!-- Indexes -->
+                  <div class="layout-settings-section layout-page-block">
+                    <h4 class="layout-settings-heading" data-i18n="layoutMediaIndexes">Verzeichnisse</h4>
+                    <div class="layout-checkbox-wrapper">
+                      <input type="checkbox" id="media-lof-enabled">
+                      <label for="media-lof-enabled" data-i18n="layoutMediaLofEnabled">Abbildungsverzeichnis einfügen</label>
+                    </div>
+                    <div class="layout-form-row">
+                      <div class="layout-form-group">
+                        <label for="media-lof-title" data-i18n="layoutMediaLofTitle">Titel</label>
+                        <input type="text" id="media-lof-title" class="layout-form-input" placeholder="Abbildungsverzeichnis" value="Abbildungsverzeichnis">
+                      </div>
+                    </div>
+                    <div class="layout-checkbox-wrapper" style="margin-top: 12px;">
+                      <input type="checkbox" id="media-lot-enabled">
+                      <label for="media-lot-enabled" data-i18n="layoutMediaLotEnabled">Tabellenverzeichnis einfügen</label>
+                    </div>
+                    <div class="layout-form-row">
+                      <div class="layout-form-group">
+                        <label for="media-lot-title" data-i18n="layoutMediaLotTitle">Titel</label>
+                        <input type="text" id="media-lot-title" class="layout-form-input" placeholder="Tabellenverzeichnis" value="Tabellenverzeichnis">
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             </div>
 
             <!-- Page Tab -->

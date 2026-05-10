@@ -1,6 +1,6 @@
 {
   "name": "mdedit.io",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "author": "Matthias Hertel",
   "homepage": "https://mdedit.io",
@@ -15,13 +15,17 @@
     "i18n:pretranslate": "node scripts/i18n-pretranslate.js",
     "i18n:sync": "node scripts/i18n-sync.js",
     "i18n:validate": "node scripts/i18n-validate.js",
+    "smoke:citations": "node scripts/citations-smoke.js",
+    "smoke:reference-citations": "node scripts/reference-citations-smoke.js",
     "smoke:paged-parity": "node scripts/paged-preview-parity.js",
     "smoke:visual": "node scripts/visual-smoke.js",
     "audit:prod": "npm audit --omit=dev",
-    "release:check": "npm run i18n:validate && npm run audit:prod && npm run smoke:visual"
+    "release:check": "npm run i18n:validate && npm run audit:prod && npm run smoke:reference-citations && npm run smoke:visual"
   },
   "overrides": {
-    "basic-ftp": "^5.2.3"
+    "basic-ftp": "^5.2.3",
+    "fast-uri": "3.1.2",
+    "ip-address": "10.2.0"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

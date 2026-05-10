@@ -1,6 +1,6 @@
 # Scientific Documents Implementation Plan
 
-Stand: 2026-05-06
+Stand: 2026-05-10
 Status: Ticket- und Sprintplan fuer die Umsetzung des wissenschaftlichen Dokumentmodus.
 
 Bezug:
@@ -25,6 +25,13 @@ Leitgedanke:
 - Preview darf stufenweise nachziehen
 - bestehende Nicht-Zitationsdokumente duerfen funktional nicht regressieren
 
+## Entscheidungsupdate 2026-05-10
+
+- filesystem-basierte lokale `.bib`-Dateien werden per Breaking Change als unterstuetzter Autorenworkflow entfernt
+- die normative lokale Quelle fuer wissenschaftliche Dokumente ist eine dokumentgebundene eingebettete Bibliothek
+- Zotero ist der erste externe Bibliotheks-Connector; OpenAlex ist der zweite offene Lookup-Dienst
+- `docs/examples/masterthesis-reference.md` und die Thesis-Fixtures werden auf das eingebettete Bibliografieformat migriert
+
 ## Epics
 
 ### Epic A: Scientific Metadata Foundation
@@ -42,7 +49,8 @@ Ziel:
 - Citeproc fuer PDF und DOCX produktiv machen
 - Stilklassen sauber in Exportmodi trennen
 - wissenschaftliche Markdown-Eingabe fuer Pandoc robust normalisieren
-- Ressourcenpfade robust validieren
+- eingebettete Bibliotheken oder Snapshots robust in temporaere Citeproc-Ressourcen ueberfuehren
+- verbleibende Ressourcenpfade fuer `.csl` und Medien robust validieren
 
 ### Epic C: Semantic References Core
 
@@ -56,6 +64,7 @@ Ziel:
 
 - Exportmodus-UI
 - Frontmatter-/Metadatenkomfort
+- dokumentgebundene Quellenverwaltung
 - Referenz- und Zitationshilfen
 
 ### Epic E: Advanced Scientific Output
@@ -83,6 +92,7 @@ Tickets:
 - Akzeptanzkriterien:
   - Dokumente mit YAML-Frontmatter rendern den Block nicht mehr als normalen Fliesstext.
   - Dokumente ohne Frontmatter verhalten sich unveraendert.
+  - Der bestehende `layout`-Block wird weiterhin nur als Layoutkonfiguration behandelt und nicht als wissenschaftliches Frontmatter fehlinterpretiert.
 
 ### SCI-002 Preserve frontmatter in editor operations
 
@@ -90,6 +100,7 @@ Tickets:
 - Beschreibung: Editor- und Layoutoperationen duerfen vorhandenes Frontmatter nicht loeschen oder ueberschreiben.
 - Akzeptanzkriterien:
   - `layout`-Aktualisierung erhaelt vorhandenes Frontmatter.
+  - Layout-Aktualisierung schreibt nur in den `layout`-Block und veraendert keine wissenschaftlichen Frontmatter-Felder implizit.
   - Speichern/Exportieren veraendert den Frontmatter-Block nicht implizit.
 
 ### SCI-003 Formalize scientific metadata fields
@@ -97,7 +108,7 @@ Tickets:
 - Typ: Product/Engineering
 - Beschreibung: Unterstuetzte Metadatenfelder fuer wissenschaftliche Dokumente definieren und validieren.
 - Akzeptanzkriterien:
-  - Felder fuer `title`, `author`, `lang`, `bibliography`, `csl`, `reference-section-title`, `nocite`, `link-citations`, `link-bibliography` sind dokumentiert.
+  - Felder fuer `title`, `author`, `lang`, `citation-source`, `csl`, `reference-section-title`, `nocite`, `link-citations`, `link-bibliography`, `bibliography-visible` sind dokumentiert.
 
 ### SCI-004 Concept alignment for frontmatter status
 
@@ -111,7 +122,7 @@ Tickets:
 
 Sprintziel:
 
-- fachlich korrekte Zitationsaufloesung fuer PDF und DOCX produktiv machen
+- fachlich korrekte Zitationsaufloesung fuer PDF, DOCX und den exportnahen paged Preview produktiv machen
 
 Tickets:
 
@@ -150,6 +161,15 @@ Tickets:
   - Client-Vorgaben fuer den Exportmodus koennen validiert und explizit ueberschrieben werden.
   - Fehlkonfigurationen fuehren zu klaren Exportfehlern statt zu impliziten Fallbacks.
 
+### SCI-006b Shared citeproc input for paged preview
+
+- Typ: Engineering
+- Beschreibung: bibliography-orientierte Zitationsdokumente speisen den paged Preview mit derselben serverseitig erzeugten citeproc-verarbeiteten HTML-Quelle wie den Paged-PDF-Pfad. Die bestehende Paged-Layout- und CSS-Logik bleibt erhalten; ersetzt wird nur die semantische HTML-Eingabe.
+- Akzeptanzkriterien:
+  - paged Preview zeigt fuer Zitationsdokumente keine rohe Pandoc-Zitationssyntax mehr.
+  - paged Preview und paged PDF basieren auf derselben citeproc-verarbeiteten HTML-Quelle.
+  - Auf derselben Runtime liefert ein Fixture-Dokument im paged Preview und im PDF dieselbe Seitenzahl und dieselbe Platzierung des Literaturverzeichnisses.
+
 ### SCI-007 Enable citeproc DOCX export
 
 - Typ: Engineering
@@ -157,13 +177,14 @@ Tickets:
 - Akzeptanzkriterien:
   - DOCX enthaelt aufgeloeste Zitate und Literaturverzeichnis.
 
-### SCI-008 Validate bibliography and CSL paths
+### SCI-008 Validate embedded bibliography payloads and CSL paths
 
 - Typ: Engineering/Security
-- Beschreibung: Pfadvalidierung fuer `.bib`- und `.csl`-Dateien.
+- Beschreibung: eingebettete Bibliotheken, lokale Snapshots und `.csl`-Pfade validieren.
 - Akzeptanzkriterien:
-  - Path Traversal wird verhindert.
-  - klare Exportfehler fuer fehlende Ressourcen.
+  - Dokumente mit filesystem-basierten `.bib`-Pfaden geben einen klaren Breaking-Change-Fehler zurueck.
+  - kaputte eingebettete Bibliotheken oder Snapshots geben einen klaren Validierungsfehler zurueck.
+  - Path Traversal wird fuer `.csl`-Dateien und verbleibende Ressourcenpfade verhindert.
 
 ### SCI-009 Export fixtures for citation regression tests
 
@@ -171,6 +192,7 @@ Tickets:
 - Beschreibung: Testfixtures fuer Paged-PDF und DOCX mit Zitationen.
 - Akzeptanzkriterien:
   - visuelle und inhaltliche Regressionstests decken mindestens Autor-Jahr und numerische Stile ab.
+  - Regressionstests pruefen fuer bibliography-orientierte Dokumente auch die Paritaet zwischen paged Preview und paged PDF.
 
 ### Sprint 3: Semantic References Core I
 
@@ -273,16 +295,16 @@ Tickets:
 ### SCI-020 Scientific metadata editor UX
 
 - Typ: UX/Engineering
-- Beschreibung: Frontmatter-relevante Felder in einer UI pflegen, ohne YAML manuell schreiben zu muessen.
+- Beschreibung: Frontmatter-relevante Felder inklusive Quellenmodus in einer UI pflegen, ohne YAML manuell schreiben zu muessen.
 - Akzeptanzkriterien:
   - UI schreibt kontrolliert in den Frontmatter-Block.
 
 ### SCI-021 Citation assistance MVP
 
 - Typ: UX/Engineering
-- Beschreibung: einfache Zitationshilfe fuer vorhandene Bibliografiequellen.
+- Beschreibung: einfache Zitationshilfe fuer lokale Dokumentbibliotheken oder connector-basierte Snapshots.
 - Akzeptanzkriterien:
-  - Einfuegen von Zitationskeys aus vorhandenen Quellen ist moeglich.
+  - Einfuegen von Zitationskeys aus lokalen Quellen ist moeglich.
 
 ### SCI-022 Scientific document status indicators
 
@@ -316,9 +338,10 @@ Tickets:
 ### SCI-025 Server-side scientific preview
 
 - Typ: Engineering
-- Beschreibung: exportnahe serverseitige Vorschau fuer wissenschaftliche Dokumente.
+- Beschreibung: exportnahe serverseitige Vorschau fuer wissenschaftliche Dokumente ueber den paged Citations-MVP hinaus.
 - Akzeptanzkriterien:
-  - wissenschaftliche Preview kann citeproc-verarbeitetes HTML anzeigen.
+  - wissenschaftliche Preview kann citeproc-verarbeitetes HTML auch ausserhalb des paged Preview anzeigen.
+  - eine Umschaltung zwischen editornaher Vorschau und exportnaher Vorschau ist moeglich.
 
 ### SCI-026 Scientific containers
 
@@ -336,17 +359,101 @@ Tickets:
   - Syntax kollidiert nicht mit bestehenden Layout-HTML-Kommentaren.
   - Syntax kollidiert nicht mit Mermaid-Kommentaren auf `%%`-Basis innerhalb von Code-Fences.
 
+### Sprint 7: Bibliography Authoring Core
+
+Sprintziel:
+
+- thesis-taugliche, dokumentgebundene Quellenverwaltung als normative Arbeitsweise produktiv machen
+
+Tickets:
+
+### SCI-028 Document-bound bibliography mode
+
+- Typ: Product/Engineering
+- Beschreibung: wissenschaftliche Dokumente koennen `embedded`, `zotero` oder `hybrid` als Quellenmodus tragen.
+- Akzeptanzkriterien:
+  - der Quellenmodus ist Teil des Dokuments und nicht globaler Preferences.
+  - bestehende Dokumente ohne Quellenmodus verhalten sich unveraendert, solange sie keine Zitationsfunktion nutzen.
+  - Preferences steuern nur Defaults fuer neue wissenschaftliche Dokumente.
+
+### SCI-029 Embedded bibliography block syntax
+
+- Typ: Engineering
+- Beschreibung: versionierten `mdedit-bibliography`-Block fuer lokale Bibliotheken definieren und round-trip-faehig verarbeiten.
+- Akzeptanzkriterien:
+  - eingebettete Bibliotheken koennen im Markdown sichtbar oder verborgen sein.
+  - Editor-, Preview- und Exportpfade erhalten den Block verlustfrei.
+  - der Exportpfad kann aus dem Block eine temporaere Citeproc-Ressource erzeugen.
+
+### SCI-030 Remove filesystem bibliography paths
+
+- Typ: Engineering/Breaking Change
+- Beschreibung: lokale filesystem-basierte `.bib`-Dateipfade als unterstuetzten Workflow entfernen.
+- Akzeptanzkriterien:
+  - Dokumente mit `.bib`-Pfaden erhalten eine klare Migrationsfehlermeldung.
+  - keine neue UI oder Dokumentation verweist mehr auf lokale `.bib`-Dateipfade.
+  - die Serverlogik behandelt eingebettete Bibliotheken als normative lokale Quelle.
+
+### SCI-031 Local bibliography modal
+
+- Typ: UX/Engineering
+- Beschreibung: Quellen-Icon im Editor oeffnet ein Modal fuer lokale Bibliotheken.
+- Akzeptanzkriterien:
+  - Quellen koennen angelegt, bearbeitet und geloescht werden.
+  - Sichtbarkeit der eingebetteten Bibliothek im Markdown ist steuerbar.
+  - Zitat einfuegen und Literaturverzeichnis einfuegen sind aus dem Modal erreichbar.
+
+### SCI-032 Bibliography import and export adapters
+
+- Typ: Engineering
+- Beschreibung: Import und Export fuer BibTeX, RIS und CSL JSON auf dem lokalen Dokumentkern bereitstellen.
+- Akzeptanzkriterien:
+  - BibTeX-Import ist im ersten Schritt moeglich.
+  - RIS- und CSL-JSON-Import sind anschlussfaehig oder direkt mit umgesetzt.
+  - Export mindestens nach BibTeX und CSL JSON ist moeglich.
+
+### SCI-033 Zotero connector (read-only)
+
+- Typ: Engineering
+- Beschreibung: Zotero als erster externer Bibliotheks-Connector, zunaechst read-only.
+- Akzeptanzkriterien:
+  - Quellen koennen aus Zotero gesucht und in lokale Bibliotheken oder Snapshots uebernommen werden.
+  - kein Writeback in Zotero im ersten Schritt.
+  - Export und Teilen bleiben ohne Live-Zugriff auf Zotero reproduzierbar.
+
+### SCI-034 OpenAlex lookup
+
+- Typ: Engineering
+- Beschreibung: OpenAlex als offener Lookup fuer Recherche und Metadatenimport.
+- Akzeptanzkriterien:
+  - Quellen koennen per Titel, DOI oder Autor recherchiert werden.
+  - Treffer koennen in die lokale Bibliothek uebernommen werden.
+  - OpenAlex ist nicht die normative Exportquelle des Dokuments.
+
+### SCI-035 Migrate thesis fixtures to embedded bibliography
+
+- Typ: QA/Docs
+- Beschreibung: `masterthesis-reference.md` und zugehoerige Thesis-Fixtures auf das eingebettete Bibliografieformat migrieren.
+- Akzeptanzkriterien:
+  - `docs/examples/masterthesis-reference.md` funktioniert ohne externe `.bib`-Datei.
+  - zugehoerige Outline- und Testfixtures sind konsistent migriert.
+  - Regressionstests decken das neue Format in Preview, paged Preview, PDF und DOCX ab.
+
 ## Ticket-Reihenfolge nach Abhaengigkeiten
 
 Zwingende Reihenfolge:
 
-- SCI-001 bis SCI-004 vor SCI-006/SCI-020
-- SCI-005 bis SCI-009 inklusive SCI-005a und SCI-006a vor wissenschaftlichem Export-MVP
+- SCI-001 bis SCI-004 vor SCI-006/SCI-006b/SCI-020
+- SCI-005 bis SCI-009 inklusive SCI-005a, SCI-006a und SCI-006b vor wissenschaftlichem Export-MVP
 - SCI-010 bis SCI-013 vor SCI-018
 - SCI-011 vor SCI-012 (Sektionsnummern muessen erzeugt sein, bevor sie referenziert werden koennen)
 - SCI-014 bis SCI-017 vor SCI-018
 - SCI-019 vor produktiver Freigabe des Fussnotenpfads
 - SCI-023 nach stabilem Citeproc-Export-MVP
+- SCI-028 bis SCI-032 vor thesis-tauglicher Freigabe der Scientific Authoring UX
+- SCI-030 vor SCI-035
+- SCI-033 nach SCI-028 bis SCI-032
+- SCI-034 nach SCI-031 und SCI-032
 
 ## Definition of Done fuer den Citeproc Export MVP
 
@@ -354,9 +461,11 @@ Der Citeproc Export MVP ist erreicht, wenn folgende Punkte gleichzeitig erfuellt
 
 - YAML-Frontmatter ist offiziell und verlustfrei integriert.
 - Eine wissenschaftliche Markdown-Teilmenge fuer Pandoc ist dokumentiert und serverseitig robust verarbeitbar.
-- PDF- und DOCX-Export loesen BibTeX/CSL-basierte Zitationen korrekt auf.
+- PDF- und DOCX-Export loesen dokumentgebundene Bibliotheken korrekt auf.
+- bibliography-orientierte Zitationsdokumente speisen paged Preview und paged PDF aus derselben citeproc-verarbeiteten HTML-Quelle.
 - `#refs` oder Dokumentende erzeugt ein Literaturverzeichnis.
 - bibliography- und footnote-orientierte Exportpfade werden serverseitig korrekt unterschieden.
+- filesystem-basierte `.bib`-Dateipfade sind nicht mehr Teil des unterstuetzten Autorenworkflows.
 - nicht-wissenschaftliche Dokumente verhalten sich unveraendert.
 
 ## Definition of Done fuer den Scientific Documents MVP
@@ -366,11 +475,13 @@ Der Scientific Documents MVP ist erreicht, wenn folgende Punkte gleichzeitig erf
 - Kapitel, Bilder, Tabellen und Mermaid koennen IDs/Captions/Nummern erhalten.
 - `@sec:...`, `@fig:...` und `@tbl:...` koennen im Export korrekt aufgeloest werden.
 - Citeproc Export MVP ist abgeschlossen.
+- mindestens ein Thesis-Fixture (`masterthesis-reference.md`) nutzt das eingebettete Bibliografieformat.
 - nicht-wissenschaftliche Dokumente verhalten sich unveraendert.
 
 ## Metriken / Erfolgsindikatoren
 
 - ein definierter Thesis-Fixture-Export passiert PDF und DOCX ohne manuelle Nacharbeit
 - keine Rohmarker wie `[@doe2020]`, `@fig:architektur` oder Frontmatter im finalen Export
+- ein bibliography-orientierter Citation-Fixture liefert auf derselben Runtime dieselbe Seitenzahl im paged Preview und im paged PDF
 - keine Regression in bestehendem Paged-PDF fuer normale Dokumente
 - klarer, dokumentierter Nutzerpfad fuer wissenschaftliche Dokumente

@@ -705,6 +705,30 @@ app.post("/api/export/pdf", async (req, reply) => {
   return exportQueue.execute(() => exportWithPandoc(req, reply, "pdf"));
 });
 
+app.post("/api/preview/citations/html", async (req, reply) => {
+  return exportQueue.execute(async () => {
+    const { markdown, previewMarkdown } = req.body || {};
+    if (!markdown || typeof markdown !== "string") {
+      reply.code(400);
+      return { error: "Markdown required" };
+    }
+
+    const pandocAvailable = await checkPandoc();
+    if (!pandocAvailable) {
+      reply.code(501);
+      return { error: "Pandoc not installed" };
+    }
+
+    try {
+      const result = await renderCitationsToHtml({ markdown, previewMarkdown });
+      return result;
+    } catch (error) {
+      reply.code(error?.statusCode || 500);
+      return { error: error?.message || "Citations preview failed" };
+    }
+  });
+});
+
 // Toggle share status
 app.post("/api/pastes/:id/share", async (req, reply) => {
   const { shared } = req.body || {};
@@ -1118,6 +1142,403 @@ REGELN:
 const deriveTitle = (markdown) => {
   const match = markdown.match(/^#{1,6}\s+(.+)$/m);
   return match ? match[1].trim() : "Untitled";
+};
+
+const scientificFrontmatterRegex = /^---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/;
+const scientificLayoutBlockRegex = /```layout\s*\n[\s\S]*?\n```/g;
+const scientificPandocReader = "markdown+yaml_metadata_block+citations+fenced_divs+fenced_code_attributes+pipe_tables+table_captions+footnotes+tex_math_dollars+header_attributes+implicit_figures";
+
+const createHttpError = (statusCode, message) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const extractScientificFrontmatter = (markdown) => {
+  const match = String(markdown || "").replace(/\r/g, "").match(scientificFrontmatterRegex);
+  return match ? match[1] : "";
+};
+
+const stripScientificLayoutBlock = (markdown) => String(markdown || "").replace(scientificLayoutBlockRegex, "").trimEnd();
+
+const stripScientificFrontmatter = (markdown) => String(markdown || "").replace(scientificFrontmatterRegex, "").trimStart();
+
+const rewritePublicResourcePathForPandoc = (resourcePath) => {
+  const value = String(resourcePath || "").trim();
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return value;
+  }
+
+  if (value.startsWith("/static/")) {
+    return `public/${value.slice("/static/".length)}`;
+  }
+
+  if (value.startsWith("/assets/")) {
+    return value.slice(1);
+  }
+
+  return value;
+};
+
+const rewriteMarkdownResourcePathsForPandoc = (markdown) => String(markdown || "")
+  .replace(/(!\[[^\]]*\]\()\s*(<)?(\/[^)\s>]+)(>)?([^)]*\))/g, (_match, prefix, openAngle, resourcePath, closeAngle, suffix) => {
+    const rewritten = rewritePublicResourcePathForPandoc(resourcePath);
+    return `${prefix}${openAngle || ""}${rewritten}${closeAngle || ""}${suffix}`;
+  })
+  .replace(/(<img\b[^>]*\bsrc=["'])(\/[^"']+)(["'])/gi, (_match, prefix, resourcePath, suffix) => {
+    return `${prefix}${rewritePublicResourcePathForPandoc(resourcePath)}${suffix}`;
+  });
+
+const stripMarkdownCodeSamples = (markdown) => String(markdown || "")
+  .replace(/(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2(?=\n|$)/g, "\n")
+  .replace(/`[^`\n]+`/g, "");
+
+const normalizeYamlScalar = (value) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
+const parseYamlPathList = (value) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    return trimmed.slice(1, -1)
+      .split(",")
+      .map((entry) => normalizeYamlScalar(entry))
+      .filter(Boolean);
+  }
+  return [normalizeYamlScalar(trimmed)].filter(Boolean);
+};
+
+const embeddedBibliographyBlockRegex = /(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n([\s\S]*?)\n\2(?=\n|$)/gi;
+
+const stripEmbeddedBibliographyBlocks = (markdown) => String(markdown || "").replace(
+  embeddedBibliographyBlockRegex,
+  (match, prefix) => prefix || ""
+);
+
+const extractEmbeddedBibliography = (markdown) => {
+  const matches = Array.from(String(markdown || "").matchAll(embeddedBibliographyBlockRegex));
+  embeddedBibliographyBlockRegex.lastIndex = 0;
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  if (matches.length > 1) {
+    throw createHttpError(400, "Nur ein mdedit-bibliography-Block ist pro Dokument erlaubt.");
+  }
+
+  const rawJson = String(matches[0][3] || "").trim();
+  if (!rawJson) {
+    throw createHttpError(400, "Der mdedit-bibliography-Block ist leer.");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch (_error) {
+    throw createHttpError(400, "Der mdedit-bibliography-Block enthaelt kein gueltiges JSON.");
+  }
+
+  const format = Array.isArray(parsed)
+    ? "csl-json"
+    : normalizeYamlScalar(parsed?.format || "csl-json").toLowerCase();
+  const items = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed?.items)
+      ? parsed.items
+      : null;
+
+  if (format !== "csl-json") {
+    throw createHttpError(400, "Der mdedit-bibliography-Block unterstuetzt aktuell nur format: csl-json.");
+  }
+
+  if (!Array.isArray(items)) {
+    throw createHttpError(400, "Der mdedit-bibliography-Block braucht ein items-Array im CSL-JSON-Format.");
+  }
+
+  return { format, items };
+};
+
+const extractCitationMetadata = (markdown) => {
+  const frontmatter = extractScientificFrontmatter(markdown);
+  const embeddedBibliography = extractEmbeddedBibliography(markdown);
+  if (!frontmatter) {
+    return {
+      frontmatter: "",
+      bibliography: [],
+      citationSource: null,
+      embeddedBibliography,
+      hasLegacyBibliographyPaths: false,
+      csl: null,
+      referenceSectionTitle: null,
+      hasCitationMetadata: Boolean(embeddedBibliography)
+    };
+  }
+
+  const lines = frontmatter.split("\n");
+  const bibliography = [];
+  let citationSource = null;
+  let csl = null;
+  let referenceSectionTitle = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const bibliographyMatch = line.match(/^\s*bibliography\s*:\s*(.*)$/i);
+    if (bibliographyMatch) {
+      const remainder = bibliographyMatch[1].trim();
+      if (remainder) {
+        bibliography.push(...parseYamlPathList(remainder));
+        continue;
+      }
+
+      const baseIndent = (line.match(/^\s*/) || [""])[0].length;
+      let cursor = index + 1;
+      while (cursor < lines.length) {
+        const nextLine = lines[cursor];
+        const nextIndent = (nextLine.match(/^\s*/) || [""])[0].length;
+        if (nextLine.trim() && nextIndent <= baseIndent) break;
+        const itemMatch = nextLine.match(/^\s*-\s*(.+?)\s*$/);
+        if (itemMatch) {
+          bibliography.push(normalizeYamlScalar(itemMatch[1]));
+        }
+        cursor += 1;
+      }
+      index = cursor - 1;
+      continue;
+    }
+
+    const citationSourceMatch = line.match(/^\s*citation-source\s*:\s*(.+?)\s*$/i);
+    if (citationSourceMatch) {
+      citationSource = normalizeYamlScalar(citationSourceMatch[1]).toLowerCase();
+      continue;
+    }
+
+    const cslMatch = line.match(/^\s*csl\s*:\s*(.+?)\s*$/i);
+    if (cslMatch) {
+      csl = normalizeYamlScalar(cslMatch[1]);
+      continue;
+    }
+
+    const referenceSectionTitleMatch = line.match(/^\s*reference-section-title\s*:\s*(.+?)\s*$/i);
+    if (referenceSectionTitleMatch) {
+      referenceSectionTitle = normalizeYamlScalar(referenceSectionTitleMatch[1]);
+    }
+  }
+
+  return {
+    frontmatter,
+    bibliography: bibliography.filter(Boolean),
+    citationSource,
+    embeddedBibliography,
+    hasLegacyBibliographyPaths: bibliography.length > 0,
+    csl,
+    referenceSectionTitle,
+    hasCitationMetadata: bibliography.length > 0
+      || Boolean(citationSource)
+      || Boolean(embeddedBibliography)
+      || Boolean(csl)
+      || /(^|\n)\s*(reference-section-title|link-citations|link-bibliography|nocite)\s*:/i.test(frontmatter)
+  };
+};
+
+const hasCitationSyntax = (markdown) => {
+  const plain = stripMarkdownCodeSamples(stripScientificFrontmatter(stripScientificLayoutBlock(markdown)));
+  return /\[[^\]]*?@[a-zA-Z0-9:_-]+[^\]]*?\]/.test(plain)
+    || /(^|[\s(])-?@[a-zA-Z0-9:_-]+/m.test(plain)
+    || /(^|\n)\s*#refs\s*(?=\n|$)/m.test(plain);
+};
+
+const normalizeReferenceSectionTitle = (value) => String(value || "")
+  .replace(/\r?\n+/g, " ")
+  .trim();
+
+const normalizeScientificRefsPlaceholder = (markdown, { referenceSectionTitle } = {}) => {
+  const normalizedTitle = normalizeReferenceSectionTitle(referenceSectionTitle);
+  const replacement = normalizedTitle
+    ? `\n\n# ${normalizedTitle}\n\n::: {#refs}\n:::\n`
+    : "\n\n::: {#refs}\n:::\n";
+
+  return String(markdown || "").replace(
+    /(^|\n)\s*#refs\s*(?=\n|$)/g,
+    (_match, prefix) => `${prefix}${replacement}`
+  );
+};
+
+const stripTableMarkersForPandoc = (markdown) => String(markdown || "").replace(
+  /^[ \t]*:::\s*table\{[^}]*\}\s*\n([\s\S]*?)\n^[ \t]*:::\s*$/gm,
+  '$1'
+);
+
+const hydrateTableLayoutTokensForPandoc = (markdown) => String(markdown || '').replace(
+  /^[ \t]*\[{1,2}MDLAYOUT:table(?:;layout=([a-z0-9_-]+))?\]{1,2}[ \t]*$/gim,
+  (_match, layout = 'default') => `<div class="table-layout-marker" data-layout="${layout}"></div>`
+);
+
+const stripClientSideMarkersForPandoc = (markdown) => String(markdown || "")
+  // [[toc]] is kept as-is: Pandoc outputs <p>[[toc]]</p>, client hydrateTableOfContents() handles it.
+  // Convert list-of-figures/tables HTML comments and ::: syntax to MDLAYOUT tokens so
+  // Pandoc passes them through as text nodes that client hydrateLayoutTokens() can find.
+  .replace(/^[ \t]*<!--[ \t]*list-of-figures[ \t]*-->[ \t]*$/gim, '[[MDLAYOUT:list-of-figures]]')
+  .replace(/^[ \t]*<!--[ \t]*list-of-tables[ \t]*-->[ \t]*$/gim, '[[MDLAYOUT:list-of-tables]]')
+  .replace(/^[ \t]*:::\s*list-of-figures[ \t]*$/gim, '[[MDLAYOUT:list-of-figures]]')
+  .replace(/^[ \t]*:::\s*list-of-tables[ \t]*$/gim, '[[MDLAYOUT:list-of-tables]]');
+
+const normalizeScientificMarkdownForPandoc = (markdown, options = {}) => rewriteMarkdownResourcePathsForPandoc(
+  normalizeScientificRefsPlaceholder(
+    stripClientSideMarkersForPandoc(
+      hydrateTableLayoutTokensForPandoc(
+        stripTableMarkersForPandoc(
+          stripEmbeddedBibliographyBlocks(stripScientificLayoutBlock(String(markdown || "")))
+        )
+      )
+    ),
+    options
+  )
+);
+
+const getScientificAllowedResourceBases = () => Array.from(new Set([
+  path.resolve(process.env.DATA_DIR || __dirname),
+  path.resolve(__dirname)
+]));
+
+const isPathWithinBase = (candidate, base) => candidate === base || candidate.startsWith(`${base}${path.sep}`);
+
+const resolveScientificResourcePath = (resourcePath, label) => {
+  const rawValue = normalizeYamlScalar(resourcePath);
+  if (!rawValue) return null;
+  if (rawValue.includes("\0") || /^[a-z]+:/i.test(rawValue) || path.isAbsolute(rawValue)) {
+    throw createHttpError(400, `${label} must be a relative path inside the allowed data directories.`);
+  }
+
+  for (const base of getScientificAllowedResourceBases()) {
+    const candidate = path.resolve(base, rawValue);
+    if (!isPathWithinBase(candidate, base)) {
+      continue;
+    }
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw createHttpError(400, `${label} not found: ${rawValue}`);
+};
+
+const buildCitationSpec = (markdown, { previewMarkdown, tmpDir } = {}) => {
+  const sourceMarkdown = String(markdown || "");
+  const metadata = extractCitationMetadata(sourceMarkdown);
+  const hasRenderableCitationState = metadata.hasLegacyBibliographyPaths
+    || Boolean(metadata.embeddedBibliography)
+    || Boolean(metadata.csl)
+    || Boolean(metadata.referenceSectionTitle)
+    || /(^|\n)\s*(link-citations|link-bibliography|nocite)\s*:/i.test(metadata.frontmatter)
+    || hasCitationSyntax(sourceMarkdown);
+  const isCitationDocument = metadata.hasCitationMetadata || hasRenderableCitationState;
+
+  if (!isCitationDocument) {
+    return {
+      isCitationDocument: false,
+      normalizedMarkdown: normalizeScientificMarkdownForPandoc(sourceMarkdown, {
+        referenceSectionTitle: metadata.referenceSectionTitle,
+      })
+    };
+  }
+
+  if (metadata.hasLegacyBibliographyPaths) {
+    throw createHttpError(400, "Filesystem-basierte bibliography-Pfade werden nicht mehr unterstuetzt. Bitte migriere das Dokument auf einen mdedit-bibliography-Block.");
+  }
+
+  if (!metadata.embeddedBibliography) {
+    throw createHttpError(400, "Zitationssyntax gefunden, aber die eingebettete Bibliothek fehlt oder ist ungueltig.");
+  }
+
+  if (!tmpDir) {
+    throw new Error("buildCitationSpec requires tmpDir for citation documents");
+  }
+
+  const bibliographyPath = path.join(tmpDir, "embedded-bibliography.json");
+  fs.writeFileSync(bibliographyPath, `${JSON.stringify(metadata.embeddedBibliography.items, null, 2)}\n`, "utf8");
+  const cslFile = metadata.csl ? resolveScientificResourcePath(metadata.csl, "CSL") : null;
+  const resourceDirs = Array.from(new Set([
+    ...getScientificAllowedResourceBases(),
+    ...(cslFile ? [path.dirname(cslFile)] : [])
+  ]));
+  const pandocArgs = ["--citeproc", `--bibliography=${bibliographyPath}`, "--mathml"];
+  if (resourceDirs.length > 0) {
+    pandocArgs.push(`--resource-path=${resourceDirs.join(path.delimiter)}`);
+  }
+
+  return {
+    isCitationDocument: true,
+    // Always use sourceMarkdown (raw) for Pandoc — previewMarkdown contains
+    // client-side layout tokens (e.g. [[MDLAYOUT:table;layout=scientific]])
+    // that break Pandoc's block detection: a token on line N and a pipe table
+    // on line N+1 are merged into one <p> with no blank line separator.
+    normalizedMarkdown: normalizeScientificMarkdownForPandoc(sourceMarkdown, {
+      referenceSectionTitle: metadata.referenceSectionTitle,
+    }),
+    pandocFromArg: `--from=${scientificPandocReader}`,
+    pandocArgs
+  };
+};
+
+const runPandocCaptureStdout = async (args) => {
+  const proc = spawn("pandoc", args, { stdio: ["ignore", "pipe", "pipe"] });
+  let stdout = "";
+  let stderr = "";
+
+  proc.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+  proc.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  return new Promise((resolve) => {
+    proc.on("close", (code) => resolve({ code, stdout, stderr }));
+  });
+};
+
+const renderCitationsToHtml = async ({ markdown, previewMarkdown }) => {
+  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "md-citations-"));
+  try {
+    const citationSpec = buildCitationSpec(markdown, { previewMarkdown, tmpDir });
+    if (!citationSpec.isCitationDocument) {
+      return { html: "", isCitationDocument: false };
+    }
+
+    const inputPath = path.join(tmpDir, "input.md");
+    await fs.promises.writeFile(inputPath, citationSpec.normalizedMarkdown, "utf8");
+    const result = await runPandocCaptureStdout([
+      inputPath,
+      citationSpec.pandocFromArg,
+      "--to=html5",
+      ...citationSpec.pandocArgs
+    ]);
+
+    if (result.code !== 0) {
+      const detail = (result.stderr || "").trim().slice(0, 1200);
+      throw createHttpError(400, detail || "Pandoc konnte Zitationen nicht aufloesen.");
+    }
+
+    return {
+      // Rewrite Pandoc's local-file src paths ("public/brand/foo.png") back to
+      // server-accessible URLs ("/static/brand/foo.png") so the browser preview
+      // can load them, and so the serialized DOM sent to Chromium has a URL that
+      // inlineLocalImagesForChromium can recognize and base64-encode.
+      html: String(result.stdout || "").trim()
+        .replace(/\bsrc="public\/([^"]+)"/g, 'src="/static/$1"')
+        .replace(/\bsrc="assets\/([^"]+)"/g, 'src="/assets/$1"'),
+      isCitationDocument: true
+    };
+  } finally {
+    await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+  }
 };
 
 const escapeHtmlText = (value) => String(value)
@@ -1593,6 +2014,51 @@ const stripAtPageFromAllStyleTags = (html) => {
     return `<style${attrs}>${cleaned}</style>`;
   });
 };
+const inlineLocalImagesForChromium = async (html) => {
+  const publicDir = path.join(__dirname, "public");
+  const mimeMap = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", svg: "image/svg+xml", webp: "image/webp" };
+
+  // Resolve a src attribute value to an absolute local path under publicDir, or null.
+  const resolveToLocalPath = (src) => {
+    if (!src || /^(data:|https?:|file:)/.test(src)) return null;
+    let rel = null;
+    if (/^(?:https?:\/\/[^/]+)?\/static\//.test(src)) {
+      // /static/brand/foo.png  or  http://host/static/brand/foo.png
+      rel = src.replace(/^(?:https?:\/\/[^/]+)?\/static\//, '');
+    } else if (/^(?:https?:\/\/[^/]+)?\/public\//.test(src)) {
+      // Fallback: browser may have resolved public/ URLs
+      rel = src.replace(/^(?:https?:\/\/[^/]+)?\/public\//, '');
+    } else if (/^(?:https?:\/\/[^/]+)?\/assets\//.test(src)) {
+      rel = src.replace(/^(?:https?:\/\/[^/]+)?\//, '');
+    } else if (/^public\//.test(src)) {
+      // Pandoc rewrites /static/... → public/... for its own resource resolution
+      rel = src.slice('public/'.length);
+    }
+    if (!rel) return null;
+    const localPath = path.resolve(publicDir, rel);
+    if (!localPath.startsWith(publicDir + path.sep)) return null; // security
+    return localPath;
+  };
+
+  // Replace all src="..." attributes that resolve to a local file with base64 data URIs
+  const result = await (async () => {
+    let out = html;
+    const matches = [...html.matchAll(/\bsrc="([^"]+)"/g)];
+    for (const [fullMatch, src] of matches) {
+      const localPath = resolveToLocalPath(src);
+      if (!localPath) continue;
+      try {
+        const data = await fs.promises.readFile(localPath);
+        const ext = path.extname(localPath).slice(1).toLowerCase();
+        const mime = mimeMap[ext] || "image/octet-stream";
+        out = out.replace(fullMatch, `src="data:${mime};base64,${data.toString("base64")}"`);
+      } catch { /* file not found, keep original src */ }
+    }
+    return out;
+  })();
+  return result;
+};
+
 const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
   const chromiumCmd = await getChromiumCommand();
   if (!chromiumCmd) return { ok: false, reason: "chromium-not-found" };
@@ -1657,10 +2123,13 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
     });
   } catch { /* KaTeX CSS not critical */ }
 
+  const inlinedBodyHtml = await inlineLocalImagesForChromium(bodyHtml);
+
   const wrappedHtml = `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
+  <base href="http://127.0.0.1:${process.env.PORT || 3210}/">
   <style>
     ${katexFontFaceCss}
     ${printCss}
@@ -1793,7 +2262,7 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
   </style>
 </head>
 <body>
-${bodyHtml}
+${inlinedBodyHtml}
 </body>
 </html>`;
 
@@ -1855,6 +2324,16 @@ const exportWithPandoc = async (req, reply, format) => {
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "md-export-"));
   
   try {
+    let citationSpec = null;
+    if (typeof markdown === "string" && markdown.trim()) {
+      try {
+        citationSpec = buildCitationSpec(markdown, { tmpDir });
+      } catch (error) {
+        reply.code(error?.statusCode || 400);
+        return { error: error?.message || "Invalid citation metadata" };
+      }
+    }
+
     const safeTitle = (title || deriveTitle(markdown || ""))
       .replace(/[^a-z0-9-_]+/gi, "-")
       .substring(0, 100)
@@ -2084,8 +2563,8 @@ ${html}
       }
     }
 
-    const runPandoc = async (inputFile, fromArg) => {
-      let args = [inputFile, fromArg, "-o", outputPath];
+    const runPandoc = async (inputFile, fromArg, extraArgs = []) => {
+      let args = [inputFile, fromArg, ...extraArgs, "-o", outputPath];
       
       // For PDF, use detected engine (prefer wkhtmltopdf for HTML input)
       if (format === "pdf") {
@@ -2110,7 +2589,8 @@ ${html}
 
     let exitCode = 1;
     let lastError = "";
-    if (hasHtml) {
+    const shouldUseHtmlExport = hasHtml && !(citationSpec?.isCitationDocument && (format === "docx" || !paged));
+    if (shouldUseHtmlExport) {
       const htmlPath = path.join(tmpDir, "input.html");
       await fs.promises.writeFile(htmlPath, html, "utf8");
       app.log.info({ htmlLength: html.length, hasImages: html.includes('<img') }, "Trying HTML export");
@@ -2125,9 +2605,38 @@ ${html}
 
     if (exitCode !== 0 && markdown && typeof markdown === "string") {
       const mdPath = path.join(tmpDir, "input.md");
-      await fs.promises.writeFile(mdPath, markdown, "utf8");
+      const markdownForExport = citationSpec?.isCitationDocument
+        ? citationSpec.normalizedMarkdown
+        : rewriteMarkdownResourcePathsForPandoc(markdown);
+      await fs.promises.writeFile(mdPath, markdownForExport, "utf8");
       app.log.info("Trying markdown export as fallback");
-      const result = await runPandoc(mdPath, "--from=gfm");
+      let result = await runPandoc(
+        mdPath,
+        citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm",
+        citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
+      );
+
+      if (
+        format === "pdf"
+        && pdfEngine === "wkhtmltopdf"
+        && result.code !== 0
+        && isWkhtmlUnicodeMetadataError(result.stderr)
+      ) {
+        const fallbackEngine = await getPdfFallbackEngine(pdfEngine);
+        if (fallbackEngine) {
+          app.log.warn(
+            { currentEngine: pdfEngine, fallbackEngine },
+            "wkhtmltopdf failed on unicode metadata, retrying markdown PDF export with fallback engine"
+          );
+          pdfEngine = fallbackEngine;
+          result = await runPandoc(
+            mdPath,
+            citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm",
+            citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
+          );
+        }
+      }
+
       exitCode = result.code;
       lastError = result.stderr || lastError;
     }
@@ -2176,22 +2685,66 @@ const checkCommand = async (cmd) => {
   });
 };
 
-const getAvailableCommand = async (candidates) => {
+const resolveCommandPath = async (cmd) => {
+  if (!cmd || cmd.includes("/")) {
+    return cmd || null;
+  }
+
+  return new Promise((resolve) => {
+    const proc = spawn("which", [cmd], { stdio: ["ignore", "pipe", "ignore"] });
+    let stdout = "";
+    proc.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    proc.on("error", () => resolve(null));
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        resolve(null);
+        return;
+      }
+
+      const resolved = stdout.split(/\r?\n/)[0]?.trim();
+      resolve(resolved || null);
+    });
+  });
+};
+
+const getAvailableCommand = async (candidates, { resolvePath = false } = {}) => {
   for (const cmd of candidates) {
     // eslint-disable-next-line no-await-in-loop
     const ok = await checkCommand(cmd);
-    if (ok) return cmd;
+    if (ok) {
+      if (!resolvePath) {
+        return cmd;
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      return (await resolveCommandPath(cmd)) || cmd;
+    }
   }
   return null;
 };
 
 const getChromiumCommand = async () => getAvailableCommand([
   process.env.CHROMIUM_BIN,
+  process.env.PUPPETEER_EXECUTABLE_PATH,
+  process.env.BROWSER_EXECUTABLE_PATH,
   "chromium",
   "chromium-browser",
   "google-chrome",
-  "google-chrome-stable"
-].filter(Boolean));
+  "google-chrome-stable",
+  "microsoft-edge",
+  "microsoft-edge-stable",
+  "/snap/bin/chromium",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/opt/google/chrome/chrome",
+  "/usr/bin/microsoft-edge",
+  "/usr/bin/microsoft-edge-stable",
+  "/opt/microsoft/msedge/msedge"
+].filter(Boolean), { resolvePath: true });
 
 const getPdfEngine = async (preferHtmlEngine = false) => {
   const candidates = preferHtmlEngine
@@ -2204,6 +2757,18 @@ const getPdfEngine = async (preferHtmlEngine = false) => {
   }
   return null;
 };
+
+const getPdfFallbackEngine = async (currentEngine) => {
+  const candidates = ["xelatex", "lualatex", "pdflatex"].filter((cmd) => cmd !== currentEngine);
+  for (const cmd of candidates) {
+    // eslint-disable-next-line no-await-in-loop
+    const ok = await checkCommand(cmd);
+    if (ok) return cmd;
+  }
+  return null;
+};
+
+const isWkhtmlUnicodeMetadataError = (stderr) => /wkhtmltopdf:.*recoverEncode: invalid argument \(invalid character\)/i.test(String(stderr || ""));
 
 app.get("/health", async () => ({ ok: true }));
 

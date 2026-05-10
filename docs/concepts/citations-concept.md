@@ -225,12 +225,13 @@ Geeignet fuer:
 
 - echtes YAML-Frontmatter
 - BibTeX/CSL-Workflow ueber Pandoc/Citeproc
+- serverseitig gespeister Paged Preview fuer bibliography-orientierte Zitationsdokumente
 
 ### Prioritaet 2
 
 - nativer Referenzkern fuer Captions, Labels, Nummerierung und Cross-References
 - wissenschaftliche Exportmodi im UI
-- exportnahe serverseitige Vorschau fuer wissenschaftliche Dokumente
+- erweiterte exportnahe serverseitige Vorschau fuer wissenschaftliche Dokumente
 - Appendix-Modus
 - Tabellen-Metadaten fuer Caption, ID, Breite und Sonderlayout
 
@@ -287,19 +288,21 @@ Normativ ist der Export, nicht die normale Live-Vorschau.
 Zulaessige Zwischenstufe:
 
 - Frontmatter wird in der Preview nicht als normaler Dokumentinhalt gerendert
-- Referenzmarker koennen in der normalen Preview zunaechst roh oder vereinfacht erscheinen
+- Referenzmarker koennen in der normalen unpaged Preview zunaechst roh oder vereinfacht erscheinen
+- fuer bibliography-orientierte Zitationsdokumente darf der paged Preview bereits auf serverseitig erzeugtem Citeproc-HTML basieren
+- paged Preview und paged PDF sollen dabei dieselbe semantische HTML-Quelle verwenden
 - der Export erzeugt das fachlich korrekte Ergebnis
 
 ### Phase 2
 
 Spaeter moegliche Varianten:
 
-- serverseitige exportnahe Vorschau fuer wissenschaftliche Dokumente
-- Paged Preview auf Basis serverseitig erzeugten, semantisch aufgeloesten HTMLs
+- serverseitige exportnahe Vorschau fuer wissenschaftliche Dokumente auch ausserhalb des paged Preview
+- Umschaltung zwischen editornaher Vorschau und exportnaher Vorschau
 
 Empfehlung:
 
-- fuer wissenschaftliche Zuverlaessigkeit eher serverseitige Vorschau als eigene Frontend-Heuristiken
+- fuer wissenschaftliche Zuverlaessigkeit serverseitig aufgeloestes HTML als Grundlage fuer paged Preview und Paged PDF nutzen; die unpaged Preview darf spaeter nachziehen
 
 ## Nicht-Ziele im ersten Schritt
 
@@ -329,6 +332,7 @@ Empfehlung:
 - Pandoc-Reader fuer wissenschaftliche Dokumente korrekt waehlen
 - Frontmatter, Bibliografie und CSL aufloesen
 - citeproc-verarbeitetes HTML fuer Paged-PDF erzeugen
+- dieselbe serverseitig erzeugte Citeproc-HTML-Quelle fuer paged Preview und Paged-PDF nutzen
 - separaten PDF-Pfad fuer note-style-Fussnoten etablieren
 
 ## Risiken
@@ -346,6 +350,7 @@ Empfehlung:
 - YAML-Frontmatter offiziell einfuehren
 - wissenschaftliche Exportmetadaten verarbeiten
 - Citeproc fuer PDF/DOCX produktiv machen
+- serverseitig erzeugtes Citeproc-HTML als gemeinsame Quelle fuer paged Preview und Paged PDF einfuehren
 
 ### Phase 2
 
@@ -355,12 +360,13 @@ Empfehlung:
 
 ### Phase 3
 
-- wissenschaftliche Exportmodi, Appendix, Fussnotenpfad und exportnahe Vorschau ausbauen
+- wissenschaftliche Exportmodi, Appendix, Fussnotenpfad und weiter ausgebaute exportnahe Vorschau ausbauen
 
 ## Akzeptanzkriterien fuer das Zielbild
 
 - Ein wissenschaftliches Dokument kann gleichzeitig YAML-Frontmatter und `layout`-Block enthalten, ohne dass einer den anderen zerstoert.
 - PDF und DOCX koennen ein Dokument mit Pandoc-Zitationssyntax, `.bib` und `.csl` fachlich korrekt exportieren.
+- bibliography-orientierte Zitationsdokumente koennen paged Preview und paged PDF auf derselben citeproc-verarbeiteten HTML-Quelle aufbauen.
 - Bilder, Tabellen und Mermaid-Diagramme koennen mit IDs und Captions referenzierbar gemacht werden.
 - Kapitel-, Tabellen- und Abbildungsnummern werden stabil und reproduzierbar erzeugt.
 - Cross-References koennen im Export in nummerierte Referenzen aufgeloest werden.

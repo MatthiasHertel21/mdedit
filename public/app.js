@@ -236,6 +236,11 @@ const getBaseDocumentLayoutForPreset = (preset = "scientific") => {
     return layout;
   }
 
+  layout.header = {
+    ...layout.header,
+    enabled: true,
+    center: '{title}'
+  };
   layout.tableLayouts.default = layout.tableLayouts.scientific || layout.tableLayouts.default;
   return layout;
 };
@@ -259,7 +264,8 @@ const getDefaultLayoutEditorState = () => ({
   elements: {},
   page: {},
   table: {},
-  tablesByPreset: {}
+  tablesByPreset: {},
+  media: {}
 });
 
 const normalizeTableState = (table) => {
@@ -329,7 +335,7 @@ const saveLayoutEditorState = () => {
 
 let layoutEditorState = loadLayoutEditorState();
 let layoutEditorCss = "";
-let documentPresetCss = "";
+let presetLayoutCss = "";
 let shouldFocusTableLayoutName = false;
 
 const scopedSelector = (selector) => {
@@ -591,6 +597,52 @@ const buildLayoutEditorCss = () => {
     }
   });
 
+  // Media / figure settings
+  const media = layoutEditorState.media || {};
+
+  const figMaxWidth = media.figure?.maxWidth;
+  if (figMaxWidth && figMaxWidth !== "100%") {
+    rules.push(`${scopedSelector("img")} { max-width: ${figMaxWidth}; }`);
+    rules.push(`${scopedSelector("figure")} { max-width: ${figMaxWidth}; }`);
+  }
+
+  const figMarginTop = media.figure?.marginTop;
+  const figMarginBottom = media.figure?.marginBottom;
+  if (figMarginTop || figMarginBottom) {
+    const mt = figMarginTop || "18pt";
+    const mb = figMarginBottom || "18pt";
+    if (mt !== "18pt" || mb !== "18pt") {
+      rules.push(`${scopedSelector("figure.md-figure")} { margin-top: ${mt}; margin-bottom: ${mb}; }`);
+    }
+  }
+
+  const floatGap = media.figure?.floatGap;
+  if (floatGap && floatGap !== "1.5em") {
+    rules.push(`${scopedSelector("figure.md-figure--left")} { margin-right: ${floatGap}; }`);
+    rules.push(`${scopedSelector("figure.md-figure--right")} { margin-left: ${floatGap}; }`);
+  }
+
+  if (media.figure?.frame) {
+    rules.push(`${scopedSelector("figure.md-figure img")} { border: 0.5pt solid #bbb; padding: 4pt; }`);
+  }
+
+  if (media.figure?.shadow) {
+    rules.push(`${scopedSelector("figure.md-figure img")} { box-shadow: 0 2pt 6pt rgba(0,0,0,0.18); }`);
+  }
+
+  const captionProps = [];
+  if (media.caption?.fontSize && media.caption.fontSize !== "9pt") captionProps.push(`font-size: ${media.caption.fontSize};`);
+  if (media.caption?.color && media.caption.color !== "#666666") captionProps.push(`color: ${media.caption.color};`);
+  if (media.caption?.marginTop && media.caption.marginTop !== "5pt") captionProps.push(`margin-top: ${media.caption.marginTop};`);
+  if (captionProps.length) {
+    rules.push(`${scopedSelector("figcaption")} { ${captionProps.join(" ")} }`);
+  }
+
+  if (media.caption?.position === "above") {
+    rules.push(`${scopedSelector("figure.md-figure")} { display: flex; flex-direction: column; }`);
+    rules.push(`${scopedSelector("figure.md-figure figcaption")} { order: -1; margin-top: 0; margin-bottom: ${media.caption?.marginTop || "5pt"}; }`);
+  }
+
   return rules.join("\n");
 };
 
@@ -619,20 +671,22 @@ const getEffectiveDocumentLayout = (markdown = getMarkdown(), options = {}) => {
   return documentLayout.deepMerge(baseLayout, parsedLayout);
 };
 
-const buildDocumentPresetCss = (markdown = getMarkdown()) => {
-  const layout = getEffectiveDocumentLayout(markdown, { ignorePermission: false });
+const buildPreviewPresetCss = (markdown = getMarkdown(), preset = previewPreset) => {
+  const layout = getEffectiveDocumentLayout(markdown, { usePreviewPreset: true, ignorePermission: false });
   const generatedCss = layoutCSSGenerator.generate(layout);
-  return generatedCss.replace(/\.print-content/g, ".preview-content.preset-document");
+  return generatedCss.replace(/\.print-content/g, `.preview-content.preset-${preset}`);
 };
 
 const refreshDynamicStyles = (markdown = getMarkdown()) => {
   ensureCustomStyle();
-  documentPresetCss = previewPreset === "document" ? buildDocumentPresetCss(markdown) : "";
+  presetLayoutCss = ["scientific", "document"].includes(previewPreset)
+    ? buildPreviewPresetCss(markdown, previewPreset)
+    : "";
   const chunks = [
     previewPreset === "scientific" ? scientificPresetCss : "",
     customCss,
     layoutEditorCss,
-    documentPresetCss
+    presetLayoutCss
   ].filter(Boolean);
   customStyleEl.textContent = chunks.join("\n\n");
 };
@@ -1298,18 +1352,20 @@ const elements = {
   editorSection: document.querySelector(".editor"),
   previewSection: document.querySelector(".right-pane"),
   editorResizer: document.querySelector(".editor-resizer"),
+  previewRightResizer: document.querySelector(".preview-right-resizer"),
   treeResizer: document.querySelector(".tree-resizer"),
   sidebar: document.getElementById("sidebar"),
   mobileSidebarBackdrop: document.getElementById("mobileSidebarBackdrop"),
   mobileSpacesBtn: document.getElementById("mobileSpacesBtn"),
   mobileCurrentSpaceName: document.getElementById("mobileCurrentSpaceName"),
-  mobileHistoryToggle: document.getElementById("mobileHistoryToggle"),
   mobileOverflowToggle: document.getElementById("mobileOverflowToggle"),
   mobileOverflowPanel: document.getElementById("mobileOverflowPanel"),
+  mobileMenuHistoryToggle: document.getElementById("mobileMenuHistoryToggle"),
   mobileTipsBtn: document.getElementById("mobileTipsBtn"),
   mobileSettingsBtn: document.getElementById("mobileSettingsBtn"),
   mobileEditorToggle: document.getElementById("mobileEditorToggle"),
   mobilePreviewToggle: document.getElementById("mobilePreviewToggle"),
+  mobileStackedToggle: document.getElementById("mobileStackedToggle"),
   footerStats: document.getElementById("footerStats"),
   previewTitle: document.getElementById("previewTitle"),
   settingsBtn: document.getElementById("settingsBtn"),
@@ -1407,8 +1463,11 @@ let selectedNodeId = null;
 let currentView = "preview";
 const mobileWorkspaceViewKey = "mobileWorkspaceView";
 const mobileLayoutMedia = window.matchMedia("(max-width: 768px)");
+const normalizeMobileWorkspaceView = (view) => (
+  view === "editor" || view === "preview" || view === "stacked" ? view : "stacked"
+);
 let mobileSidebarOpen = false;
-let mobileWorkspaceView = localStorage.getItem(mobileWorkspaceViewKey) || "editor";
+let mobileWorkspaceView = normalizeMobileWorkspaceView(localStorage.getItem(mobileWorkspaceViewKey) || "stacked");
 let mobileOverflowOpen = false;
 let printViewActive = false;
 let lastSavedMarkdown = "";
@@ -1426,6 +1485,7 @@ let startEditor = 0;
 let startPreview = 0;
 let startY = 0;
 let startTreeHeight = 0;
+let splitRatio = null;
 const minTreeHeight = 140;
 const minNodeHeight = 140;
 const minCol = 220;
@@ -1449,19 +1509,26 @@ let sidebarCollapsed = localStorage.getItem(sidebarCollapsedKey) !== "false";
 const updateMobileWorkspaceView = () => {
   const app = elements.sidebar?.closest(".app");
   if (!app) return;
-  const normalizedView = mobileWorkspaceView === "preview" ? "preview" : "editor";
+  const normalizedView = normalizeMobileWorkspaceView(mobileWorkspaceView);
+  mobileWorkspaceView = normalizedView;
   app.classList.toggle("mobile-view-editor", mobileLayoutMedia.matches && normalizedView === "editor");
   app.classList.toggle("mobile-view-preview", mobileLayoutMedia.matches && normalizedView === "preview");
-  elements.mobileEditorToggle?.classList.toggle("active", normalizedView === "editor");
-  elements.mobilePreviewToggle?.classList.toggle("active", normalizedView === "preview");
-  elements.mobileEditorToggle?.setAttribute("aria-selected", normalizedView === "editor" ? "true" : "false");
-  elements.mobilePreviewToggle?.setAttribute("aria-selected", normalizedView === "preview" ? "true" : "false");
+  app.classList.toggle("mobile-view-stacked", mobileLayoutMedia.matches && normalizedView === "stacked");
+  [
+    [elements.mobileEditorToggle, "editor"],
+    [elements.mobilePreviewToggle, "preview"],
+    [elements.mobileStackedToggle, "stacked"]
+  ].forEach(([button, view]) => {
+    button?.classList.toggle("active", normalizedView === view);
+    button?.setAttribute("aria-selected", normalizedView === view ? "true" : "false");
+  });
 };
 
 const setMobileWorkspaceView = (view) => {
-  mobileWorkspaceView = view === "preview" ? "preview" : "editor";
+  mobileWorkspaceView = normalizeMobileWorkspaceView(view);
   localStorage.setItem(mobileWorkspaceViewKey, mobileWorkspaceView);
   updateMobileWorkspaceView();
+  closeMobileOverflow();
 };
 
 const closeMobileSidebar = () => {
@@ -1473,6 +1540,7 @@ const closeMobileSidebar = () => {
 const updateMobileOverflowState = () => {
   elements.mobileOverflowPanel?.classList.toggle("hidden", !mobileOverflowOpen);
   elements.mobileOverflowToggle?.setAttribute("aria-expanded", mobileOverflowOpen ? "true" : "false");
+  elements.mobileOverflowToggle?.classList.toggle("active", mobileOverflowOpen);
 };
 
 const closeMobileOverflow = () => {
@@ -1518,7 +1586,7 @@ const updateSidebarState = () => {
   if (elements.mobileSidebarBackdrop) {
     elements.mobileSidebarBackdrop.hidden = !(isMobileLayout && mobileSidebarOpen);
   }
-  elements.mobileHistoryToggle?.classList.toggle("active", isMobileLayout && mobileSidebarOpen);
+  elements.mobileMenuHistoryToggle?.classList.toggle("active", isMobileLayout && mobileSidebarOpen);
   elements.pinToggle?.classList.toggle("active", sidebarPinMode !== "unpinned");
   const label = elements.pinToggle?.querySelector(".icon-label");
   if (elements.pinToggle) {
@@ -1596,8 +1664,35 @@ const insertMarkdownAtCursor = (text) => {
 };
 
 const layoutBlockRegex = /```layout\s*\n[\s\S]*?\n```/g;
+const documentFrontmatterRegex = /^---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/;
+const embeddedBibliographyBlockRegex = /(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n[\s\S]*?\n\2(?=\n|$)/i;
 
 const stripLayoutBlock = (text) => text.replace(layoutBlockRegex, "").trimEnd();
+const extractDocumentFrontmatterBlock = (text) => {
+  const match = String(text || "").replace(/\r/g, "").match(documentFrontmatterRegex);
+  return match ? match[0].trimEnd() : "";
+};
+const stripDocumentFrontmatter = (text) => String(text || "").replace(documentFrontmatterRegex, "").trimStart();
+const stripMarkdownCodeSamples = (text) => String(text || "")
+  .replace(/(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2(?=\n|$)/g, "\n")
+  .replace(/`[^`\n]+`/g, "");
+const hasCitationMetadata = (text) => {
+  const frontmatter = extractDocumentFrontmatterBlock(text);
+  return /(^|\n)\s*(bibliography|citation-source|csl|reference-section-title|link-citations|link-bibliography|nocite|bibliography-visible)\s*:/i.test(frontmatter)
+    || embeddedBibliographyBlockRegex.test(String(text || ""));
+};
+const hasCitationSyntax = (text) => {
+  const plain = stripMarkdownCodeSamples(stripDocumentFrontmatter(stripLayoutBlock(text)));
+  return /\[[^\]]*?@[a-zA-Z0-9:_-]+[^\]]*?\]/.test(plain)
+    || /(^|[\s(])-?@[a-zA-Z0-9:_-]+/m.test(plain)
+    || /(^|\n)\s*#refs\s*(?=\n|$)/m.test(plain);
+};
+const isCitationDocument = (text) => hasCitationMetadata(text) || hasCitationSyntax(text);
+const buildCitationPreviewMarkdown = (text) => {
+  const frontmatter = extractDocumentFrontmatterBlock(text);
+  const body = layoutPreprocessor.process(stripDocumentFrontmatter(stripLayoutBlock(text)));
+  return frontmatter ? `${frontmatter}\n\n${body}` : body;
+};
 
 let layoutBlockMarker = null;
 const updateLayoutBlockVisibility = () => {
@@ -2037,6 +2132,36 @@ const buildDocumentPresetState = (layout = getEffectiveDocumentLayout(getMarkdow
       activeLayout,
       pendingNewLayout: null,
       layouts: documentTableLayouts
+    },
+    media: {
+      figure: {
+        maxWidth: layout.images?.maxWidth || "100%",
+        align: layout.images?.alignment || "center",
+        marginTop: layout.images?.margin?.top || "18pt",
+        marginBottom: layout.images?.margin?.bottom || "18pt",
+        floatGap: "1.5em",
+        frame: false,
+        shadow: false
+      },
+      caption: {
+        position: layout.images?.caption?.position || "below",
+        fontSize: layout.images?.caption?.fontSize || "9pt",
+        color: layout.images?.caption?.color || "#666666",
+        marginTop: layout.images?.caption?.marginTop || "5pt"
+      },
+      numbering: {
+        enabled: layout.numbering?.figures?.enabled !== false,
+        prefix: layout.numbering?.figures?.prefix || "Abbildung",
+        format: layout.numbering?.figures?.format || "{number}"
+      },
+      lof: {
+        enabled: layout.indexes?.listOfFigures?.enabled || false,
+        title: layout.indexes?.listOfFigures?.title || "Abbildungsverzeichnis"
+      },
+      lot: {
+        enabled: layout.indexes?.listOfTables?.enabled || false,
+        title: layout.indexes?.listOfTables?.title || "Tabellenverzeichnis"
+      }
     }
   };
 };
@@ -2047,6 +2172,7 @@ const syncDocumentPresetState = () => {
   layoutEditorState.page = documentState.page;
   layoutEditorState.table = documentState.table;
   layoutEditorState.tablesByPreset.document = documentState.tableBundle;
+  layoutEditorState.media = documentState.media;
 };
 
 const sanitizeTableLayoutName = (value) => (value || "")
@@ -2071,6 +2197,13 @@ const ensureTableBundleForPreset = (state, preset, fallbackTable) => {
   const bundle = state.tablesByPreset[key] || { activeLayout: "default", pendingNewLayout: null, layouts: {} };
   bundle.layouts = bundle.layouts || {};
   bundle.pendingNewLayout = bundle.pendingNewLayout || null;
+
+  const predefinedLayouts = documentLayout.getDefaultLayout().tableLayouts || {};
+  Object.entries(predefinedLayouts).forEach(([name, table]) => {
+    if (!bundle.layouts[name] || !Object.keys(bundle.layouts[name]).length) {
+      bundle.layouts[name] = normalizeTableState(table);
+    }
+  });
 
   if (!bundle.layouts.default || !Object.keys(bundle.layouts.default).length) {
     const seed = fallbackTable && Object.keys(fallbackTable).length ? fallbackTable : getTablePresetForLayout(key, {});
@@ -2278,6 +2411,37 @@ const readTableSettings = () => ({
       bottom: getLayoutValue("table-alt-row-padding-bottom", "8px"),
       left: getLayoutValue("table-alt-row-padding-left", "8px")
     }
+  }
+});
+
+const readMediaSettings = () => ({
+  figure: {
+    maxWidth: getLayoutValue("media-figure-max-width", "100%"),
+    align: getLayoutValue("media-figure-align", "center"),
+    marginTop: getLayoutValue("media-figure-margin-top", "18pt"),
+    marginBottom: getLayoutValue("media-figure-margin-bottom", "18pt"),
+    floatGap: getLayoutValue("media-float-gap", "1.5em"),
+    frame: document.getElementById("media-figure-frame")?.checked || false,
+    shadow: document.getElementById("media-figure-shadow")?.checked || false
+  },
+  caption: {
+    position: getLayoutValue("media-caption-position", "below"),
+    fontSize: getLayoutValue("media-caption-font-size", "9pt"),
+    color: getLayoutValue("media-caption-color", "#666666"),
+    marginTop: getLayoutValue("media-caption-margin-top", "5pt")
+  },
+  numbering: {
+    enabled: document.getElementById("media-numbering-enabled")?.checked !== false,
+    prefix: getLayoutValue("media-numbering-prefix", "Abbildung"),
+    format: getLayoutValue("media-numbering-format", "{number}")
+  },
+  lof: {
+    enabled: document.getElementById("media-lof-enabled")?.checked || false,
+    title: getLayoutValue("media-lof-title", "Abbildungsverzeichnis")
+  },
+  lot: {
+    enabled: document.getElementById("media-lot-enabled")?.checked || false,
+    title: getLayoutValue("media-lot-title", "Tabellenverzeichnis")
   }
 });
 
@@ -2598,7 +2762,29 @@ const loadLayoutEditorValues = () => {
     loadElementAttributes(activeElement.dataset.element);
   }
 
+  // Apply media settings
+  const media = layoutEditorState.media || {};
+  setLayoutValue("media-figure-max-width", media.figure?.maxWidth || "100%");
+  setLayoutValue("media-figure-align", media.figure?.align || "center");
+  setLayoutValue("media-figure-margin-top", media.figure?.marginTop || "18pt");
+  setLayoutValue("media-figure-margin-bottom", media.figure?.marginBottom || "18pt");
+  setLayoutValue("media-float-gap", media.figure?.floatGap || "1.5em");
+  setLayoutChecked("media-figure-frame", media.figure?.frame || false);
+  setLayoutChecked("media-figure-shadow", media.figure?.shadow || false);
+  setLayoutValue("media-caption-position", media.caption?.position || "below");
+  setLayoutValue("media-caption-font-size", media.caption?.fontSize || "9pt");
+  setLayoutValue("media-caption-color", media.caption?.color || "#666666");
+  setLayoutValue("media-caption-margin-top", media.caption?.marginTop || "5pt");
+  setLayoutChecked("media-numbering-enabled", media.numbering?.enabled !== false);
+  setLayoutValue("media-numbering-prefix", media.numbering?.prefix || "Abbildung");
+  setLayoutValue("media-numbering-format", media.numbering?.format || "{number}");
+  setLayoutChecked("media-lof-enabled", media.lof?.enabled || false);
+  setLayoutValue("media-lof-title", media.lof?.title || "Abbildungsverzeichnis");
+  setLayoutChecked("media-lot-enabled", media.lot?.enabled || false);
+  setLayoutValue("media-lot-title", media.lot?.title || "Tabellenverzeichnis");
+
   layoutEditorState.page = readPageSettings();
+  layoutEditorState.media = readMediaSettings();
   saveCurrentTableSettingsToState();
   applyLayoutEditorCss();
 };
@@ -2661,6 +2847,50 @@ const saveLayoutEditorValues = () => {
       layout.tableLayouts[name] = normalizeTableState(table);
     });
 
+    const mediaSettings = readMediaSettings();
+    layoutEditorState.media = mediaSettings;
+
+    layout.images = {
+      ...(layout.images || {}),
+      maxWidth: mediaSettings.figure?.maxWidth || "100%",
+      alignment: mediaSettings.figure?.align || "center",
+      margin: {
+        top: mediaSettings.figure?.marginTop || "18pt",
+        bottom: mediaSettings.figure?.marginBottom || "18pt"
+      },
+      caption: {
+        ...(layout.images?.caption || {}),
+        position: mediaSettings.caption?.position || "below",
+        fontSize: mediaSettings.caption?.fontSize || "9pt",
+        color: mediaSettings.caption?.color || "#666666",
+        marginTop: mediaSettings.caption?.marginTop || "5pt"
+      }
+    };
+
+    layout.numbering = {
+      ...(layout.numbering || {}),
+      figures: {
+        ...(layout.numbering?.figures || {}),
+        enabled: mediaSettings.numbering?.enabled !== false,
+        prefix: mediaSettings.numbering?.prefix || "Abbildung",
+        format: mediaSettings.numbering?.format || "{number}"
+      }
+    };
+
+    layout.indexes = {
+      ...(layout.indexes || {}),
+      listOfFigures: {
+        ...(layout.indexes?.listOfFigures || {}),
+        enabled: mediaSettings.lof?.enabled || false,
+        title: mediaSettings.lof?.title || "Abbildungsverzeichnis"
+      },
+      listOfTables: {
+        ...(layout.indexes?.listOfTables || {}),
+        enabled: mediaSettings.lot?.enabled || false,
+        title: mediaSettings.lot?.title || "Tabellenverzeichnis"
+      }
+    };
+
     const updatedMarkdown = documentLayout.updateInMarkdown(markdown, layout);
     setMarkdown(updatedMarkdown);
     refreshDynamicStyles(updatedMarkdown);
@@ -2671,6 +2901,7 @@ const saveLayoutEditorValues = () => {
   }
 
   layoutEditorState.page = readPageSettings();
+  layoutEditorState.media = readMediaSettings();
   saveCurrentTableSettingsToState();
   saveLayoutEditorState();
   applyLayoutEditorCss();
@@ -3500,7 +3731,7 @@ const renderPreview = () => {
     wasHealed = true;
   }
   
-  const previewText = layoutPreprocessor.process(stripLayoutBlock(text));
+  const previewText = layoutPreprocessor.process(stripDocumentFrontmatter(stripLayoutBlock(text)));
   if (previewPreset === "document") {
     refreshDynamicStyles(text);
   }
@@ -3823,6 +4054,17 @@ const highlightTreeBranchForCursor = () => {
   });
 };
 
+const TREE_COLOR_PALETTE = ["#41576d", "#58708a", "#4f6e73", "#66768a", "#7b8595"];
+
+const getTreeColor = (path = "") => {
+  const branchKey = String(path).split(".").filter(Boolean).slice(0, 2).join(".") || "root";
+  let hash = 0;
+  for (let index = 0; index < branchKey.length; index += 1) {
+    hash = (hash * 31 + branchKey.charCodeAt(index)) >>> 0;
+  }
+  return TREE_COLOR_PALETTE[hash % TREE_COLOR_PALETTE.length];
+};
+
 const hyperbolicRadius = (r) => {
   const k = 3.2;
   return (Math.exp(k * r) - 1) / (Math.exp(k * r) + 1);
@@ -4086,6 +4328,7 @@ const renderTree = () => {
     duration: 200,
     spacingHorizontal: 120,
     spacingVertical: 10,
+    color: (node) => getTreeColor(node?.state?.path),
     zoom: true,
     pan: true
   }, markmapData);
@@ -5170,7 +5413,12 @@ const setGridColumns = () => {
     elements.content.style.gridTemplateColumns = "";
     return;
   }
-  elements.content.style.gridTemplateColumns = `${startEditor}px 6px ${startPreview}px`;
+  if (splitRatio === null) {
+    elements.content.style.gridTemplateColumns = "";
+    return;
+  }
+  const previewFr = 1 - splitRatio;
+  elements.content.style.gridTemplateColumns = `${splitRatio}fr 6px ${previewFr}fr`;
 };
 
 const initColumns = () => {
@@ -5187,11 +5435,8 @@ const initColumns = () => {
   }
   const editorWidth = elements.editorSection.offsetWidth;
   const previewWidth = elements.previewSection.offsetWidth;
-
   startEditor = Math.max(editorWidth, minCol);
   startPreview = Math.max(previewWidth, minCol);
-
-  setGridColumns();
   if (editorView && typeof editorView.setSize === "function") {
     editorView.setSize(null, "100%");
   }
@@ -5208,6 +5453,14 @@ const onMouseMove = (event) => {
   if (dragMode === "editor-preview") {
     const nextEditor = Math.max(minCol, startEditor + dx);
     const nextPreview = Math.max(minCol, startPreview - dx);
+    if (nextEditor + nextPreview > minCol * 2) {
+      elements.content.style.gridTemplateColumns = `${nextEditor}px 6px ${nextPreview}px`;
+    }
+  }
+
+  if (dragMode === "preview-right") {
+    const nextEditor = Math.max(minCol, startEditor - dx);
+    const nextPreview = Math.max(minCol, startPreview + dx);
     if (nextEditor + nextPreview > minCol * 2) {
       elements.content.style.gridTemplateColumns = `${nextEditor}px 6px ${nextPreview}px`;
     }
@@ -5236,6 +5489,13 @@ const onMouseUp = (event) => {
   if (dragMode === "editor-preview") {
     startEditor = Math.max(minCol, startEditor + dx);
     startPreview = Math.max(minCol, startPreview - dx);
+    splitRatio = startEditor / (startEditor + startPreview);
+  }
+
+  if (dragMode === "preview-right") {
+    startEditor = Math.max(minCol, startEditor - dx);
+    startPreview = Math.max(minCol, startPreview + dx);
+    splitRatio = startEditor / (startEditor + startPreview);
   }
 
   if (dragMode === "tree-node") {
@@ -5250,7 +5510,7 @@ const onMouseUp = (event) => {
 };
 
 const startDrag = (mode) => (event) => {
-  if (mode === "editor-preview" && mobileLayoutMedia.matches) {
+  if ((mode === "editor-preview" || mode === "preview-right") && mobileLayoutMedia.matches) {
     return;
   }
   event.preventDefault();
@@ -6395,6 +6655,12 @@ elements.layoutEditorSelect?.addEventListener("change", () => {
   }
   layoutEditorState = loadLayoutEditorState();
   const bundle = ensureTableBundleForPreset(layoutEditorState, selectedPreset, layoutEditorState.table);
+  const predefinedLayoutsForPreset = documentLayout.getDefaultLayout().tableLayouts || {};
+  Object.entries(predefinedLayoutsForPreset).forEach(([name, table]) => {
+    if (!bundle.layouts[name] || !Object.keys(bundle.layouts[name]).length) {
+      bundle.layouts[name] = normalizeTableState(table);
+    }
+  });
   if (!bundle.layouts.default || !Object.keys(bundle.layouts.default).length) {
     bundle.layouts.default = getTablePresetForLayout(selectedPreset, {});
   }
@@ -7327,11 +7593,14 @@ elements.pinToggle?.addEventListener("click", () => {
     setSidebarPinMode("unpinned");
   }
 });
-elements.mobileHistoryToggle?.addEventListener("click", toggleMobileSidebar);
 elements.mobileSidebarBackdrop?.addEventListener("click", closeMobileSidebar);
 elements.mobileOverflowToggle?.addEventListener("click", (event) => {
   event.stopPropagation();
   toggleMobileOverflow();
+});
+elements.mobileMenuHistoryToggle?.addEventListener("click", () => {
+  closeMobileOverflow();
+  toggleMobileSidebar();
 });
 elements.mobileSpacesBtn?.addEventListener("click", () => {
   closeMobileSidebar();
@@ -7350,6 +7619,7 @@ elements.mobileSettingsBtn?.addEventListener("click", () => {
 });
 elements.mobileEditorToggle?.addEventListener("click", () => setMobileWorkspaceView("editor"));
 elements.mobilePreviewToggle?.addEventListener("click", () => setMobileWorkspaceView("preview"));
+elements.mobileStackedToggle?.addEventListener("click", () => setMobileWorkspaceView("stacked"));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeSettings();
@@ -7466,6 +7736,7 @@ elements.nodeStatsBtn?.addEventListener("click", () => {
 });
 
 elements.editorResizer.addEventListener("mousedown", startDrag("editor-preview"));
+elements.previewRightResizer?.addEventListener("mousedown", startDrag("preview-right"));
 elements.treeResizer?.addEventListener("mousedown", startTreeDrag);
 
 // Init
@@ -7514,6 +7785,8 @@ window.printPreview = printPreview;
 window.showStatus = setStatus;  // For modules like ImageManager
 window.getEffectiveDocumentLayout = getEffectiveDocumentLayout;
 window.renderMarkdownToHtml = (text) => sanitizeRenderedHtml(md.render(String(text || "")));
+window.isCitationDocument = isCitationDocument;
+window.buildCitationPreviewMarkdown = buildCitationPreviewMarkdown;
 window.__mdTestApi = {
   serializePreviewForExport
 };
@@ -7590,3 +7863,9 @@ fetch("/api/version").then(r => r.json()).then(({ version }) => {
   const el = document.getElementById("appVersion");
   if (el) el.textContent = version;
 }).catch(() => {});
+
+// Expose internals for layout-unit-test.js (dev/test only)
+window.layoutPreprocessor = layoutPreprocessor;
+window.buildMarkdownIt = buildMarkdownIt;
+window.documentLayout = documentLayout;
+window.layoutCSSGenerator = layoutCSSGenerator;

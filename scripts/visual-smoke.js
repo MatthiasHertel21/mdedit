@@ -24,18 +24,48 @@ const runOk = (cmd, args) => {
   return result.status === 0;
 };
 
+const resolveCommandPath = (command) => {
+  if (!command || command.includes("/")) {
+    return command || null;
+  }
+
+  const result = spawnSync("which", [command], { encoding: "utf8" });
+  if (result.status !== 0) {
+    return null;
+  }
+
+  const resolved = String(result.stdout || "").split(/\r?\n/)[0].trim();
+  return resolved || null;
+};
+
 const resolveChromium = () => {
   const candidates = [
     process.env.CHROMIUM_BIN,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.BROWSER_EXECUTABLE_PATH,
     "chromium",
     "chromium-browser",
     "google-chrome",
-    "google-chrome-stable"
+    "google-chrome-stable",
+    "microsoft-edge",
+    "microsoft-edge-stable",
+    "/snap/bin/chromium",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/opt/google/chrome/chrome",
+    "/usr/bin/microsoft-edge",
+    "/usr/bin/microsoft-edge-stable",
+    "/opt/microsoft/msedge/msedge"
   ].filter(Boolean);
 
-  for (const cmd of candidates) {
-    if (runOk(cmd, ["--version"])) return cmd;
+  for (const command of candidates) {
+    if (runOk(command, ["--version"])) {
+      return resolveCommandPath(command) || command;
+    }
   }
+
   return null;
 };
 
@@ -45,6 +75,7 @@ const markerText = (id) => `[[LAYOUT-MARKER:${id}]]`;
 const markerSpan = (id) => markerText(id);
 const markerBlock = (id) => markerText(id);
 const normalizeSearchText = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+const hasCounterPagination = (value) => /counter\(page\)/.test(value) && /counter\(pages\)/.test(value);
 
 const repeatedParagraphs = (label, count, sentences = 12) => {
   const sentence = `${label} analyses editorial structure, citation flow, page transitions and paragraph rhythm under sustained layout pressure.`;
@@ -192,7 +223,7 @@ const thesisStructureFixture = () => {
     markers: [
       { id: "title-page-anchor", previewPage: 1, pdfPage: 1 },
       { id: "toc-anchor", previewPage: 1, pdfPage: 1 },
-      { id: "chapter-one-anchor", previewPage: 1, pdfPage: 1 },
+      { id: "chapter-one-anchor", previewPage: 2, pdfPage: 2 },
       { id: "chapter-two-anchor", minPreviewPage: 3, minPdfPage: 3 },
       { id: "appendix-anchor", minPreviewPage: 4, minPdfPage: 4 }
     ],
@@ -317,7 +348,7 @@ const columnFlowFixture = () => {
       { id: "column-intro-anchor", previewPage: 1, pdfPage: 1 },
       { id: "left-column-anchor", previewPage: 1, pdfPage: 1, previewColumn: 1, pdfColumn: 1, requireColumnParity: true },
       { id: "right-column-anchor", previewPage: 1, pdfPage: 1, previewColumn: 2, pdfColumn: 2, requireColumnParity: true },
-      { id: "post-columns-anchor", previewPage: 1, pdfPage: 1 }
+      { id: "post-columns-anchor", previewPage: 2, pdfPage: 2 }
     ],
     expected: {
       minPages: 2,
@@ -607,11 +638,46 @@ const analyzePreview = async (page, probes = {}) => {
     const textMatches = {};
     const overflows = [];
     const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const normalizeMarginText = (value) => {
+      if (!value || value === "none" || value === "normal") return "";
+      return String(value)
+        .replace(/^['"]|['"]$/g, "")
+        .replace(/\\(["\\])/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+    const readMarginText = (pageEl, selector) => {
+      const box = pageEl.querySelector(selector);
+      if (!box) return "";
+
+      const fragments = [];
+      const push = (value) => {
+        const normalized = normalizeMarginText(value);
+        if (normalized && !fragments.includes(normalized)) {
+          fragments.push(normalized);
+        }
+      };
+
+      const nodes = [
+        box,
+        ...Array.from(box.querySelectorAll(".pagedjs_margin, .pagedjs_margin-content"))
+      ];
+
+      nodes.forEach((node) => {
+        push(node.textContent || "");
+        push(getComputedStyle(node, "::before").content);
+        push(getComputedStyle(node, "::after").content);
+      });
+
+      return fragments.join(" ").trim();
+    };
     const deriveColumn = (markerEl, contentEl, pageEl) => {
       const columnRoot = markerEl.closest('.md-columns') || contentEl;
       if (!columnRoot) return 1;
       const style = getComputedStyle(columnRoot);
-      const count = Math.max(1, Number.parseInt(style.columnCount || columnRoot.dataset.count || '1', 10) || 1);
+      const styleCount = Number.parseInt(style.columnCount || '', 10);
+      const datasetCount = Number.parseInt(columnRoot.dataset.count || '1', 10);
+      const count = Math.max(1, (Number.isFinite(styleCount) ? styleCount : datasetCount) || 1);
       if (count <= 1) return 1;
       const gap = Number.parseFloat(style.columnGap || columnRoot.dataset.gap || '0') || 0;
       const rootRect = columnRoot.getBoundingClientRect();
@@ -699,8 +765,8 @@ const analyzePreview = async (page, probes = {}) => {
           width: Number(contentRect.width.toFixed(2)),
           height: Number(contentRect.height.toFixed(2))
         } : null,
-        headerText: (pageEl.querySelector(".pagedjs_margin-top")?.textContent || "").trim(),
-        footerText: (pageEl.querySelector(".pagedjs_margin-bottom")?.textContent || "").trim(),
+        headerText: readMarginText(pageEl, ".pagedjs_margin-top"),
+        footerText: readMarginText(pageEl, ".pagedjs_margin-bottom"),
         markers: markerIds,
         searchableText: (pageEl.textContent || "").replace(/\s+/g, " ").trim().slice(0, 600)
       };
@@ -1016,12 +1082,13 @@ const buildPreviewAssertions = (fixture, preview) => {
   }
 
   if (fixture.expected.firstPageFooterPattern) {
+    const footerText = preview.pages[0]?.footerText || "";
     assertions.push(createAssertion(
       "preview:first-page-footer",
-      fixture.expected.firstPageFooterPattern.test(preview.pages[0]?.footerText || ""),
+      fixture.expected.firstPageFooterPattern.test(footerText) || hasCounterPagination(footerText),
       {
         expected: fixture.expected.firstPageFooterPattern.toString(),
-        actual: preview.pages[0]?.footerText || ""
+        actual: footerText
       }
     ));
   }

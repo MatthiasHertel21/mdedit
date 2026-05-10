@@ -54,6 +54,11 @@ const protectMarkdownCode = (markdown) => {
   };
 };
 
+const stripEmbeddedBibliographyBlocks = (markdown) => String(markdown || '').replace(
+  /(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n[\s\S]*?\n\2(?=\n|$)/gi,
+  (match, prefix) => prefix || ''
+);
+
 export class LayoutPreprocessor {
   constructor() {
     this.tableCounter = 0;
@@ -67,7 +72,7 @@ export class LayoutPreprocessor {
    * Process markdown with layout commands
    */
   process(markdown) {
-    const protectedMarkdown = protectMarkdownCode(markdown);
+    const protectedMarkdown = protectMarkdownCode(stripEmbeddedBibliographyBlocks(markdown));
     let processed = protectedMarkdown.text;
 
     // Process all command types
@@ -95,7 +100,7 @@ export class LayoutPreprocessor {
       // HTML comment syntax
       .replace(/<!--\s*page-break\s*-->/gi, createLayoutToken('page-break'))
       // ::: syntax (with or without hyphen)
-      .replace(/^\s*:::\s*page-?break\s*$/gim, createLayoutToken('page-break'))
+      .replace(/^[ 	]*:::\s*page-?break\s*$/gim, createLayoutToken('page-break'))
       // Combined: <!-- page-break odd -->
       .replace(/<!--\s*page-break\s+(odd|even|right|left)\s*-->/gi, 
                (match, type) => createLayoutToken('page-break', { break: type }));
@@ -110,7 +115,7 @@ export class LayoutPreprocessor {
       // HTML comment syntax
       .replace(/<!--\s*column-break\s*-->/gi, createLayoutToken('column-break'))
       // ::: syntax
-      .replace(/^\s*:::\s*column-?break\s*$/gim, createLayoutToken('column-break'));
+      .replace(/^[ 	]*:::\s*column-?break\s*$/gim, createLayoutToken('column-break'));
   }
 
   /**
@@ -137,7 +142,7 @@ export class LayoutPreprocessor {
 
     // ::: syntax: ::: columns{count=2 gap=20pt rule=true}
     result = result.replace(
-      /^\s*:::\s*columns\{count=(\d+)(?:\s+gap=(\S+))?(?:\s+rule=(true|false))?\}\s*$/gim,
+      /^[ 	]*:::\s*columns\{count=(\d+)(?:\s+gap=(\S+))?(?:\s+rule=(true|false))?\}\s*$/gim,
       (match, count, gap, rule) => {
         const gapValue = gap || '20pt';
         const ruleEnabled = rule === 'true';
@@ -148,7 +153,7 @@ export class LayoutPreprocessor {
     // Closing ::: (standalone)
     // We need to be careful not to close other ::: blocks
     // For now, we'll use a simple approach - match ::: that aren't starting other blocks
-    result = result.replace(/^\s*:::\s*$/gm, (match, offset, string) => {
+    result = result.replace(/^[ 	]*:::\s*$/gm, (match, offset, string) => {
       // Check if we're inside a columns block
       const before = string.substring(0, offset);
       const columnsOpen = (before.match(/\[\[MDLAYOUT:columns-open/g) || []).length;
@@ -172,7 +177,7 @@ export class LayoutPreprocessor {
       // HTML comment syntax
       .replace(/<!--\s*chapter\s*-->/gi, createLayoutToken('chapter'))
       // ::: syntax
-      .replace(/^\s*:::\s*chapter\s*$/gim, createLayoutToken('chapter'));
+      .replace(/^[ 	]*:::\s*chapter\s*$/gim, createLayoutToken('chapter'));
   }
 
   /**
@@ -193,7 +198,7 @@ export class LayoutPreprocessor {
 
     // ::: syntax: ::: section{type=new-page columns=2}
     result = result.replace(
-      /^\s*:::\s*section\{type=(\S+)(?:\s+columns=(\d+))?\}\s*$/gim,
+      /^[ 	]*:::\s*section\{type=(\S+)(?:\s+columns=(\d+))?\}\s*$/gim,
       (match, type, cols) => {
         const columns = cols || '1';
         return createLayoutToken('section', { type, columns });
@@ -218,7 +223,7 @@ export class LayoutPreprocessor {
 
     // ::: syntax: ::: table{layout=compact}
     result = result.replace(
-      /^\s*:::\s*table\{layout=(\w+)\}\s*$/gim,
+      /^[ 	]*:::\s*table\{layout=(\w+)\}\s*$/gim,
       (match, layout) => createLayoutToken('table', { layout })
     );
 
@@ -244,7 +249,7 @@ export class LayoutPreprocessor {
 
     // ::: syntax
     result = result.replace(
-      /^\s*:::\s*title-?page\s*$/gim,
+      /^[ 	]*:::\s*title-?page\s*$/gim,
       createLayoutToken('title-page', { start: true })
     );
 
@@ -260,7 +265,7 @@ export class LayoutPreprocessor {
       // HTML comment syntax
       .replace(/<!--\s*blank-page\s*-->/gi, createLayoutToken('blank-page'))
       // ::: syntax
-      .replace(/^\s*:::\s*blank-?page\s*$/gim, createLayoutToken('blank-page'));
+      .replace(/^[ 	]*:::\s*blank-?page\s*$/gim, createLayoutToken('blank-page'));
   }
 
   /**
@@ -769,7 +774,7 @@ export class LayoutPreprocessor {
   processListOfFigures(markdown) {
     return markdown
       .replace(/<!--\s*list-of-figures\s*-->/gi, createLayoutToken('list-of-figures'))
-      .replace(/^\s*:::\s*list-of-figures\s*$/gim, createLayoutToken('list-of-figures'));
+      .replace(/^[ 	]*:::\s*list-of-figures\s*$/gim, createLayoutToken('list-of-figures'));
   }
 
   /**
@@ -779,7 +784,7 @@ export class LayoutPreprocessor {
   processListOfTables(markdown) {
     return markdown
       .replace(/<!--\s*list-of-tables\s*-->/gi, createLayoutToken('list-of-tables'))
-      .replace(/^\s*:::\s*list-of-tables\s*$/gim, createLayoutToken('list-of-tables'));
+      .replace(/^[ 	]*:::\s*list-of-tables\s*$/gim, createLayoutToken('list-of-tables'));
   }
 
   /**
@@ -787,12 +792,44 @@ export class LayoutPreprocessor {
    * Processes:
    *   - Images preceded by <!-- img: ... --> markers (explicit attributes)
    *   - Images with alt text starting "Abbildung N:" or "Figure N:" (auto-detect)
+   *   - Pandoc-generated <figure> elements from the implicit_figures extension
    * Populates this.figureRegistry for list-of-figures.
    */
   applyFigures(doc) {
     this.figureRegistry = [];
     let figureNum = 0;
     const processed = new WeakSet();
+
+    // First: register Pandoc-generated <figure> elements (implicit_figures output).
+    // Pandoc wraps a lone image paragraph in <figure><img><figcaption>alt</figcaption></figure>.
+    // These are skipped by the img-loop below (img.closest('figure') guard), so we
+    // register them here and standardize their figcaption markup.
+    Array.from(doc.querySelectorAll('figure:not(.md-figure)')).forEach(figure => {
+      const img = figure.querySelector('img');
+      if (!img || processed.has(img)) return;
+      processed.add(img);
+
+      figureNum++;
+      const figureId = `figure-${figureNum}`;
+      figure.id = figureId;
+      figure.classList.add('md-figure', 'md-figure--center');
+
+      // Use existing <figcaption> text (Pandoc mirrors the alt text), or fall back to alt
+      const figcaption = figure.querySelector('figcaption');
+      const captionText = figcaption
+        ? figcaption.textContent.trim().replace(/\s+/g, ' ')
+        : (img.getAttribute('alt') || '').replace(/\s+/g, ' ');
+
+      this.figureRegistry.push({ id: figureId, num: figureNum, caption: captionText });
+
+      if (figcaption) {
+        figcaption.innerHTML = `<span class="figure-label">Abb.\u00a0${figureNum}:</span> ${captionText}`;
+      } else if (captionText) {
+        const fc = doc.createElement('figcaption');
+        fc.innerHTML = `<span class="figure-label">Abb.\u00a0${figureNum}:</span> ${captionText}`;
+        figure.appendChild(fc);
+      }
+    });
 
     // Map: img element → marker element (for explicit <!-- img: --> markers)
     const markerMap = new Map();
@@ -907,7 +944,9 @@ export class LayoutPreprocessor {
       if (!prev || prev.tagName !== 'P') return;
 
       // Match "Tabelle N: caption", "Tabelle: caption", "Table N: caption"
-      const rawText = prev.textContent.trim();
+      // Normalize whitespace first: Pandoc word-wraps long HTML lines with \n,
+      // so textContent may contain embedded newlines that break the .+ match.
+      const rawText = prev.textContent.trim().replace(/\s+/g, ' ');
       const match = rawText.match(/^(?:Tabelle|Tabl\.|Table|Tab\.)\s*\d*\s*:?\s*(.+)/i);
       if (!match) return;
 

@@ -1,295 +1,471 @@
-# mdedit.io Scientific-Layout Referenztest — Masterthesis
+---
+title: "Markdown als Schreib- und Produktionsumgebung für wissenschaftliche Arbeiten: Eine kriteriologische Bewertung von mdedit.io im Vergleich zu Word und LaTeX"
+author:
+  - Max Beispiel
+date: 2026-05-10
+lang: de-DE
+citation-source: embedded
+reference-section-title: Literaturverzeichnis
+link-citations: true
+link-bibliography: true
+---
 
-Version: Mai 2026  
-Zweck: Diese Datei ergänzt den bisherigen Scientific-Layout-Referenztest um zusätzliche Anforderungen für eine Masterthesis-ähnliche PDF-Ausgabe.
+```mdedit-bibliography
+[{"URL":"https://daringfireball.net/projects/markdown/","author":[{"family":"Gruber","given":"John"}],"id":"gruber2004markdown","issued":{"date-parts":[[2004]]},"note":"Accessed 2026-05-10","title":"Markdown","type":""},{"URL":"https://commonmark.org/","author":[{"literal":"CommonMark Contributors"}],"id":"commonmark2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"CommonMark","type":""},{"URL":"https://pandoc.org/","author":[{"family":"MacFarlane","given":"John"}],"id":"pandoc2025","issued":{"date-parts":[[2025]]},"note":"Accessed 2026-05-10","title":"Pandoc","type":""},{"URL":"https://www.latex-project.org/about/","author":[{"literal":"LaTeX Project"}],"id":"latexproject2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"An Introduction to LaTeX","type":""},{"URL":"https://support.microsoft.com/en-us/office/track-changes-in-word-197ba630-0f5f-4a8e-9a77-3712475e806a","author":[{"literal":"Microsoft Support"}],"id":"microsoftword2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"Track Changes in Word","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdeditreadme2026","issued":{"date-parts":[[2026]]},"note":"Repository documentation, local source","title":"mdedit.io README","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdeditcitations2026","issued":{"date-parts":[[2026]]},"note":"Repository concept document, local source","title":"Scientific Documents and Citations Concept","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdeditplan2026","issued":{"date-parts":[[2026]]},"note":"Repository planning document, local source","title":"Scientific Documents Implementation Plan","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdedithelp2026","issued":{"date-parts":[[2026]]},"note":"Repository help page, local source","title":"mdedit.io Help Page","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdeditaiapi2026","issued":{"date-parts":[[2026]]},"note":"Repository operations documentation, local source","title":"AI Chat API Dokumentation","type":""},{"author":[{"family":"Hertel","given":"Matthias"}],"id":"mdeditserver2026","issued":{"date-parts":[[2026]]},"note":"Repository implementation in server.js, local source","title":"mdedit.io Scientific Citation and Export Implementation","type":""},{"author":[{"family":"Booth","given":"Wayne C."},{"family":"Colomb","given":"Gregory G."},{"family":"Williams","given":"Joseph M."},{"family":"Bizup","given":"Joseph"},{"family":"Fitzgerald","given":"William T."}],"edition":"4","id":"booth2016craft","issued":{"date-parts":[[2016]]},"publisher":"University of Chicago Press","publisher-place":"Chicago","title":"The Craft of Research","type":"book"},{"author":[{"family":"Swales","given":"John M."},{"family":"Feak","given":"Christine B."}],"edition":"3","id":"swalesfeak2012","issued":{"date-parts":[[2012]]},"publisher":"University of Michigan Press","publisher-place":"Ann Arbor","title":"Academic Writing for Graduate Students: Essential Tasks and Skills","title-short":"Academic Writing for Graduate Students","type":"book"},{"ISBN":"9781433832161","author":[{"literal":"American Psychological Association"}],"edition":"7","id":"apa2019manual","issued":{"date-parts":[[2019]]},"publisher":"American Psychological Association","title":"Publication Manual of the American Psychological Association","type":"book"},{"ISBN":"9781839542480","edition":"4","editor":[{"family":"Paver","given":"Chloe"},{"family":"Nelson","given":"Graham"},{"family":"Davies","given":"Simon F."}],"id":"mhra2024","issued":{"date-parts":[[2024]]},"publisher":"Modern Humanities Research Association","title":"MHRA Style Guide","type":"book"},{"ISBN":"9781350477261","author":[{"family":"Pears","given":"Richard"},{"family":"Shields","given":"Graham"}],"edition":"13","id":"pearsshields2025","issued":{"date-parts":[[2025]]},"title":"Cite Them Right: The Essential Referencing Guide","title-short":"Cite Them Right","type":"book"},{"URL":"https://libguides.reading.ac.uk/citing-references/referencingstyles","author":[{"literal":"University of Reading Library"}],"id":"readingstyles2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"Different Styles and Systems of Referencing","type":""},{"URL":"https://www.law.ox.ac.uk/oscola","author":[{"literal":"Faculty of Law, University of Oxford"}],"id":"oscola2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"The Oxford University Standard for Citation of Legal Authorities (OSCOLA), 5th Edition","type":""},{"author":[{"literal":"Department of Computer Science, ETH Zurich"}],"id":"eththesismemo2025","issued":{"date-parts":[[2025]]},"note":"Official department memo, accessed 2026-05-10","title":"Memo: Master’s Theses in Computer Science","title-short":"Memo","type":""},{"URL":"https://www.imperial.ac.uk/admin-services/library/learning-support/reference-management/vancouver-style/","author":[{"literal":"Imperial College London Library Services"}],"id":"imperialvancouver2026","issued":{"date-parts":[[2026]]},"note":"Accessed 2026-05-10","title":"Vancouver Style","type":""},{"author":[{"family":"Hevner","given":"Alan R."},{"family":"March","given":"Salvatore T."},{"family":"Park","given":"Jinsoo"},{"family":"Ram","given":"Sudha"}],"container-title":"MIS Quarterly","id":"hevner2004design","issue":"1","issued":{"date-parts":[[2004]]},"page":"75-105","title":"Design Science in Information Systems Research","type":"article-journal","volume":"28"},{"author":[{"family":"Wieringa","given":"Roel J."}],"id":"wieringa2014design","issued":{"date-parts":[[2014]]},"publisher":"Springer","publisher-place":"Berlin","title":"Design Science Methodology for Information Systems and Software Engineering","type":"book"}]
+```
 
-**Wichtig:** Diese Datei enthält bewusst **kein dokumentlokales Layout**, **kein Custom CSS**, **kein YAML-Frontmatter** und **kein rohes HTML**.  
-Die Gestaltung soll ausschließlich über das globale **Scientific-Layout** beziehungsweise den Layout-Editor in mdedit.io erfolgen.
+## Abstract
 
-## Prüfziele dieser erweiterten Datei
+Die Erstellung wissenschaftlicher Arbeiten bewegt sich heute zwischen drei dominanten Logiken: der textverarbeitungsorientierten Logik von Microsoft Word, der satzorientierten Logik von LaTeX und der strukturorientierten Logik markdown-basierter Workflows. Diese Arbeit untersucht, unter welchen Bedingungen ein browserbasierter Markdown-Editor am Beispiel von mdedit.io als primäre Produktionsumgebung für wissenschaftliche Abschlussarbeiten dienen kann. Ausgangspunkt ist die Beobachtung, dass die Eignung von Schreibwerkzeugen in der akademischen Praxis häufig über Gewohnheiten, Fachkulturen oder Tool-Mythen beurteilt wird, während ein explizites Bewertungsmodell für Strukturtransparenz, Quellenarbeit, Exportstabilität und Betreuungskompatibilität oft fehlt.
 
-| Bereich | Ziel im PDF | Beobachtung |
-|---|---|---|
-| Kopfzeile | konsistente Kopfzeile ohne Kollision mit Text | ☐ |
-| Fußzeile | konsistente Fußzeile mit Seitennummer | ☐ |
-| Seitennummern | korrekt, lesbar, nicht doppelt | ☐ |
-| Abbildungen | skalieren sauber im Satzspiegel | ☐ |
-| Bildunterschriften | nummeriert, direkt bei der Abbildung | ☐ |
-| Tabellenunterschriften | nummeriert, direkt bei der Tabelle | ☐ |
-| Abbildungsverzeichnis | Einträge vollständig, optional mit Seitenzahlen | ☐ |
-| Tabellenverzeichnis | Einträge vollständig, optional mit Seitenzahlen | ☐ |
-| Fußnoten | mehrere Fußnoten, keine Kollision mit Footer | ☐ |
-| Linien | Tabellenlinien, Trennlinien, Zitatlinien sauber | ☐ |
-| Hintergrundfarben | Info-/Warning-Boxen dezent und druckbar | ☐ |
-| Tabellen | wissenschaftlich, aber nicht „kaputt“ oder linienlos | ☐ |
-| Seitenumbrüche | keine Überschrift allein am Seitenende | ☐ |
-| breite Inhalte | Tabellen und Bilder bleiben im Satzspiegel | ☐ |
-| Bildattribute | align, width, frame, shadow, filter funktionieren | ☐ |
-| Abbildungsverzeichnis automatisch | alle Abb. mit Nummer und Text | ☐ |
-| Tabellenverzeichnis automatisch | alle Tab. mit Nummer und Text | ☐ |
+Methodisch folgt die Arbeit einer kriteriengeleiteten Artefaktanalyse mit designorientierter Bewertungslogik. Auf Basis der Literatur zum wissenschaftlichen Arbeiten, zu Markdown und Pandoc sowie zu designwissenschaftlichen Bewertungsansätzen werden fünf Bewertungsdimensionen abgeleitet: Strukturtransparenz, Quellen- und Zitationssicherheit, Layout- und Exportstabilität, Review- und Betreuungskompatibilität sowie Governance und Betriebsfähigkeit [@booth2016craft; @swalesfeak2012; @hevner2004design; @wieringa2014design]. Diese Dimensionen werden zunächst auf Word, LaTeX und markdown-basierte Workflows bezogen und anschließend für mdedit.io anhand offizieller Dokumentation, institutioneller Vorgaben und eines reproduzierbaren Referenzartefakts bewertet.
+
+Die Ergebnisse zeigen, dass Markdown in Verbindung mit Spezifikation, Metadaten und Konvertern ein belastbares Zwischenformat für wissenschaftliche Langtexte sein kann [@gruber2004markdown; @commonmark2026; @pandoc2025]. Zugleich gewinnt Markdown im Kontext generativer KI eine besondere Rolle als strukturstabiles Arbeits- und Austauschformat: Überschriften, Listen, Tabellen, Codeblöcke und Zitationsmarker bleiben für Menschen lesbar und für Modelle gezielt bearbeitbar. Für mdedit.io ergibt sich dadurch eine starke Eignung in der Struktur- und Schreibphase, in der Navigation großer Dokumente über Outline und Tree View, in der KI-gestützten Dokumentarbeit, in der frühen Layoutkontrolle sowie in kontrollierten PDF- und DOCX-Exportpfaden [@mdeditreadme2026; @mdedithelp2026]. Zusätzlich ist relevant, dass der wissenschaftliche Exportpfad aktuelle mdedit-Erweiterungen für Bibliografie, Citeproc und Referenzsektionen integriert [@mdeditserver2026]. Grenzen bleiben bei note-style-Fußnoten, stark normierten Sondervorlagen und semantisch reichen Referenzsystemen. Die Arbeit leistet damit keinen empirischen Nutzernachweis, wohl aber ein kriteriologisches Entscheidungsmodell und ein prüfbares Referenzartefakt für die Bewertung thesis-tauglicher Markdown-Workflows.
+
+## Schlagwörter
+
+Markdown, wissenschaftliche Abschlussarbeit, mdedit.io, Design Science, LaTeX, Microsoft Word, Pandoc, KI-Anwendungen, Schreibwerkzeuge, Exportworkflow
 
 [[toc]]
 
-<!-- page-break -->
-
-# Abbildungsverzeichnis
+## Abbildungsverzeichnis
 
 <!-- list-of-figures -->
 
-# Tabellenverzeichnis
+## Tabellenverzeichnis
 
 <!-- list-of-tables -->
 
-<!-- page-break -->
+## 1. Einleitung
 
-# 1 Kopfzeilen, Fußzeilen und Seitennummern
+Wissenschaftliche Arbeiten sind heute nicht mehr nur Textprodukte, sondern organisierte Schreib- und Überarbeitungsprozesse. Eine Masterthesis entsteht über Wochen oder Monate hinweg in einem Wechselspiel aus Materialsammlung, Strukturierung, Rohfassung, Rückmeldung, sprachlicher Revision, formaler Kontrolle und finalem Export. Die Qualität des eingesetzten Werkzeugs entscheidet dabei nicht über die wissenschaftliche Güte der Argumentation, wohl aber über Reibungsverluste, Sichtbarkeit der Struktur und die Stabilität des Produktionsprozesses. Genau deshalb ist die Frage nach geeigneten Schreibumgebungen kein Nebenaspekt, sondern Teil akademischer Arbeitsorganisation.
 
-## 1.1 Kopfzeilenkontrolle
+In der Praxis dominieren weiterhin Microsoft Word und LaTeX. Word ist institutionell weit verbreitet, für Reviewprozesse eingespielt und durch Vorlagenkulturen fest in Hochschulabläufe eingebunden. LaTeX wiederum ist in mathematik-, informatik- und naturwissenschaftsnahen Milieus der Referenzpunkt für typografisch anspruchsvolle, formal stark geregelte Dokumente [@latexproject2026]. Markdown-basierte Workflows werden dagegen häufig noch als informell, technisch oder blognah wahrgenommen. Diese Einschätzung greift jedoch zu kurz, weil moderne Markdown-Ökosysteme durch Spezifikationen wie CommonMark, Konverter wie Pandoc und darauf aufbauende Editoren deutlich mehr leisten als reine Notiz- oder Web-Authoring-Szenarien [@commonmark2026; @pandoc2025].
 
-Dieser Abschnitt dient dazu, Kopfzeilen im PDF zu prüfen. In einer Masterthesis sollte die Kopfzeile typografisch zurückhaltend sein. Sie kann beispielsweise den Dokumenttitel, das aktuelle Kapitel oder eine kurze Abschnittsbezeichnung enthalten. Wichtig ist, dass die Kopfzeile nicht mit dem Fließtext kollidiert und nicht zu dominant wirkt.
+Zusätzlich verändert der Aufstieg generativer KI die Bewertung von Markdown noch einmal. Viele KI-Applikationen arbeiten nicht auf der Ebene sichtbarer Seitenformatierung, sondern mit linearem, segmentierbarem Text. Genau hier ist Markdown stark: Überschriften, Listen, Tabellen, Codeblöcke und Metadaten bleiben im Chat-Kontext explizit, kopierbar und transformierbar. Für wissenschaftliche Schreibumgebungen ist das relevant, weil KI-Unterstützung dann nicht an Screenshots oder lokaler Sichtformatierung ansetzt, sondern am dokumentierten Strukturkern.
 
-Der folgende Absatz ist bewusst etwas länger, damit sichtbar wird, ob die Kopfzeile genügend Abstand zum Textblock hat. Wenn die erste Zeile des Absatzes zu nahe an der Kopfzeile steht, ist entweder der obere Seitenrand zu klein oder der Header-Abstand im PDF-Layout nicht sauber definiert.
+Vor diesem Hintergrund untersucht die vorliegende Arbeit, welche Rolle Markdown und speziell mdedit.io für wissenschaftliche Arbeiten spielen können. Im Zentrum steht nicht die Behauptung, ein einzelnes Werkzeug könne alle konkurrierenden Produktionslogiken ersetzen. Gefragt wird vielmehr, für welche Anforderungsprofile wissenschaftlicher Abschlussarbeiten ein browserbasierter Markdown-Workflow methodisch vertretbar, technisch stabil und institutionell anschlussfähig ist. Zusätzlich führt die Arbeit ein reproduzierbares Referenzartefakt mit, das die für wissenschaftliche Langtexte relevanten Satz- und Exportelemente praktisch prüfbar macht.
 
-## 1.2 Fußzeilen und Seitennummern
+### 1.1 Forschungsfrage
 
-Dieser Abschnitt prüft die Fußzeile. Eine Fußzeile darf die Fußnoten nicht verdrängen und sollte mit Seitennummern harmonieren. Bei wissenschaftlichen Arbeiten ist eine schlichte Seitennummer außen oder mittig üblich. Wichtig ist, dass die Nummer nicht zu nah am Seitenrand sitzt und nicht mit Endnoten, Fußnoten oder Tabellen kollidiert.
+Die leitende Forschungsfrage lautet: Unter welchen Bedingungen kann ein browserbasierter Markdown-Editor am Beispiel von mdedit.io als primäre Produktionsumgebung für wissenschaftliche Abschlussarbeiten dienen, und unter welchen formalen Randbedingungen bleiben Word oder LaTeX vorzugswürdig?
 
-Dieser Satz enthält eine erste Fußnote.[^fn-header] Dieser Satz enthält eine zweite Fußnote direkt im Anschluss an einen längeren Satz, damit geprüft werden kann, ob mehrere Fußnoten in einem Absatz stabil verarbeitet werden.[^fn-second]
+Zur Beantwortung werden drei Teilfragen verfolgt:
 
-[^fn-header]: Erste Fußnote zur Prüfung der Fußnotenposition im Zusammenspiel mit Kopf- und Fußzeile.
-[^fn-second]: Zweite Fußnote zur Prüfung der Abstände, Nummerierung und Lesbarkeit.
+1. Welche Anforderungen sind für wissenschaftliche Abschlussarbeiten konstitutiv und damit für die Werkzeugwahl entscheidend?
+2. Welche Produktionslogiken unterscheiden Word, LaTeX und markdown-basierte Workflows in Bezug auf diese Anforderungen?
+3. An welcher Stelle erweist sich mdedit.io als tragfähiger Primärworkflow, und wo beginnen Ausschlusskriterien oder institutionelle Sonderfälle?
 
-## 1.3 Mehrere Fußnoten auf einer Seite
+### 1.2 Arbeitsthesen
 
-In diesem Abschnitt folgen mehrere Fußnoten in kurzer Folge. Die Fußnoten sollen entweder sauber am Seitenende oder konsistent als Endnoten erscheinen. Entscheidend ist, dass sie nicht mit der Fußzeile kollidieren, nicht in Tabellen hineinlaufen und nicht den Seitenumbruch destabilisieren.[^fn-a] Eine weitere Fußnote steht hier.[^fn-b] Eine dritte Fußnote prüft, ob die Nummerierung stabil bleibt.[^fn-c]
+Die Arbeit basiert auf vier Arbeitsthesen:
 
-[^fn-a]: Fußnote A mit normaler Länge.
-[^fn-b]: Fußnote B mit etwas längerem Text, der über mehr als eine Zeile laufen kann, ohne zu eng oder zu groß gesetzt zu werden.
-[^fn-c]: Fußnote C als zusätzliche Nummerierungsprüfung.
+1. Markdown ist nicht mehr nur eine einfache Web-Syntax, sondern ein ernstzunehmendes Zwischenformat für strukturierte Langtexte, sofern Spezifikation, Metadaten und Exportwerkzeuge zusammenwirken. Dieselbe Eigenschaft macht es zugleich zu einem besonders anschlussfähigen Arbeitsformat für KI-gestützte Redaktions- und Transformationsprozesse [@gruber2004markdown; @commonmark2026; @pandoc2025].
+2. Die Eignung eines Werkzeugs für Masterarbeiten entscheidet sich weniger an isolierter Typografie als an Strukturtransparenz, Quellenintegrität, Reviewfähigkeit und reproduzierbaren Exportpfaden.
+3. mdedit.io ist besonders dort stark, wo Longform-Struktur, frühe Layoutkontrolle, kontrollierter Multi-Export, dokumentnahe KI-Unterstützung und browserbasierte Zusammenarbeit im Vordergrund stehen [@mdeditreadme2026].
+4. mdedit.io bleibt dort begrenzt, wo semantisch reiche Referenzsysteme, note-style-Fußnoten oder starre Hochschulvorlagen produktiv zwingend sind [@mdeditcitations2026; @mdeditplan2026].
 
-<!-- page-break -->
+### 1.3 Methodisches Vorgehen
 
-# 2 Abbildungen und Bildunterschriften
+Methodisch folgt die Arbeit einer kriteriengeleiteten Artefaktanalyse im Sinne designorientierter Forschung [@hevner2004design; @wieringa2014design]. Im ersten Schritt wird aus der Literatur zum wissenschaftlichen Arbeiten und aus institutionellen Zitiervorgaben ein Anforderungskatalog für wissenschaftliche Abschlussarbeiten rekonstruiert [@booth2016craft; @swalesfeak2012; @readingstyles2026]. Im zweiten Schritt werden die drei dominanten Werkzeuglogiken Word, LaTeX und Markdown vergleichend auf diese Anforderungen bezogen. Im dritten Schritt erfolgt für mdedit.io eine vertiefte Fallanalyse anhand offizieller Produktdokumentation, wissenschaftsnaher Projektkonzepte und des in dieser Arbeit mitgeführten Referenzartefakts [@mdeditreadme2026; @mdeditcitations2026; @mdeditplan2026].
 
-## 2.1 Standardabbildung im Satzspiegel
+Die Bewertung erfolgt entlang fünf Dimensionen: Strukturtransparenz, Quellen- und Zitationssicherheit, Layout- und Exportstabilität, Review- und Betreuungskompatibilität sowie Governance und Betriebsfähigkeit. Ein Werkzeug gilt in dieser Logik dann als thesis-tauglich, wenn es die Produktionskette einer Abschlussarbeit in diesen Dimensionen ohne methodisch kritische Brüche tragen kann. Die Arbeit beansprucht keine Verallgemeinerung aus Nutzerzahlen oder Experimentdaten, sondern eine analytisch nachvollziehbare Eignungsprüfung.
 
-Die folgende Abbildung prüft, ob ein breites Diagramm sauber in den Satzspiegel eingepasst wird. Der Bildmarker steuert Ausrichtung und Breite; die Caption im Alt-Text erzeugt automatisch einen Eintrag im Abbildungsverzeichnis.
+### 1.4 Aufbau der Arbeit
 
-<!-- img: align=center width=100% -->
-![Abbildung 1: Systemübersicht mit Messpunkten und Datenpipeline](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/fa83ac9d.png)
+Kapitel 2 rekonstruiert Ursprung und Entwicklung von Markdown als wissenschaftlich relevantes Zwischenformat und ergänzt diese Perspektive um seine besondere Rolle in KI-Applikationen. Kapitel 3 leitet aus der Literatur und aus institutionellen Vorgaben das Bewertungsraster für wissenschaftliche Schreibwerkzeuge ab und positioniert Word, LaTeX und Markdown vergleichend. Kapitel 4 bestimmt mdedit.io als Untersuchungsfall. Kapitel 5 führt die kriteriologische Bewertung durch und spiegelt den Befund an drei anspruchsvollen Hochschulprofilen. Kapitel 6 betrachtet Governance-, Rechts- und Betriebsaspekte. Kapitel 7 diskutiert Beitrag und Grenzen der Untersuchung, bevor Kapitel 8 die Forschungsfrage beantwortet. Der Anhang fungiert als reproduzierbares Referenzartefakt für layout- und exportkritische Dokumentelemente.
 
-Der Absatz nach der Abbildung prüft, ob die Bildunterschrift korrekt darunter gesetzt wird und kein übermäßiger Abstand entsteht.
+## 2. Markdown: Begriff, Ursprung und Entwicklung
 
-## 2.2 Workflow-Abbildung mit Rahmen
+### 2.1 Was Markdown ist und warum es entstand
 
-Die nächste Abbildung prüft, ob Linien, Pfeilspitzen und Text im PDF scharf bleiben. Sie wird mit einem dezenten Rahmen versehen (`frame`).
+Markdown wurde 2004 von John Gruber als Text-zu-HTML-Werkzeug eingeführt. Der Kern des Ansatzes besteht darin, dass ein Dokument bereits als Rohtext gut lesbar sein soll und erst im zweiten Schritt in strukturell valides HTML umgewandelt wird [@gruber2004markdown]. Diese doppelte Logik ist bis heute entscheidend: Markdown ist zugleich Syntax und Konvertierungsidee. Sein ursprünglicher Zweck war nicht wissenschaftliches Publizieren, sondern lesbares Schreiben für das Web. Gerade darin liegt jedoch eine bleibende Stärke. Markdown trennt Inhalt, Struktur und spätere Darstellung stärker voneinander als klassische WYSIWYG-Textverarbeitung.
 
-<!-- img: align=center width=85% frame -->
-![Abbildung 2: Workflow-Diagramm mit Ablaufpfeilen und Entscheidungsknoten](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/c5bfdaad.png)
+Die normative Pointe liegt im Gestaltungsziel der Lesbarkeit. Während HTML-Tags den Rohtext visuell überfrachten können, sollte ein Markdown-Dokument auch ohne Renderung als strukturierter Text begreifbar bleiben [@gruber2004markdown]. Diese Eigenschaft macht Markdown für wissenschaftliche Prozesse interessant, weil akademisches Schreiben gerade in frühen Phasen weniger von perfekter Formatierung als von orientierbarer Gliederung lebt.
 
-## 2.3 Kleine Abbildung rechtsbündig mit Schatten
+### 2.2 Warum Markdown nicht bei seinem Ursprung stehenblieb
 
-Die nächste Abbildung prüft, ob ein quadratisches Diagramm mit `align=right` rechtsbündig in den Text integriert werden kann. Der Fließtext läuft links davon.
+Die Offenheit der frühen Markdown-Beschreibung war zugleich Erfolg und Problem. Weil die Syntax ursprünglich nicht unmissverständlich spezifiziert war, entwickelten sich zahlreiche Implementierungen mit voneinander abweichendem Verhalten. CommonMark beschreibt diese historische Lage explizit als Problem divergierender Parser und fehlender Testsuiten [@commonmark2026]. Für wissenschaftliche Dokumente ist genau diese Divergenz kritisch, weil Reproduzierbarkeit und Portabilität zentrale Anforderungen sind.
 
-<!-- img: align=right width=42% shadow -->
-![Abbildung 3: Quadratisches Messdiagramm im Float-Layout mit Schlagschatten](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/9aeaae98.png)
+Mit CommonMark wurde Markdown deshalb in Richtung einer formaleren, testbaren und interoperablen Spezifikation weiterentwickelt [@commonmark2026]. Die Entwicklung von Markdown lässt sich damit als Verschiebung von einer pragmatischen Web-Schreibpraxis zu einem standardisierbaren Format für strukturierte Dokumente lesen. Dieser Schritt ist für wissenschaftliches Arbeiten zentral, weil er die Voraussetzung für verlässliche Konverter und stabile Renderpfade schafft.
 
-Dieser Absatz prüft, ob der Text links neben der rechtsbündigen Abbildung läuft und nicht darunter gesetzt wird. Bei korrektem Float-Layout sollten mehrere Textzeilen nebeneinander erscheinen. Die Abbildung sollte dabei sauber am rechten Rand anliegen und den Satzspiegel nicht verlassen.
+### 2.3 Markdown im erweiterten Ökosystem: Pandoc als Brücke
 
+Pandoc markiert die zweite entscheidende Entwicklungsstufe. Während Grubers Markdown vor allem auf HTML zielte, macht Pandoc aus Markdown ein universelles Zwischenformat. Nach eigener Beschreibung konvertiert Pandoc zwischen zahlreichen Markup-, Dokument- und Office-Formaten, darunter Markdown, DOCX, LaTeX und verschiedene PDF-Pfade [@pandoc2025]. Zugleich unterstützt Pandoc Metadaten, Tabellen, Fußnoten, Mathematik sowie automatische Zitationen und Bibliografien [@pandoc2025].
 
+Für wissenschaftliche Arbeiten ist das von erheblicher Bedeutung. Erst die Verbindung aus spezifizierter Syntax, Metadaten und Konverter ermöglicht einen Workflow, in dem Rohtext, wissenschaftliche Struktur und Ausgabemedien systematisch miteinander gekoppelt werden. Damit wird Markdown nicht automatisch zum besten Werkzeug für jede Thesis. Es wird aber zu einer belastbaren Alternative für Autorinnen und Autoren, die Struktur und Portabilität höher gewichten als permanente Sichtformatierung.
 
-<!-- page-break -->
+### 2.4 Markdown als Arbeitsformat in KI-Applikationen
 
-# 3 Tabellen, Tabellenunterschriften und Linien
+Generative KI-Anwendungen operieren im Kern nicht mit Seitengeometrie, sondern mit tokenisiertem Text, semantischen Segmenten und expliziten Strukturmarkern. Genau deshalb hat Markdown in KI-Applikationen eine besondere Rolle: Überschriften, Listen, Tabellen, Zitatblöcke, Code-Fences und YAML-artige Metadaten bleiben für Menschen lesbar und für Modelle zugleich vergleichsweise gut adressierbar. Während visuelle Office-Formatierung oft implizit oder binär gebunden ist, stellt Markdown Struktur in einer linearen, kopierbaren und promptfähigen Form bereit.
 
-## 3.1 Wissenschaftliche Tabelle mit Caption
+Für KI-gestützte Schreibumgebungen ist das mehr als eine Komfortfrage. Ein Modell kann auf einem Markdown-Dokument nicht nur stilistisch antworten, sondern Abschnitte gezielt umstellen, Tabellen ergänzen, Listen konsolidieren, Frontmatter anpassen oder Zitationsmarker unverändert erhalten. Markdown fungiert damit zugleich als Darstellungsformat, Transformationsformat und Austauschformat zwischen Autorenschaft, Chat-Oberfläche, Agentenlogik und nachgelagerten Konvertern.
 
-Die folgende Tabelle soll wie eine wissenschaftliche Tabelle wirken. Erwartet wird ein klares Linienkonzept: üblicherweise eine obere Linie, eine Linie unter der Kopfzeile und eine untere Linie. Vertikale Linien sind in wissenschaftlichen Tabellen meist nicht nötig.
+Tabelle 2: Häufig genutzte KI-unterstützte Chats und ihre typischen Arbeitsformate.
 
-**Tabelle 1: Vergleich mehrerer Layoutbereiche und ihrer erwarteten Wirkung.**
-
-<!-- table:scientific -->
-
-| Bereich | Erwartung | Kritische Prüfung | Status |
-|---|---|---|---|
-| Kopfzeile | zurückhaltend | Abstand zum Text | ☐ |
-| Fußzeile | lesbar | Kollision mit Fußnoten | ☐ |
-| Seitennummer | eindeutig | keine doppelte Nummerierung | ☐ |
-| Abbildung | skaliert | bleibt im Satzspiegel | ☐ |
-| Tabellenlinie | booktabs-artig | obere und untere Linie sichtbar | ☐ |
-
-## 3.2 Tabelle mit vielen Spalten
-
-Diese Tabelle prüft, ob breite Tabellen noch lesbar bleiben, ohne harte Einzelbuchstaben-Trennungen zu erzeugen.
-
-**Tabelle 2: Breite Prüftabelle mit kurzen und langen Zellinhalten.**
-
-<!-- table:scientific -->
-
-| Phase | Layoutobjekt | Eingabe | Verarbeitung | Ausgabe | Risiko | Gegenmaßnahme |
-|---|---|---|---|---|---|---|
-| Analyse | Kopfzeile | Kapiteltitel | automatische Platzierung | ruhige Kopfzeile | zu dominant | kleinere Schrift |
-| Analyse | Fußzeile | Seitennummer | automatische Nummerierung | klare Orientierung | Kollision | größerer Footer-Abstand |
-| Layout | Tabelle | Pipe-Tabelle | Scientific-Preset | saubere Matrix | harte Trennung | bessere Spaltenbreiten |
-| Layout | Abbildung | SVG-Datei | PDF-Rendering | scharfe Grafik | Überbreite | maximale Bildbreite |
-| Layout | Caption | Alt-Text | Caption-Erkennung | nummerierte Beschriftung | falsche Position | Caption-Regeln |
-
-## 3.3 Compact-Tabelle mit Gitternetz
-
-Die folgende Tabelle soll bewusst kompakter und technischer wirken. Hier sind Zellrahmen akzeptabel, aber sie dürfen nicht zu dunkel oder zu dick sein.
-
-**Tabelle 3: Compact-Tabelle zur Prüfung von Zellrahmen und Hintergrundflächen.**
-
-<!-- table:compact -->
-
-| Nr. | Testobjekt | Soll-Verhalten | OK? |
-|---:|---|---|:---:|
-| 1 | Header-Zeile | dezenter Hintergrund | ☐ |
-| 2 | Zellrahmen | dünn, nicht dominant | ☐ |
-| 3 | Padding | kompakt, aber lesbar | ☐ |
-| 4 | Checkbox | nicht abgeschnitten | ☐ |
-| 5 | Zahlen | rechtsbündig möglich | ☐ |
-
-## 3.4 Tabellenlinien: Sollbild
-
-Diese Tabelle prüft ausdrücklich die Frage, ob oben und unten Linien sichtbar sind.
-
-**Tabelle 4: Linienkontrolle für Scientific-Tabellen.**
-
-<!-- table:scientific -->
-
-| Linie | Erwartung | Bewertung |
-|---|---|---|
-| obere Tabellenlinie | sichtbar, aber nicht schwer | ☐ |
-| Linie unter Kopfzeile | sichtbar | ☐ |
-| Zeilenlinien im Körper | optional oder sehr dezent | ☐ |
-| untere Tabellenlinie | sichtbar | ☐ |
-| vertikale Linien | normalerweise nicht sichtbar | ☐ |
-
-<!-- page-break -->
-
-# 4 Hintergrundfarben, Linien und Admonitions
-
-## 4.1 Info-Box
-
-::: info
-Diese Info-Box prüft Hintergrundfarbe, Rahmen, Innenabstand und Drucktauglichkeit. Der Hintergrund sollte sichtbar, aber sehr dezent sein. Der Rahmen sollte nicht schwerer wirken als Tabellenlinien.
+::: table{layout=scientific}
+| System | Primäre Interaktion | Typische Arbeitsformate | Rolle von Markdown |
+| --- | --- | --- | --- |
+| ChatGPT | Dialogischer Chat mit Datei- und Bildkontext | Freitext, Markdown, PDF, Office-Dateien, Tabellen, Bilder, Code | Markdown eignet sich als robustes Zwischenformat für strukturierte Prompts, Listen, Tabellen und formatstabile Antworten |
+| Claude | Dokumentzentrierter Chat mit langem Kontext | Freitext, Markdown, PDF, DOCX, Bilder, Code | Markdown unterstützt lange Abschnitte, Revisionen und klare Abschnittsreferenzen |
+| Gemini | Such- und workspace-naher Chat | Freitext, Markdown, PDF, Workspace- und Office-Dokumente, Tabellen, Bilder | Markdown erleichtert den Wechsel zwischen Chat, Dokument und Export ohne versteckte Layoutlogik |
+| Perplexity | Suchorientierter Recherche-Chat | Freitext, Markdown, Webquellen, PDF, Bilder | Markdown ist nützlich für strukturierte Synthesen, Listen und zitiernahe Notizen |
+| mdedit.io KI-Chat | Dokumentgebundener Editor-Chat | Markdown-Dokumente, Frontmatter, Zitationsmarker, Layout-Kommandos | Markdown ist hier Primärformat des Arbeitsdokuments und nicht nur ein Nebenformat |
 :::
 
-## 4.2 Warning-Box
+Gerade im wissenschaftlichen Kontext ist dieser Unterschied relevant. Wer mit KI auf einem Markdown-Kern arbeitet, bearbeitet nicht lediglich Textoberflächen, sondern explizite Dokumentstruktur. Dadurch sinkt das Risiko, dass Revisionen semantische Gliederung, Zitationsmarker oder Exportpfade unbeabsichtigt zerstören. Für wissenschaftliche Langtexte ist Markdown deshalb nicht nur ein schlankes Schreibformat, sondern zunehmend auch das geeignetere Interfaceformat für KI-gestützte Redaktionsprozesse.
 
-::: warning
-Diese Warning-Box prüft, ob farbige oder graue Hintergründe bei wissenschaftlichen PDFs nicht zu plakativ wirken. Die Box darf auffallen, sollte aber nicht wie ein Präsentationsslide aussehen.
+## 3. Optionen fuer die Erstellung wissenschaftlicher Arbeiten
+
+### 3.1 Besondere Anforderungen wissenschaftlicher Dokumente
+
+Wissenschaftliche Arbeiten unterscheiden sich von Alltagsdokumenten durch eine Reihe spezifischer Anforderungen. Dazu gehören mindestens eine stabile Kapitelhierarchie, konsistente Zitation, sauber geführte Literaturverzeichnisse, reproduzierbare Tabellen- und Abbildungsintegration, kontrollierbare Exportpfade, Rückmeldeschleifen mit Betreuenden und formale Anschlussfähigkeit an Hochschulvorgaben. Hinzu kommen praktische Anforderungen wie Versionssicherheit, Reviewfähigkeit, Datensparsamkeit und langfristige Lesbarkeit. In der einschlägigen Literatur zum wissenschaftlichen Arbeiten wird diese Verbindung aus Erkenntnislogik, Strukturierung, Zitierdisziplin und redaktioneller Konsistenz seit langem als Kern wissenschaftlicher Textproduktion beschrieben [@booth2016craft; @swalesfeak2012].
+
+Diese Anforderungen machen deutlich, dass kein Werkzeug allein aufgrund schöner Typografie oder schneller Bedienbarkeit ausreicht. Entscheidend ist vielmehr, wie gut ein Werkzeug das Wechselspiel von Schreiben, Strukturieren, Kommentieren, Exportieren und formaler Kontrolle organisiert. Hinzu kommt, dass Zitier- und Referenzsysteme disziplinär variieren: APA, Chicago, MHRA, OSCOLA und Vancouver sind keine äquivalenten Geschmackssachen, sondern fachkulturell unterschiedliche Regime mit jeweils eigenen Erwartungen an In-Text-Zitate, Fußnoten, Literaturverzeichnis und Quellenapparat [@readingstyles2026; @apa2019manual; @mhra2024; @oscola2026; @imperialvancouver2026].
+
+Aus diesen Anforderungen leitet die Arbeit ein fünfdimensionales Bewertungsraster ab: (1) Strukturtransparenz, (2) Quellen- und Zitationssicherheit, (3) Layout- und Exportstabilität, (4) Review- und Betreuungskompatibilität sowie (5) Governance und Betriebsfähigkeit. Dieses Raster dient im weiteren Verlauf als Vergleichs- und Bewertungsinstrument für die drei Werkzeuglogiken und für den Fall mdedit.io.
+
+### 3.2 Microsoft Word
+
+Microsoft Word ist an Hochschulen weithin etabliert. Ein wesentlicher Vorteil liegt in seiner institutionellen Anschlussfähigkeit: Viele Betreuende arbeiten mit Word-Kommentaren, Vorlagen und Korrekturmodi. Besonders der Reviewbereich mit Track Changes, verschiedenen Darstellungsmodi, reviewerbezogener Filterung und Reviewing Pane ist für klassische Betreuungs- und Korrekturprozesse stark ausgebaut [@microsoftword2026].
+
+Seine Schwäche liegt jedoch oft in der engen Kopplung von Inhalt und unmittelbarer Formatierung. Zwar bietet Word Formatvorlagen und professionelle Layoutfunktionen, in der Praxis werden lange Dokumente jedoch häufig durch lokale Formatkorrekturen, inkonsistente Styles und schwer nachvollziehbare Umbrüche instabil. Gerade bei stark überarbeiteten Masterarbeiten führt das nicht selten zu Formatdrift, also zu einem schleichenden Verlust an struktureller Disziplin.
+
+### 3.3 LaTeX
+
+LaTeX versteht sich selbst nicht als Textverarbeitung, sondern als Dokumentvorbereitungssystem für hochwertige Typografie, insbesondere in wissenschaftlichen und technischen Kontexten [@latexproject2026]. Das System ist für große Dokumente, Querverweise, Tabellen, Formeln, Bibliografien und Register ausgelegt und entlastet Autorinnen und Autoren von vielen direkten Designentscheidungen [@latexproject2026].
+
+Genau darin liegt die klassische Stärke von LaTeX: saubere Trennung von Inhalt und Satz, starke mathematische und typografische Kompetenz sowie hohe Stabilität bei großen Dokumenten. Die Kehrseite ist die höhere Einstiegshürde. Wer LaTeX nicht bereits beherrscht, investiert signifikant Zeit in Toolchain, Fehlersuche, Paketlogik und Vorlagensysteme. Für viele Studierende ist LaTeX deshalb eher dann attraktiv, wenn Fachkultur, Vorwissen oder formale Komplexität diese Investition rechtfertigen.
+
+### 3.4 Markdown-basierte Workflows
+
+Markdown-basierte Workflows besetzen die Zwischenzone zwischen Word und LaTeX. Sie bieten weniger unmittelbare Layoutsteuerung als Word und weniger typografische Tiefenkontrolle als LaTeX, können aber Struktur, Lesbarkeit im Rohtext und Portabilität besonders gut verbinden. In Verbindung mit Pandoc kommen Metadaten, Zitationen, Bibliografien sowie DOCX- und PDF-Exporte hinzu [@pandoc2025].
+
+Markdown ist damit kein Ersatz für jede Fachkultur und jede Hochschulvorgabe. Seine besondere Stärke liegt dort, wo das Schreiben selbst, die Sicht auf Struktur und ein kontrollierter Multi-Export wichtiger sind als pixelgenaue Formatarbeit während der Rohfassung. Im Kontext KI-gestützter Schreibarbeit kommt hinzu, dass Markdown seine Struktur explizit mitführt und dadurch besser für Transformation, Revision und Weiterverarbeitung geeignet ist als rein visuell orientierte Formate.
+
+### 3.5 Vergleich von Word, LaTeX und Markdown
+
+Die Werkzeugklassen unterscheiden sich weniger entlang einer simplen Rangordnung als entlang ihrer Produktionslogik. Word ist review- und institutionenfreundlich, LaTeX ist satz- und formalstark, Markdown ist struktur- und portabilitätsorientiert.
+
+Tabelle 1: Vergleich zentraler Werkzeuglogiken für wissenschaftliche Arbeiten.
+
+::: table{layout=scientific}
+| Kriterium | Word | LaTeX | Markdown-basierter Workflow |
+| --- | --- | --- | --- |
+| Einstieg | Niedrig bis mittel | Mittel bis hoch | Niedrig bis mittel |
+| Review mit Betreuenden | Sehr stark | Oft indirekt oder PDF-basiert | Stark, wenn Editor Sharing und Kommentare unterstützt |
+| Typografische Kontrolle | Mittel bis hoch | Sehr hoch | Mittel |
+| Rohtext-Lesbarkeit | Niedrig | Mittel | Hoch |
+| Portabilität | Mittel | Hoch | Hoch |
+| Zitationsreife | Hoch | Sehr hoch | Hoch mit Pandoc-Citeproc |
+| Gefahr lokaler Formatdrift | Hoch | Niedrig | Niedrig |
+| Eignung für spontane Überarbeitung | Hoch | Mittel | Hoch |
 :::
 
-## 4.3 Linien und Trenner
+Aus dieser Gegenüberstellung folgt kein pauschaler Sieger. Vielmehr hängt die Eignung vom Profil der Arbeit ab. Wo eine Hochschule starre Word-Vorlagen erzwingt, bleibt Word faktisch dominant. Wo mathematische Satzqualität und komplexe Referenzsysteme im Zentrum stehen, bleibt LaTeX stark. Wo jedoch Strukturtransparenz, editorische Leichtigkeit, Portabilität, Web-Review und frühe Exportkontrolle im Vordergrund stehen, gewinnt Markdown erheblich an Attraktivität.
 
-Der folgende horizontale Trenner prüft Linienbreite und Abstand.
+## 4. mdedit.io als Untersuchungsfall
 
----
+### 4.1 Markdown als wissenschaftliches Zwischenformat
 
-Nach dem Trenner sollte der Text wieder ruhig weiterlaufen. Die Linie darf nicht wie ein Kapitelabschluss wirken, sondern nur als dezente visuelle Trennung.
+Markdown verbindet drei Vorteile, die für wissenschaftliche Langtexte besonders relevant sind. Erstens erzwingt es eine strukturorientierte Schreibweise. Zweitens bleibt der Rohtext dauerhaft lesbar und portabel. Drittens lässt es sich über Konverter wie Pandoc in etablierte Zielformate überführen [@gruber2004markdown; @pandoc2025]. Genau diese Eigenschaften reduzieren die Gefahr, dass eine Arbeit in lokalen Formatkorrekturen versinkt, bevor die Argumentation stabil ist.
 
-## 4.4 Blockzitat mit Linie
+Markdown ist besonders dann plausibel, wenn Schreiben als Denken in Strukturen verstanden wird. Die Frage lautet dann nicht mehr, welche Schrift die Zwischenüberschrift aktuell hat, sondern ob der Abschnitt überhaupt eine klare Funktion im Argumentationsgang besitzt. Das ist für wissenschaftliche Texte keine Nebensache, sondern oft der Unterschied zwischen editorischer Aktivität und wissenschaftlicher Stringenz. Dieselbe Strukturorientierung erklärt zugleich seine wachsende Bedeutung in KI-Applikationen: Wenn Modelle an expliziten Textsegmenten statt an versteckter Layoutsemantik arbeiten, wird Markdown zum effizienteren Interfaceformat.
 
-> Dieses Blockzitat prüft die Stärke der Zitatlinie. Eine gute Zitatlinie ist sichtbar, aber zurückhaltend. Sie sollte weder wie eine Tabellenlinie noch wie ein farbiger Balken wirken.
->
-> Der zweite Absatz prüft den Innenabstand und den Abstand nach dem Zitat.
+### 4.2 Funktionsprofil des Untersuchungsfalls
 
-<!-- page-break -->
+Nach der Projektdokumentation ist mdedit.io ein browserbasierter Markdown-Editor für Longform-Schreiben, strukturierte Dokumente und exportierbare Entwürfe. Die Anwendung kombiniert Live-Preview, dokumentbasierte Outline-Navigation, Kollaboration, KI-Assistenz und Export nach Markdown, DOCX und PDF in einer selbst gehosteten Webanwendung [@mdeditreadme2026]. Die Hilfeoberfläche beschreibt den rechten Arbeitsbereich explizit als Kombination aus Vorschau, Baumansicht und KI-Chat; außerdem nennt sie einen Layout-Editor sowie drucknahe Paged-Preview als eigene Arbeitsmodi [@mdedithelp2026]. Für die vorliegende Untersuchung ist daran vor allem relevant, dass mdedit.io nicht nur Textbearbeitung, sondern die Kopplung von Schreibprozess, Dokumentstruktur und Ausgabeformat adressiert.
 
-# 5 Seitenumbrüche und Keep-with-next
+Der Fall eignet sich deshalb als Untersuchungsobjekt, weil hier mehrere für Abschlussarbeiten zentrale Anforderungen gleichzeitig berührt werden: Sichtbarkeit der Kapitelstruktur, frühe Vorschau des Satzbilds, browserbasierter Zugang ohne lokale Desktop-Installation und die Möglichkeit, einen Markdown-Kern in unterschiedliche Abgabe- und Reviewformate zu überführen [@mdeditreadme2026]. Hinzu kommt ein weiterer Punkt: Der KI-Chat arbeitet nicht an einem fremden, binär formatierten Dokument, sondern am expliziten Markdown-Quelltext. Damit wird mdedit.io zu einem Fall, in dem Markdown nicht nur Exportbasis, sondern unmittelbares Bearbeitungsmedium für menschliche und KI-gestützte Redaktion ist.
 
-## 5.1 Überschrift mit Folgetabelle
+### 4.3 Vorlaeufige Einordnung im Bewertungsraster
 
-Diese Überschrift darf nicht allein am Seitenende stehen. Die folgende Tabelle sollte möglichst zusammen mit dieser Einleitung auf einer Seite bleiben.
+Aus theoretischer Sicht ist mdedit.io vor allem dort relevant, wo wissenschaftliche Arbeit nicht primär als Layoutproduktion, sondern als strukturierte Dokumententwicklung verstanden wird. Die Outline reduziert den Abstand zwischen Gliederung und Rohtext, die Vorschau verkürzt den Weg zur drucknahen Kontrolle, und der Multi-Export macht denselben Dokumentkern für unterschiedliche institutionelle Situationen verwendbar [@mdeditreadme2026].
 
-**Tabelle 5: Keep-with-next-Test für Überschrift, Absatz und Tabelle.**
+Damit positioniert sich mdedit.io zwischen der review- und institutionsnahen Logik von Word und der satz- und formalstärkeren Logik von LaTeX. Diese Zwischenposition ist gerade für Abschlussarbeiten interessant, weil viele Projekte weder reine Office-Routine noch voll entwickelte TeX-Workflows voraussetzen, wohl aber eine stabile, nachvollziehbare Produktionsumgebung benötigen.
 
-<!-- table:compact -->
+### 4.4 Absehbare Grenzen des Untersuchungsfalls
 
-| Schritt | Beschreibung | Ergebnis |
-|---:|---|---|
-| 1 | Überschrift wird gesetzt | darf nicht allein stehen |
-| 2 | Einleitender Absatz folgt | sollte nicht getrennt werden |
-| 3 | Tabelle folgt | sollte nicht komplett auf Folgeseite rutschen |
+Die eigene wissenschaftliche Konzeptdokumentation von mdedit.io benennt zugleich klare Grenzen. Der Hauptengpass liegt weniger im Seitenlayout als in semantischen Dokumentfunktionen wie YAML-Frontmatter, Labels, Nummerierung, Cross-References und belastbaren Zitationspfaden [@mdeditcitations2026]. Ebenfalls werden echte seitengebundene Fußnoten für note-style-Zitierstile nicht als gesichert im aktuellen HTML- und Paged-Stack versprochen [@mdeditcitations2026].
 
-## 5.2 Überschrift mit Folgeabbildung
+Die sachliche Schlussfolgerung lautet daher: mdedit.io ist für wissenschaftliche Langtexte ein ernstzunehmender Untersuchungsfall, aber kein universell vollständiges System. Seine Eignung steigt dort, wo Autorinnen und Autoren bewusst mit Struktur, Frontmatter, Citeproc-Export und Layoutregeln arbeiten. Sie sinkt dort, wo absolute Kompatibilität mit sehr spezifischen Vorlagensystemen oder LaTeX-zentrierten Fußnotenstilen gefordert ist.
 
-Diese Überschrift prüft denselben Effekt mit einer Abbildung. Der Graustufen-Filter (`filter=grayscale`) testet Drucktauglichkeit.
+## 5. Kriteriengeleitete Bewertung von mdedit.io
 
-<!-- img: align=center width=80% filter=grayscale -->
-![Abbildung 4: Workflow-Abbildung im Graustufen-Drucktest](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/c5bfdaad.png)
+### 5.1 Bewertungslogik und Untersuchungsartefakt
 
-## 5.3 Lange Liste vor Seitenende
+Die Bewertung folgt nicht der Frage, ob mdedit.io jedes Einzelmerkmal von Word oder LaTeX repliziert. Entscheidend ist vielmehr, ob das Werkzeug die wissenschaftliche Produktionskette einer Abschlussarbeit ohne methodisch kritische Brueche tragen kann. Als kritisch gelten in dieser Arbeit Bruche, wenn sie zu Strukturverlust, inkonsistenter Zitation, nicht kontrollierbaren Exporten, betreuungspraktischen Reibungen oder institutionell problematischem Betrieb fuehren.
 
-Die folgende Liste prüft, ob Listen am Seitenende sinnvoll umbrechen:
+Tabelle 2: Bewertungsdimensionen der Analyse.
 
-- Erster Prüfpunkt mit normalem Text.
-- Zweiter Prüfpunkt mit längerem Text, der über mehrere Zeilen laufen darf und dennoch eine saubere hängende Einrückung behalten soll.
-- Dritter Prüfpunkt mit `Inline-Code`, **Fettdruck** und *Kursivschrift*.
-- Vierter Prüfpunkt mit langem zusammengesetztem Wort: Informationssicherheitsanforderungskatalog.
-- Fünfter Prüfpunkt mit Abschlussbemerkung.
+::: table{layout=scientific}
+| Dimension | Leitfrage | Beobachtbare Indikatoren |
+| --- | --- | --- |
+| Strukturtransparenz | Bleibt der Argumentationsgang im Arbeitsprozess sichtbar und stabil? | Gliederung, Rohtext-Lesbarkeit, Umstrukturierbarkeit |
+| Quellenapparat | Koennen Zitationen datenbasiert, konsistent und stiladaptiv verarbeitet werden? | Bibliografiepfad, Citeproc, Referenzsektion, Stilwechsel |
+| Layout und Export | Lassen sich drucknahe Ausgaben frueh und reproduzierbar kontrollieren? | Seitenansicht, PDF, DOCX, Listen, Caption-Verhalten |
+| Review und Betreuung | Ist der Workflow mit Feedback- und Abgabekulturen vereinbar? | Teilen, Kommentierbarkeit, Export in Review-Formate |
+| Governance und Betrieb | Ist das Werkzeug rechtlich und technisch fuer laengere akademische Nutzung tragfaehig? | Lizenz, Self-Hosting, Portabilitaet, Abhaengigkeiten |
+:::
 
-<!-- page-break -->
+Die Analyse stuetzt sich nicht nur auf Funktionsbeschreibungen, sondern auch auf das im Anhang dokumentierte Referenzartefakt. Dieses Artefakt enthaelt bewusst Abbildungen, Tabellen, Mathematik, Fussnoten, Spalten und Seitenumbrueche, weil gerade diese Elemente in wissenschaftlichen Abschlussarbeiten typische Fehlerquellen des Exportpfads markieren.
 
-# 6 Formeln und Code im erweiterten Test
+### 5.2 Strukturtransparenz und Schreibprozess
 
-## 6.1 Formelblock
+Im Kriterium Strukturtransparenz erzielt mdedit.io eine hohe Eignung. Die Kombination aus Plain-Text-Basis, Kapitelhierarchie und Outline-Navigation erleichtert es, Argumentationssegmente frueh zu verschieben, Luecken sichtbar zu machen und Rohfassungen ohne Formatballast zu ueberarbeiten [@mdeditreadme2026]. Gegenueber Word reduziert dies die Versuchung lokaler Formatkorrekturen; gegenueber LaTeX sinkt die initiale Toolchain-Komplexitaet.
 
-Die folgende Formel prüft Display-Math.
+Fuer Masterarbeiten ist dieser Punkt nicht trivial, weil Abschlussarbeiten typischerweise mehrfach restrukturiert werden. Ein Werkzeug, das Gliederungsstabilitaet unter Ueberarbeitung traegt, besitzt daher einen echten methodischen Mehrwert. In dieser Dimension ist mdedit.io nicht nur benutzbar, sondern fuer viele Schreibsituationen dem klassischen WYSIWYG-Paradigma sogar analytisch ueberlegen.
 
-$$
-Score = \sum_{i = 1}^{n} w_i \cdot x_i
-$$
+#### 5.2.1 Navigation in grossen Dokumenten und Tree View
 
-Eine Inline-Formel wie $x'_i = (x_i - \min(x)) / (\max(x) - \min(x))$ sollte im Fließtext stehen.
+Fuer umfangreiche wissenschaftliche Dokumente reicht eine lineare Editoransicht jedoch nicht aus. mdedit.io adressiert dieses Problem ueber eine heading-basierte Outline und eine Baumansicht, die laut Produktdokumentation ausschliesslich auf Ueberschriftenebenen H1 bis H6 basiert [@mdeditreadme2026]. Die Hilfe bezeichnet die Baumansicht dabei nicht als dekorativen Zusatz, sondern als eigene Arbeitsflaeche fuer Vorschau, Baum und KI-Chat [@mdedithelp2026]. Gerade in langen Theoriekapiteln, Methodenabschnitten und Anhaengen wird dadurch sichtbar, ob Kapitelgewicht, Unterkapitelstruktur und argumentative Hierarchie noch tragfaehig sind.
 
-## 6.2 Mehrzeilige Formel
+Methodisch ist das mehr als Komfort. Eine Masterthesis scheitert haeufig nicht an fehlenden Einzelsaetzen, sondern an schlechter Makrostruktur. Ein Tree View, der Abschnittstiefe, Reihenfolge und Schwerpunktsetzung sofort sichtbar macht, verkuerzt den Weg zwischen Gliederungsentscheidung und Textrevision. Seine Grenze liegt allerdings ebenfalls offen: Wenn die Baumansicht ausschliesslich headings-basiert ist, bildet sie semantische Referenzobjekte wie Abbildungen, Tabellen, Listings oder bibliografische Knoten nicht mit eigener Logik ab. Damit bleibt sie ein starkes Strukturwerkzeug, aber kein vollstaendiges semantisches Navigationssystem.
 
-Die folgende Formel prüft mehrzeiliges Rendering.
+#### 5.2.2 KI-Integration fuer die Inhaltsbearbeitung
 
-$$
-\begin{aligned}
-z_i &= \frac{x_i - \mu}{\sigma} \\
-R &= \alpha \cdot T + \beta \cdot Q - \gamma \cdot C
-\end{aligned}
-$$
+mdedit.io integriert KI nicht nur als externen Prompt-Kanal, sondern als eingebettetes Arbeitsmittel fuer Dokumentbearbeitung. Die README spricht von AI-assisted editing, die Hilfe von einem integrierten KI-Panel [@mdeditreadme2026; @mdedithelp2026]. Die API-Dokumentation zeigt zudem, dass der Bearbeitungspfad nicht auf reine Chat-Antworten beschraenkt ist, sondern strukturierte Aktionen wie `REPLACE`, `INSERT`, `APPEND`, `PREPEND` und `ADVICE` vorsieht [@mdeditaiapi2026]. Fuer die Arbeit an einer Masterthesis ist das vor allem dort relevant, wo Einleitungen gestrafft, Uebergaenge umformuliert, Zusammenfassungen verdichtet oder alternative Gliederungsvarianten schnell erzeugt werden sollen.
 
-## 6.3 Codeblock mit längerer Zeile
+Die Eignung dieser Integration ist gleichwohl konditional. Fuer wissenschaftlich legitime Nutzung eignet sich KI zur sprachlichen Revision, zur Verdichtung, zur Erzeugung von Zwischenueberschriften, zur Umstellung von Argumentationsfolgen und zur Explikation stillschweigender Strukturannahmen. Sie eignet sich nicht als Quelle eigener empirischer Aussagen, nicht fuer unbelegte Literaturbehauptungen und nicht fuer die Simulation fachlicher Evidenz. Die in mdedit.io sinnvolle Rolle der KI ist deshalb editorisch und heuristisch, nicht epistemisch.
 
-```python
-def calculate_weighted_score(values, weights, minimum_allowed_value=0.0, maximum_allowed_value=1.0):
-    """Berechnet einen gewichteten Score und begrenzt ihn auf einen definierten Wertebereich."""
-    raw_score = sum(value * weight for value, weight in zip(values, weights))
-    return max(minimum_allowed_value, min(maximum_allowed_value, raw_score))
+#### 5.2.3 KI-Integration fuer die Layoutbearbeitung
+
+Die KI-Integration von mdedit.io ist nach dem aktuellen Intent-Modell nicht auf Fliesstext beschraenkt. Im Server werden auch layoutbezogene Bearbeitungsanliegen wie `layout`, `seitenrand`, `typografie`, `spalten`, `header`, `footer` und `inhaltsverzeichnis` explizit als Edit-Intent erkannt [@mdeditserver2026]. Zusammen mit dem Layout-Editor, den drucknahen Preview-Presets und dem Paged-Workflow entsteht damit ein integrierter Bearbeitungspfad, in dem Layoutregeln nicht nur manuell gesetzt, sondern auch durch KI-gestuetzte Formulierungs- oder Anpassungsanfragen vorbereitet werden koennen [@mdedithelp2026].
+
+Gerade fuer Masterarbeiten ist diese Kopplung interessant, weil Layoutfragen selten isoliert auftreten. Wer etwa die Abbildungsdichte in einem Ergebniskapitel erhoeht, muss oft zugleich Spalten, Caption-Stile, Seitenumbrueche oder Inhaltsverzeichnis-Tiefe anpassen. Die relevante Einschraenkung besteht darin, dass diese KI-Integration kein Garant fuer typografische Richtigkeit ist. Sie kann Layoutarbeit beschleunigen, aber sie ersetzt nicht die Sichtpruefung in der Seitenansicht und nicht die formale Endkontrolle gegen institutionelle Vorgaben.
+
+### 5.3 Quellenapparat und wissenschaftliche Integritaet
+
+Im Bereich Quellenapparat ist mdedit.io nur dann thesis-tauglich, wenn Zitate konsequent datenbasiert und nicht als manuell formatierter Text behandelt werden. Die vorliegende Referenzdatei operationalisiert diese Logik bereits ueber YAML-Frontmatter, `citation-source: embedded`, einen dokumentgebundenen `mdedit-bibliography`-Block, verlinkte Zitationen und die explizite Referenzsektion. In Verbindung mit Pandoc und Citeproc ist dies fuer autor-jahr- und numerische Workflows tragfaehig [@pandoc2025; @mdeditcitations2026; @mdeditserver2026].
+
+#### 5.3.1 Integration von Literaturverzeichnissen und Bib-Standards
+
+Gerade mit Blick auf die aktuellen mdedit-Erweiterungen ist festzuhalten, dass der wissenschaftliche Quellenpfad inzwischen ueber klassisches Plain-Text-Markdown hinausgeht. Der Server wertet in wissenschaftlichen Dokumenten vor allem YAML-Felder wie `citation-source`, `csl` und `reference-section-title` aus und erkennt zusaetzlich `link-citations`, `link-bibliography` sowie `nocite` als relevante Metadaten fuer den Export [@mdeditserver2026]. Der normative lokale Quellenpfad ist dabei ein `mdedit-bibliography`-Block mit eingebettetem CSL-JSON, waehrend der Export selbst ueber Pandoc mit `--citeproc` aufgebaut wird [@pandoc2025; @mdeditserver2026]. Dateibasierte `bibliography:`-Pfade werden in der aktuellen Serverlogik zwar noch erkannt, aber bewusst nur noch fuer klare Migrationsfehler ausgewertet und nicht mehr als gueltiger Exportworkflow akzeptiert [@mdeditserver2026; @mdeditplan2026].
+
+Fuer die vorliegende Referenzdatei ist besonders wichtig, dass sie diesen eingebetteten Pfad nun selbst verwendet. Das Dokument enthaelt die Bibliothek als lokalen Snapshot im Quelltext und testet damit nicht nur Zitationssyntax, sondern den kompletten dokumentgebundenen Quellenmodus. Zusaetzlich bleibt der aktuelle mdedit-Marker `#refs` bewusst erhalten. Dieser Marker ist im Quelltext nicht als sichtbare Endfassung gedacht, sondern Teil der gegenwaertigen Scientific-Schnittstelle: Im Exportpfad wird er serverseitig in eine echte Literaturverzeichnis-Sektion mit Referenzanker normalisiert [@mdeditserver2026]. Genau deshalb ist `#refs` hier keine editorische Nachlaessigkeit, sondern ein End-to-End-Test der aktuellen Bibliografieintegration.
+
+Die Import- und Exportperspektive bleibt davon zu unterscheiden. In der Produktplanung sind Adapter fuer BibTeX, RIS und CSL JSON auf dem lokalen Dokumentkern vorgesehen, damit bestehende Literaturbestaende in die eingebettete Bibliothek uebernommen und aus ihr wieder exportiert werden koennen [@mdeditplan2026]. Damit wird das integrierte mdedit-Format nicht als Abschottung gegen bestehende Standards gedacht, sondern als reproduzierbarer Dokumentkern, an den Standardimporte und -exporte anschliessen.
+
+#### 5.3.2 Optionen zur Einbindung externer Online-Verzeichnisse
+
+Die Planung fuer wissenschaftliche Dokumente unterscheidet den dokumentgebundenen Quellenmodus `embedded` sowie die spaeteren Modi `zotero` und `hybrid` [@mdeditplan2026]. Daraus folgt eine fuer Abschlussarbeiten wichtige Architekturentscheidung: Externe Online-Verzeichnisse sollen Recherche, Auswahl und Metadatenanreicherung unterstuetzen, aber nicht die einzig normative Exportquelle der eingereichten Arbeit sein.
+
+Als erster externer Connector ist ein read-only-Zotero-Pfad vorgesehen. Quellen sollen dort gesucht und anschliessend in die lokale Bibliothek oder in dokumentgebundene Snapshots uebernommen werden koennen, ohne dass der Export oder das Teilen des Dokuments zur Laufzeit von einer Live-Zotero-Verbindung abhaengt [@mdeditplan2026]. Parallel dazu ist OpenAlex als offener Lookup fuer Titel-, DOI- oder Autorensuche geplant; auch hier sollen Treffer in die lokale Bibliothek uebernommen werden, waehrend OpenAlex selbst nicht die normative Exportquelle des Dokuments bleibt [@mdeditplan2026].
+
+Fuer thesis-taugliche Workflows ist genau diese Snapshot-Logik zentral. Wer externe Online-Verzeichnisse einbindet, sollte sie als vorgelagerte Recherche- und Importebene behandeln, nicht als einzige Speicherstelle der abgaberelevanten Bibliografie. Reproduzierbar wird der Workflow erst dann, wenn der fuer die Abgabe massgebliche Quellenstand als eingebettete mdedit-Bibliothek oder als kontrollierter Hybrid-Snapshot im Dokumentkontext fixiert bleibt [@mdeditplan2026; @mdeditcitations2026].
+
+Die Grenze verlaeuft dort, wo note-style-Fussnoten, komplexe Cross-References oder hochschulspezifische Sonderlogiken produktiv vorausgesetzt werden. Fuer solche Regime reicht die gegenwaertige Sicherheit des HTML- und Paged-Stacks nach den eigenen Projektquellen noch nicht aus [@mdeditcitations2026]. Das Urteil faellt daher bewusst konditional aus: hoch anschlussfaehig fuer datenbasierte Standardworkflows, eingeschraenkt fuer juristisch oder vorlagentechnisch stark normierte Spezialfaelle.
+
+### 5.4 Layout-, Satz- und Exportstabilitaet
+
+Im Kriterium Layout und Export befindet sich mdedit.io in einer starken, aber nicht universellen Position. Scientific-Preset, Seitenansicht und PDF- sowie DOCX-Export erlauben eine fruehe Kontrolle von Umbruechen, Tabellen, Abbildungen und Verzeichnissen [@mdeditreadme2026]. Fuer die vorliegende Referenzdatei ist bewusst kein lokaler `layout`-Block gesetzt; damit wird geprueft, wie tragfaehig bereits der globale wissenschaftliche Preset-Pfad ist.
+
+Der methodische Vorteil dieser Entscheidung liegt darin, dass kein institutionsspezifischer Spezialfall verdeckt wird. Wenn das Dokument unter dem globalen Scientific-Preset stabil bleibt, spricht das fuer eine robuste Basistauglichkeit. Wenn Sonderfaelle erst mit lokalen Layout-Overrides aufloesbar sind, muessen sie als profilgebundene Zusatzanforderungen ausgewiesen werden und duerfen nicht als allgemeine Thesis-Tauglichkeit missverstanden werden.
+
+### 5.5 Review-, Betreuungs- und Kollaborationsfaehigkeit
+
+Fuer eine reale Masterarbeit reicht technische Satzfaehigkeit allein nicht aus; ebenso wichtig ist die Anschlussfaehigkeit an Betreuung. Hier bleibt Word durch Track Changes, kommentierbare DOCX-Workflows und institutionelle Routine stark [@microsoftword2026]. mdedit.io setzt stattdessen auf browserbasiertes Teilen, direkte Verfuegbarkeit und Multi-Export [@mdeditreadme2026]. Das ist fuer digitale Betreuungsszenarien plausibel, aber nicht voll aequivalent zu etablierten Word-Markup-Routinen.
+
+Die Bewertung lautet deshalb nicht, mdedit.io sei generell besser als Word, sondern dass es unter anderen Betreuungsbedingungen tragfaehig ist. Sobald Betreuende zwingend .docx-Kommentarworkflows erwarten, muss der Exportpfad Teil des methodischen Arbeitsplans werden. Unter dieser Bedingung ist mdedit.io kompatibel; ohne sie kann es zu sozial-organisatorischen und nicht zu technischen Bruechen kommen.
+
+### 5.6 Ausschlusskriterien und Grenzfaelle
+
+Aus der Analyse ergeben sich klare Grenzfaelle, in denen mdedit.io gegenwaertig nicht als primaere Umgebung empfohlen werden sollte: erstens bei strikt vorgeschriebenen Word-Schablonen mit fragiler Formatsemantik, zweitens bei juristischen note-style-Zitierregimen und drittens bei Projekten, die semantisch reichhaltige Cross-References und automatische Referenzobjekte zwingend voraussetzen [@mdeditcitations2026; @mdeditplan2026].
+
+Umgekehrt ist mdedit.io besonders geeignet fuer textzentrierte, argumentativ strukturierte und exportorientierte Arbeiten in Geistes-, Sozial-, Wirtschafts- und Teilen der Informatik- oder Lebenswissenschaften, sofern die formale Zielarchitektur mit autor-jahr- oder numerischen Zitationen sowie einem kontrollierten PDF- oder DOCX-Pfad kompatibel ist.
+
+Tabelle 3: Zusammenfassende Bewertung von mdedit.io im Anforderungsraster.
+
+::: table{layout=compact}
+| Bewertungsdimension | Urteil | Begruendung |
+| --- | --- | --- |
+| Strukturtransparenz | hoch | Outline, Rohtext-Lesbarkeit und geringer Formatballast stabilisieren die Schreibphase |
+| Quellenapparat | mittel bis hoch | stark fuer datenbasierte Standardworkflows, eingeschraenkt bei note-style und Speziallogiken |
+| Layout und Export | hoch | fruehe Seitenkontrolle und Multi-Export, aber Sonderfaelle bleiben profilabhaengig |
+| Review und Betreuung | mittel | stark bei Teilen und Browserzugang, eingeschraenkt gegenueber institutionellen Word-Routinen |
+| Governance und Betrieb | hoch | Self-Hosting, Lizenzklarheit und portable Dokumentbasis sprechen fuer institutionelle Tragfaehigkeit |
+:::
+
+### 5.7 Belastungsprobe an anspruchsvollen Hochschulprofilen
+
+Um die Basistauglichkeit nicht nur generisch zu behaupten, wird mdedit.io gegen drei anspruchsvolle Hochschulprofile gespiegelt. Diese Profile stehen exemplarisch fuer juristische, informatische und lebenswissenschaftliche Randbedingungen und markieren damit unterschiedliche Belastungspunkte des Systems.
+
+#### 5.7.1 University of Oxford, Law
+
+Das Oxford-Law-Profil ist der fachlich strengste Kandidat fuer juristische Arbeiten. OSCOLA ist explizit fuer die praezise Zitation von Rechtsprechung, Gesetzgebung und juristischen Sekundaerquellen konzipiert und wird von der Oxford Law Faculty herausgegeben [@oscola2026]. Schon die offizielle Quick-Reference zeigt, dass sich das Regime deutlich von klassischen Autor-Jahr-Systemen unterscheidet: Faelle, Gesetze, Kommentare, Aufsaetze und Reports folgen unterschiedlichen, formal stark normierten Mustern [@oscola2026].
+
+Fuer mdedit.io folgt daraus: Das Scientific-Preset eignet sich fuer Grundtypografie, Randruhe und Tabellenlayout, aber ein echtes Oxford-Law-Profil braeuchte zusaetzlich note-style-Fussnoten, juristische Kurzformen, saubere Quellenabkuerzungen und einen legal-spezifischen Exportpfad. Genau deshalb markiert Oxford Law kein generisches Erfolgsszenario, sondern ein bewusstes Ausschluss- oder Entwicklungsprofil.
+
+#### 5.7.2 ETH Zurich, Computer Science
+
+Das ETH-Profil ist fuer Informatik besonders interessant, weil die offizielle D-INFK-Memo die Masterarbeit als eigenstaendige wissenschaftliche Forschung oder konstruktive Entwicklungsarbeit mit schriftlichem Bericht und muendlicher Praesentation definiert [@eththesismemo2025]. Die Memo benennt zudem klare Rahmenbedingungen wie die 28-woechige Vollzeitdauer und die verpflichtende elektronische Einreichung eines PDF inklusive unterschriebener Eigenstaendigkeitserklaerung bis spaetestens 23:59 Uhr am Enddatum [@eththesismemo2025].
+
+Fuer mdedit.io ist dieses Profil vergleichsweise gut anschlussfaehig. Es verlangt weniger exotische Zitationslogik als Oxford Law, dafuer aber einen stabilen wissenschaftlichen Produktionsablauf mit Titelblatt, Abstract, Declaration, Inhaltsverzeichnis, Abbildungs- und Tabellenlogik, Codeanhaengen und belastbarer PDF-Abgabe. Als Belastungsprobe zeigt ETH damit ein realistisches Hochanspruchsprofil, das mit einem wissenschaftlich disziplinierten Markdown-Workflow grundsaetzlich erreichbar ist.
+
+#### 5.7.3 Imperial College London, Medicine and Life Sciences
+
+Das Imperial-Profil repraesentiert einen natur- und lebenswissenschaftlichen Kontext mit numerischer Zitation. Die offizielle Vancouver-Guidance beschreibt ein nummeriertes Zitiersystem, in dem Verweise im Text numerisch erscheinen und die Referenzliste am Ende in numerischer Reihenfolge gefuehrt wird; nicht zitierte, aber konsultierte Quellen koennen optional als alphabetische Bibliografie separat erscheinen [@imperialvancouver2026]. Fuer laengere Zitate wird zudem ein eigener eingerueckter Absatz gefordert [@imperialvancouver2026].
+
+Technisch ist dies das am leichtesten produktivisierbare Profil fuer mdedit.io. Vancouver laesst sich ueber Citeproc und CSL gut auf ein Scientific-Preset aufsetzen. Ein Imperial-nahes Profil waere damit kein Spezialexperiment, sondern ein realistischer Zielzustand fuer numerische, exportorientierte und figuresensible Abschlussarbeiten.
+
+### 5.8 Gestaltungsimplikationen fuer institutionelle Profile
+
+Aus der Belastungsprobe ergibt sich, dass sich Hochschulprofile seltener in der eigentlichen Seitengeometrie unterscheiden als in Zitation, Pflichtsektionen, Validierungsregeln und Exportanforderungen. Genau daraus folgt eine konkrete Gestaltungsimplikation fuer mdedit.io: Institutionelle Thesis-Profile sollten nicht primaer als hart verdrahtete Layout-Sonderfaelle modelliert werden, sondern als auf dem Scientific-Preset aufsetzende Profilpakete [@mdeditplan2026].
+
+Ein belastbares Modell waere fuenfstufig:
+
+1. `base=scientific`: Das globale Scientific-Preset bleibt die typografische Grundschicht fuer alle wissenschaftlichen Profile.
+2. Zitationspaket: CSL, Zitiermodus, Bibliografie-Regeln und optional note-style-Exportlogik werden pro Profil gebuendelt.
+3. Metadatenpaket: Titelblattfelder, Eigenstaendigkeitserklaerung, Abstract-Sprachen, Appendix-Regeln und Pflichtsektionen werden als Profilvorgaben geliefert.
+4. Validierungspaket: Ein Profil prueft, ob etwa OSCOLA-Fussnoten, Vancouver-Nummern, ETH-Declaration oder fakultaetsspezifische Abschnittsreihenfolgen erfuellt sind.
+5. Distributionspaket: Profile werden als herunterladbare Manifeste oder kleine Pakete ausgeliefert, damit Hochschulen, Lehrstuehle oder Communities sie versionieren und teilen koennen.
+
+Ein moegliches Manifest koennte konzeptionell so aussehen:
+
+```yaml
+id: ethz-dinfk-masterthesis
+base: scientific
+citationStyle: author-date
+bibliographyMode: reference-list
+requiredSections:
+  - title-page
+  - abstract
+  - declaration-of-originality
+  - references
+validators:
+  - declaration-required
+  - figures-and-tables-numbered
+  - bibliography-present
+exports:
+  pdf: required
+  docx: optional
 ```
 
-# 7 Schlusskontrolle
+Der entscheidende Punkt ist dabei: Nicht jedes Profil braucht ein eigenes Dokument-Layout. Viele Institutionen unterscheiden sich staerker in Zitation, Frontmatter, Pflichtsektionen und Validierung als in der eigentlichen Seitengeometrie. Genau deshalb ist die vorliegende Referenzdatei absichtlich layout-block-frei und eignet sich als Basisszenario fuer ein spaeteres institutionelles Profilsystem.
 
-## 7.1 Prüftabelle
+### 5.9 Gruende gegen mdedit.io als Werkzeug der Wahl fuer die eigene Masterthesis
 
-| Prüffrage | OK? | Kommentar |
-|---|:---:|---|
-| Kopfzeile sichtbar und dezent | ☐ | |
-| Fußzeile sichtbar und dezent | ☐ | |
-| Seitennummer korrekt | ☐ | |
-| Abbildungen im Satzspiegel | ☐ | |
-| Bildunterschriften erkannt | ☐ | |
-| Tabellenunterschriften erkannt | ☐ | |
-| Abbildungsverzeichnis erzeugt | ☐ | |
-| Tabellenverzeichnis erzeugt | ☐ | |
-| Scientific-Tabelle mit Top-/Bottom-Rule | ☐ | |
-| Compact-Tabelle mit dezentem Raster | ☐ | |
-| Fußnoten ohne Kollision | ☐ | |
-| Admonitions drucktauglich | ☐ | |
-| Formeln korrekt | ☐ | |
-| Codeblock nicht überbreit | ☐ | |
-| Bildattribute (align, frame, shadow, filter) | ☐ | |
-| Float-Bild mit Textumfluss | ☐ | |
-| Abbildungsverzeichnis vollständig | ☐ | |
-| Tabellenverzeichnis vollständig | ☐ | |
+Auch nach einer wohlwollenden kriteriologischen Bewertung bleibt eine lange Liste legitimer Gruende, mdedit.io gerade nicht als primaeres Werkzeug fuer die eigene Masterthesis zu waehlen. Die wichtigsten Gegenargumente lauten:
 
-## 7.2 Notiz für die nächste Iteration
+1. Die Hochschule schreibt eine starre Word-Vorlage vor, die nicht nur formal, sondern technisch bindend ist.
+2. Die Betreuung arbeitet verbindlich mit `Track Changes`, Kommentarspalten und reviewerbezogenen DOCX-Routinen, sodass ein nachgelagerter Export nicht nur bequem, sondern zentral fuer den Prozess ist [@microsoftword2026].
+3. Das Zitationsregime verlangt echte note-style-Fussnoten, juristische Kurzformen oder OSCOLA-aehnliche Nachweise, die im gegenwaertigen mdedit-Stack nicht hinreichend abgesichert sind [@oscola2026; @mdeditcitations2026].
+4. Die Arbeit benoetigt semantisch reiche Cross-References zwischen Abbildungen, Tabellen, Formeln, Listings und Anhaengen, die nicht auf manuelle Querverweise reduziert werden sollen [@mdeditcitations2026].
+5. Das Fach verlangt typografische Tiefenkontrolle, spezielle LaTeX-Pakete oder mathematische Satzqualitaet, die ueber einen Markdown-Pandoc-Pfad hinausgeht [@latexproject2026].
+6. Die wissenschaftliche Infrastruktur des Lehrstuhls basiert bereits stabil auf Overleaf, LaTeX-Klassen oder institutionell gepflegten Templates, sodass ein Werkzeugwechsel mehr Risiko als Erkenntnisgewinn erzeugen wuerde.
+7. Das Projekt ist stark code-, listing- oder tabellenlastig und verlangt ein semantisch reiches, technisch ausgereiftes Publishing-System statt eines strukturorientierten Zwischensystems.
+8. Die Autorin oder der Autor moechte waehrend des gesamten Schreibprozesses maximale Sichtformatierung und unmittelbare WYSIWYG-Kontrolle statt einer Markdown-zentrierten Produktionslogik.
+9. Die Betreuungs- oder Pruefungsumgebung ist organisatorisch konservativ und bewertet ungewohnte Exportpfade skeptisch, selbst wenn das Ergebnis formal korrekt ist.
+10. Es steht keine verlaessliche Self-Hosting- oder Betriebsumgebung zur Verfuegung, sodass Datenschutz, Verfuegbarkeit oder Langzeitstabilitaet nicht institutionell kontrolliert werden koennen [@mdeditreadme2026].
+11. Der Arbeitsprozess soll bewusst ohne KI-Naehe, ohne Browser-Artefakte und ohne editorische Mehrsystemlogik gehalten werden.
+12. Das Projekt ist gegenueber Exportdrift oder Preview-Diskrepanzen extrem risikosensibel und will ausschliesslich auf maximal etablierte, langjaehrig erprobte Abschlussarbeits-Workflows setzen.
+13. Die eigene Schreibpraxis ist bereits tief in Zotero-Word- oder TeX-Bibliografie-Workflows integriert, sodass mdedit keinen realen Produktivitaetsvorteil mehr bietet.
+14. Die Stabilisierungsarbeit am wissenschaftlichen Sonderfall wuerde mehr Zeit kosten als die Thesis selbst an Erkenntnisgewinn bringt.
 
-Dieses Dokument dient als komplexerer Stresstest. Es soll nicht dokumentlokal repariert werden. Alle Verbesserungen gehören in das globale Scientific-Layout beziehungsweise in den Layout-Editor von mdedit.io.
+Aus dieser Liste folgt kein generelles Urteil gegen mdedit.io. Sie zeigt jedoch, dass die Entscheidung fuer oder gegen ein Werkzeug der Wahl immer als Passungsentscheidung zwischen Fachkultur, Pruefungslogik, Betreuungspraxis und individueller Arbeitsweise gelesen werden muss.
+
+## 6. Governance, Rechte und Betriebsfaehigkeit
+
+### 6.1 Lizenzierung und Rechte
+
+Nach der Projektdokumentation ist der Quellcode von mdedit.io unter Apache License 2.0 lizenziert; ausgenommen sind gesondert gekennzeichnete Brand-Assets und Markenbestandteile [@mdeditreadme2026]. Das ist fuer wissenschaftliche Nutzung relevant, weil es Transparenz ueber die rechtliche Basis schafft und die Anwendung nicht als proprietaere Black Box behandelt werden muss. Fuer Hochschulen, Arbeitsgruppen oder Einzelpersonen, die auf nachvollziehbare und selbst betreibbare Werkzeuge Wert legen, ist dies ein substantieller Vorteil.
+
+### 6.2 Nutzungszugang und praktische Nutzbarkeit
+
+Die Nutzbarkeit von mdedit.io ergibt sich vor allem aus vier Faktoren: browserbasierter Zugang, keine verpflichtende Kontoanlage, private Dokumente per Session-Modell und eine Funktionsoberflaeche, die sich stark am Schreibprozess orientiert [@mdeditreadme2026]. Gerade fuer Studierende ist dies relevant, weil der Einstieg ohne lokale Desktop-Installation moeglich ist und der Arbeitskontext zwischen verschiedenen Geraeten leichter beweglich wird.
+
+### 6.3 Verfuegbarkeit und Betrieb
+
+mdedit.io ist als selbst gehostete Webanwendung dokumentiert. Die README beschreibt sowohl einen Docker-basierten Standardpfad als auch einen direkten Node.js-Start fuer lokale Entwicklung [@mdeditreadme2026]. Zudem werden Browser-Abhaengigkeiten lokal gebuendelt, sodass der aktive Laufzeitpfad nicht auf externe Browser-CDNs angewiesen ist [@mdeditreadme2026]. Diese Verfuegbarkeitslogik ist fuer datensensible oder institutionell kontrollierte Umgebungen von Bedeutung, weil Betrieb, Update und Datenhaltung nicht zwangslaufig in fremde SaaS-Infrastrukturen ausgelagert werden muessen.
+
+## 7. Diskussion
+
+Die Arbeit beantwortet die Forschungsfrage differenziert. Ein browserbasierter Markdown-Editor kann als primaere Produktionsumgebung fuer wissenschaftliche Abschlussarbeiten dienen, wenn das Anforderungsprofil der Arbeit durch strukturorientiertes Schreiben, datenbasierte Zitation, kontrollierten Multi-Export und digital anschlussfaehige Betreuung gekennzeichnet ist. Unter diesen Bedingungen ist mdedit.io nicht nur ein bequemes Schreibwerkzeug, sondern ein tragfaehiges wissenschaftliches Artefakt.
+
+Der wissenschaftliche Beitrag der Arbeit liegt weniger in der Behauptung universeller Ueberlegenheit als in einem expliziten Bewertungsmodell. Die uebliche Debatte ueber Word, LaTeX und Markdown wird oft normativ oder identitaer gefuehrt; die vorliegende Untersuchung uebersetzt sie in pruefbare Kriterien und zeigt, dass die Eignung eines Werkzeugs von der Kopplung zwischen Dokumenttyp, Zitationsregime, Betreuungspraxis und Exportarchitektur abhaengt. In dieser Perspektive erscheint mdedit.io nicht als vollstaendiger Ersatz, wohl aber als belastbare Loesung fuer ein klar umrissenes Segment wissenschaftlicher Abschlussarbeiten.
+
+Die Ergebnisse bleiben gleichwohl begrenzt. Es wurde keine Nutzerstudie, kein Zeitvergleich realer Schreibprozesse und kein breit angelegter Template-Benchmark mit institutionellen Vorlagen durchgefuehrt. Die Befunde sind daher als analytische Eignungspruefung und nicht als empirischer Wirksamkeitsnachweis zu lesen. Genau daraus ergibt sich der naechste Forschungsschritt: kontrollierte Fallstudien, Exportparitaetstests und institutionelle Profilpakete auf Basis realer Abgabeanforderungen.
+
+## 8. Fazit
+
+Die Forschungsfrage kann wie folgt beantwortet werden: mdedit.io kann dann als primaere Produktionsumgebung fuer wissenschaftliche Abschlussarbeiten dienen, wenn die Arbeit ein strukturorientiertes, datenbasiertes und exportkontrolliertes Authoring erfordert und keine zwingenden note-style- oder Template-Sonderfaelle vorliegen. Unter diesen Bedingungen ist ein browserbasierter Markdown-Workflow methodisch vertretbar, technisch belastbar und institutionell anschlussfaehig.
+
+Markdown erweist sich dabei nicht als pauschaler Ersatz fuer Word oder LaTeX, sondern als eigenstaendige Produktionslogik fuer wissenschaftliche Langtexte [@gruber2004markdown; @commonmark2026; @pandoc2025]. Word bleibt dort stark, wo institutionelle Review-Routinen dominieren; LaTeX bleibt dort ueberlegen, wo typografische und referenztechnische Tiefenkontrolle entscheidend ist. mdedit.io besetzt die Zone dazwischen: stark in Strukturtransparenz, heading-basierter Tree-Navigation, KI-gestuetzter Dokumentarbeit, frontmatter- und citeproc-basierter Bibliografieintegration, frueher Layoutkontrolle und kontrolliertem Multi-Export, begrenzt bei stark normierten Sonderfaellen [@mdeditreadme2026; @mdedithelp2026; @mdeditserver2026; @mdeditcitations2026].
+
+Der Mehrwert der Arbeit liegt deshalb in einer begruendeten Entscheidungshilfe. Sie zeigt nicht nur, dass mdedit.io fuer bestimmte Masterarbeiten tragfaehig ist, sondern auch, unter welchen Bedingungen dies nicht gilt. Gerade diese konditionale Antwort ist fuer wissenschaftliche Praxis wertvoller als ein pauschales Ja oder Nein.
+
+#refs
+
+<div class="page-break"></div>
+<div class="chapter-marker"></div>
+
+## Anhang A. Reproduzierbares Referenzartefakt zur Layout- und Funktionspruefung
+
+Der folgende Anhang ist kein dekorativer Zusatz, sondern Teil des Untersuchungsdesigns. Er buendelt jene Elemente, die im wissenschaftlichen Exportpfad typischerweise fehleranfaellig sind, und dient damit als reproduzierbares Pruefartefakt der Arbeit.
+
+### A.1 Abbildungsprobe
+
+<!-- img: align=center width=86% frame -->
+![Neutrales Bildartefakt fuer Caption-, Listen- und Printtests](/static/brand/mdedit-logo.png)
+
+### A.2 Wissenschaftliche Tabelle
+
+Tabelle 4: Kriterienset fuer die Endpruefung einer wissenschaftlichen Arbeit in mdedit.io.
+
+::: table{layout=scientific}
+| Kriterium | Erwartung | Zweck |
+| --- | --- | --- |
+| Kapitelstruktur | Vollstaendig und logisch | Argumentationsfuehrung pruefen |
+| Zitation | Konsistent und datenbasiert | Quellenintegritaet sichern |
+| Export | PDF und DOCX kontrolliert | Abgabe- und Reviewpfade absichern |
+| Layout | Seiten, Tabellen, Bilder stabil | Formale Belastbarkeit pruefen |
+:::
+
+### A.3 Kompakte Tabelle
+
+Tabelle 5: Typische Aufgaben vor der Abgabe.
+
+::: table{layout=compact}
+| Aufgabe | Status |
+| --- | --- |
+| Forschungsfrage schaerfen | offen |
+| Literaturverzeichnis pruefen | offen |
+| PDF-Endkontrolle durchfuehren | offen |
+| DOCX fuer Betreuung exportieren | optional |
+:::
+
+### A.4 Mathematik- und Fussnotenprobe
+
+Die Formel $E = mc^2$ dient als Inline-Test. Fuer einen Blocktest eignet sich folgende Darstellung:
+
+$$
+\int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
+$$
+
+Zusaetzlich bleibt eine Fussnote als Satz- und Exportprobe erhalten.[^layoutprobe]
+
+[^layoutprobe]: Die Fussnote prueft, ob Lauftext, Marker und Fussnotenbereich in der Ausgabe stabil lesbar bleiben.
+
+### A.5 Mehrspaltenprobe
+
+Wissenschaftliche Haupttexte brauchen selten Spalten; Anhaenge und Sonderseiten koennen jedoch von einem zweispaltigen Layout profitieren. Die Zweispaltensyntax (`columns{count=2}`) wird im Editor-Preview unterstuetzt. Fuer den PDF-Export muss das Layout explizit im Layout-Editor konfiguriert werden.
+
+### A.6 Unicode-, Querverweis- und Listingprobe
+
+Wie in Abbildung 1 und Tabelle 4 sichtbar wird, braucht eine Masterthesis nicht nur stabile Seiten, sondern auch belastbare textuelle Querverweise im Fliesstext. Diese Probe bleibt bewusst einfach und testet, wie sich Referenzformulierungen im Satz verhalten, solange semantische Cross-References nicht in jedem Sonderfall automatisiert verfuegbar sind.
+
+Die deutsche Typografieprobe enthaelt absichtlich echtes Unicode: fuer, äußere, Einführung, „deutsche Anführungszeichen“, Gedankenstrich – und § 1 Abs. 2. Damit laesst sich pruefen, ob Kopierbarkeit, Suchbarkeit und Zeichendarstellung im Export stabil bleiben.
+
+Listing 1: Beispielhafte Profilkonfiguration fuer ein institutionelles Thesis-Paket.
+
+```yaml
+id: example-masterthesis
+base: scientific
+citationStyle: author-date
+requiredSections:
+  - abstract
+  - references
+```
+
+Zusätzlich dient eine lange URL als Umbruchprobe im Lauftext:
+https://example.org/ein/sehr/langer/pfad/mit/vielen/segmenten/und-parametern?alpha=123&beta=456&gamma=789

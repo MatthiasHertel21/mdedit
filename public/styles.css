@@ -551,6 +551,16 @@ section {
   overflow: hidden;
   height: 100%;
   min-width: 0;
+  position: relative;
+}
+
+.preview-right-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 1;
 }
 
 .right-body {
@@ -767,7 +777,7 @@ section {
   gap: 8px;
   justify-content: flex-start;
   min-width: 0;
-  max-width: 100%;
+  max-width: min(196px, calc(100vw - 88px));
 }
 
 .mobile-topbar-space span {
@@ -785,13 +795,28 @@ section {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 150px;
+  min-width: 216px;
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
   z-index: 25;
+}
+
+.mobile-overflow-section {
+  display: grid;
+  gap: 8px;
+  padding: 8px 6px 10px;
+}
+
+.mobile-overflow-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 6px;
 }
 
 .mobile-overflow-item {
@@ -810,6 +835,32 @@ section {
 
 .mobile-overflow-item:hover {
   background: var(--accent-light);
+}
+
+.mobile-overflow-item.active {
+  background: var(--accent-light);
+  color: var(--primary);
+}
+
+.mobile-view-switch-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  padding: 4px;
+}
+
+.mobile-view-icon-btn {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-view-icon-btn i {
+  font-size: 15px;
 }
 
 .preview-presets {
@@ -1368,7 +1419,9 @@ section {
   font-size: 14px;
   flex: 1;
   position: relative;
-  background: var(--panel);
+  background:
+    radial-gradient(circle at top left, rgba(226, 232, 240, 0.42), transparent 42%),
+    linear-gradient(180deg, #fbfcfd 0%, #f5f7fa 100%);
   border-bottom: 1px solid var(--border);
   min-height: 220px;
 }
@@ -1430,24 +1483,83 @@ section {
   height: 100%;
 }
 
+.tree-svg.markmap {
+  --markmap-font: 500 15px/1.35 "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --markmap-text-color: #1f2d3a;
+  --markmap-a-color: var(--accent-strong);
+  --markmap-a-hover-color: var(--accent);
+  --markmap-code-bg: #eef2f6;
+  --markmap-code-color: #425466;
+  --markmap-circle-open-bg: #ffffff;
+  --markmap-highlight-bg: rgba(0, 121, 183, 0.14);
+  --markmap-highlight-node-bg: rgba(15, 23, 42, 0.07);
+}
+
+.tree-svg .markmap-link,
+.tree-svg .markmap-node circle,
+.tree-svg .markmap-node line {
+  opacity: 0.94;
+  transition: opacity 140ms ease, stroke 140ms ease, stroke-width 140ms ease;
+}
+
+.tree-svg .markmap-node text {
+  fill: #1f2d3a;
+  font-weight: 600;
+}
+
+.tree-svg .markmap-foreign,
+.tree-svg .markmap-foreign > div {
+  overflow: visible;
+}
+
+.tree-svg .markmap-foreign > div > div {
+  padding: 7px 11px;
+  border: 1px solid rgba(100, 116, 139, 0.36);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
+  color: #1f2d3a;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.tree-svg .markmap-node:hover circle,
+.tree-svg .markmap-node:hover line,
+.tree-svg .markmap-node:hover + .markmap-link,
+.tree-svg .markmap-node:hover ~ .markmap-link {
+  opacity: 1;
+}
+
+.tree-svg .markmap-node:hover .markmap-foreign > div > div {
+  border-color: rgba(0, 121, 183, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 249, 253, 0.98));
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
 .tree-svg .markmap-node.tree-branch-active circle,
 .tree-svg .markmap-node.tree-branch-active rect,
 .tree-svg .markmap-node.tree-branch-active polygon,
 .tree-svg .markmap-node.tree-branch-active path {
-  stroke: var(--accent) !important;
-  stroke-width: 3px !important;
-  filter: drop-shadow(0 0 6px rgba(0, 137, 207, 0.35));
+  stroke: var(--accent-strong) !important;
+  stroke-width: 2.75px !important;
+  filter: drop-shadow(0 6px 14px rgba(0, 121, 183, 0.22));
 }
 
 .tree-svg .markmap-node.tree-branch-active text {
   fill: var(--accent-strong) !important;
-  font-weight: 800 !important;
+  font-weight: 750 !important;
 }
 
 .tree-svg .markmap-node.tree-branch-active .markmap-foreign,
 .tree-svg .markmap-node.tree-branch-active foreignObject {
-  background: rgba(0, 137, 207, 0.12) !important;
-  border-radius: 8px;
+  background: transparent !important;
+  border-radius: 10px;
+}
+
+.tree-svg .markmap-node.tree-branch-active .markmap-foreign > div > div {
+  border-color: rgba(0, 121, 183, 0.34);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(233, 244, 251, 0.98));
+  box-shadow: 0 14px 34px rgba(0, 121, 183, 0.16);
 }
 
 .tree-boundary {
@@ -2236,10 +2348,10 @@ section {
   }
 
   .mobile-topbar-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 42px 42px;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 10px;
     width: 100%;
   }
 
@@ -2255,21 +2367,10 @@ section {
   }
 
   .mobile-topbar-space {
-    min-width: 0;
-    width: 100%;
+    flex: 0 1 auto;
+    width: auto;
     min-height: 42px;
     padding: 0 12px;
-  }
-
-  .mobile-view-switch-inline {
-    width: auto;
-    min-width: 0;
-    padding: 3px;
-  }
-
-  .mobile-view-switch-inline .mobile-view-btn {
-    min-width: 34px;
-    padding: 7px 10px;
   }
 
   .sidebar-bottom {
@@ -2295,9 +2396,7 @@ section {
   }
 
   .current-space-name {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    display: none;
   }
 
   .content {
@@ -2309,7 +2408,8 @@ section {
     width: 100%;
   }
 
-  .editor-resizer {
+  .editor-resizer,
+  .preview-right-resizer {
     display: none;
   }
 
@@ -2320,12 +2420,14 @@ section {
   }
 
   .app.mobile-view-editor .right-pane,
-  .app.mobile-view-editor .editor-resizer {
+  .app.mobile-view-editor .editor-resizer,
+  .app.mobile-view-editor .preview-right-resizer {
     display: none;
   }
 
   .app.mobile-view-preview .editor,
-  .app.mobile-view-preview .editor-resizer {
+  .app.mobile-view-preview .editor-resizer,
+  .app.mobile-view-preview .preview-right-resizer {
     display: none;
   }
 
@@ -2360,8 +2462,7 @@ section {
   }
 
   .mobile-topbar-actions {
-    grid-template-columns: minmax(0, 1fr) auto 40px 40px;
-    gap: 6px;
+    gap: 8px;
   }
 
   .mobile-topbar-actions > .header-icon,
@@ -2371,14 +2472,17 @@ section {
   }
 
   .mobile-topbar-space {
+    max-width: min(158px, calc(100vw - 74px));
     padding: 0 10px;
     font-size: 13px;
   }
 
-  .mobile-view-switch-inline .mobile-view-btn {
-    min-width: 30px;
-    padding: 6px 9px;
-    font-size: 12px;
+  .mobile-overflow-panel {
+    min-width: 198px;
+  }
+
+  .mobile-view-icon-btn {
+    min-height: 38px;
   }
 
   #tipsModal {
@@ -4000,6 +4104,7 @@ section {
   .sidebar,
   .editor,
   .editor-resizer,
+  .preview-right-resizer,
   .tree-resizer,
   .section-header,
   .ai-chat-body,
