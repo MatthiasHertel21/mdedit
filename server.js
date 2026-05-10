@@ -1182,6 +1182,50 @@ const stripScientificLayoutBlock = (markdown) => String(markdown || "").replace(
 
 const stripScientificFrontmatter = (markdown) => String(markdown || "").replace(scientificFrontmatterRegex, "").trimStart();
 
+const pandocTitleBlockMetadataKeys = new Set(["title", "subtitle", "author", "date"]);
+
+const stripPandocTitleBlockMetadata = (markdown) => {
+  const source = String(markdown || "").replace(/\r/g, "");
+  const match = source.match(scientificFrontmatterRegex);
+  if (!match) {
+    return source;
+  }
+
+  const lines = match[1].split("\n");
+  const retainedLines = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const keyMatch = line.match(/^\s*([a-z0-9_-]+)\s*:/i);
+
+    if (!keyMatch || !pandocTitleBlockMetadataKeys.has(keyMatch[1].toLowerCase())) {
+      retainedLines.push(line);
+      continue;
+    }
+
+    const baseIndent = (line.match(/^\s*/) || [""])[0].length;
+    while (index + 1 < lines.length) {
+      const nextLine = lines[index + 1];
+      if (!nextLine.trim()) {
+        index += 1;
+        continue;
+      }
+
+      const nextIndent = (nextLine.match(/^\s*/) || [""])[0].length;
+      if (nextIndent > baseIndent) {
+        index += 1;
+        continue;
+      }
+
+      break;
+    }
+  }
+
+  const cleanedFrontmatter = retainedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const body = source.replace(scientificFrontmatterRegex, "").trimStart();
+  return cleanedFrontmatter ? `---\n${cleanedFrontmatter}\n---\n\n${body}` : body;
+};
+
 const rewritePublicResourcePathForPandoc = (resourcePath) => {
   const value = String(resourcePath || "").trim();
   if (!value.startsWith("/") || value.startsWith("//")) {
@@ -2245,6 +2289,60 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       hyphens: manual !important;
       -webkit-hyphens: manual !important;
     }
+    /* Force code block styling — ensure pre/code is visually distinct even when
+       the embedded stylesheet is missing or a font substitution occurs. */
+    .print-content pre,
+    .print-content .sourceCode pre {
+      display: block !important;
+      background: #f3f4f6 !important;
+      border: 0.75pt solid #c8cdd4 !important;
+      border-left: 3pt solid #7a8fa0 !important;
+      padding: 9pt 12pt !important;
+      font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+      font-size: 8.8pt !important;
+      line-height: 1.5 !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      border-radius: 2pt !important;
+      margin: 12pt 0 !important;
+    }
+    .print-content code,
+    .print-content .sourceCode code {
+      font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+    }
+    .print-content pre code,
+    .print-content .sourceCode pre code {
+      background: none !important;
+      padding: 0 !important;
+      border: none !important;
+      font-size: inherit !important;
+    }
+    /* TOC dot leaders and page numbers (injected client-side as .toc-page-num spans) */
+    .print-content .table-of-contents a {
+      display: flex !important;
+      align-items: baseline !important;
+    }
+    .print-content .table-of-contents .toc-text {
+      flex: 0 0 auto !important;
+      max-width: 80% !important;
+    }
+    .print-content .table-of-contents .toc-dots {
+      flex: 1 1 auto !important;
+      border-bottom: 0.75pt dotted #aaa !important;
+      margin: 0 4pt 2pt !important;
+      min-width: 8pt !important;
+      overflow: hidden !important;
+    }
+    .print-content .table-of-contents .toc-page-num {
+      flex: 0 0 auto !important;
+      font-variant-numeric: tabular-nums !important;
+      text-align: right !important;
+      min-width: 18pt !important;
+    }
     /* The serialized paged DOM already has the correct reading order. These
        static-export guards keep KaTeX in its original inline/block flow when
        Chromium paints the frozen pages without the live Paged.js runtime. */
@@ -2624,9 +2722,12 @@ ${html}
 
     if (exitCode !== 0 && markdown && typeof markdown === "string") {
       const mdPath = path.join(tmpDir, "input.md");
-      const markdownForExport = citationSpec?.isCitationDocument
+      let markdownForExport = citationSpec?.isCitationDocument
         ? citationSpec.normalizedMarkdown
         : rewriteMarkdownResourcePathsForPandoc(markdown);
+      if (format === "pdf") {
+        markdownForExport = stripPandocTitleBlockMetadata(markdownForExport);
+      }
       await fs.promises.writeFile(mdPath, markdownForExport, "utf8");
       app.log.info("Trying markdown export as fallback");
       let result = await runPandoc(

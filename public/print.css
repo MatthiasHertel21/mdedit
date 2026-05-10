@@ -7,14 +7,29 @@
 
 @page {
   size: A4;
-  margin: 2.1cm 2.1cm 2.1cm 2.5cm;
-  
-  /* No automatic headers/footers - user controls these manually */
+  margin: 2.1cm 2.1cm 2.5cm 2.5cm;
+
+  @bottom-right {
+    content: counter(page);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 9pt;
+    color: #555;
+    font-variant-numeric: tabular-nums;
+    border-top: 0.5pt solid #ccc;
+    padding-top: 3pt;
+    vertical-align: top;
+  }
 }
 
-/* First page: Larger top margin */
+/* First page: suppress footer (title page) */
 @page :first {
   margin-top: 2.1cm;
+  @bottom-right { content: none; border: none; }
+}
+
+/* Named page for .title-page element: no footer */
+@page title-page {
+  @bottom-right { content: none; border: none; }
 }
 
 /* Left and right pages: Balanced margins, no automatic page numbers */
@@ -26,6 +41,53 @@
 @page :right {
   margin-left: 2.5cm;
   margin-right: 2.1cm;
+}
+
+/* ===== TITLE PAGE ===== */
+
+/* Pandoc fenced_divs outputs <section class="title-page"> */
+.print-content .title-page,
+.print-content section.title-page {
+  page: title-page;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 220mm;
+  text-align: center;
+  break-before: avoid;
+  break-after: page;
+  page-break-after: always;
+}
+
+.print-content .title-page h1,
+.print-content section.title-page h1 {
+  font-size: 19pt;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 18pt;
+  border: none;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.print-content .title-page h2,
+.print-content section.title-page h2 {
+  font-size: 13pt;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0 0 32pt;
+  border: none;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.print-content .title-page p,
+.print-content section.title-page p {
+  font-size: 11pt;
+  line-height: 1.6;
+  margin: 0;
+  color: #444;
 }
 
 /* ===== BASE TYPOGRAPHY ===== */
@@ -138,6 +200,7 @@
 }
 
 .print-content h4 {
+  display: block;
   font-size: 12pt;
   font-weight: 600;
   text-align: left;
@@ -151,6 +214,7 @@
 
 .print-content h5,
 .print-content h6 {
+  display: block;
   font-size: 11pt;
   font-weight: 600;
   text-align: left;
@@ -263,17 +327,43 @@
   padding: 13pt 15pt;
   background: #f8f9fa;
   border: 0.5pt solid #d1d5db;
-  border-left: 4pt solid #4f46e5;
   border-left: 5pt solid #7a8fa0;
   border-radius: 3pt;
   font-family: 'Courier New', Courier, monospace;
   font-size: 9.2pt;
   line-height: 1.5;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   break-inside: avoid;
   page-break-inside: avoid;
   text-align: left;
   text-align-last: auto;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* Pandoc syntax-highlighted code: .sourceCode wraps the pre */
+.print-content .sourceCode pre,
+.print-content div.sourceCode pre {
+  margin: 0;
+  padding: 13pt 15pt;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 0;
+  font-size: 9.2pt;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.print-content .sourceCode,
+.print-content div.sourceCode {
+  margin: 14pt 0 16pt;
+  background: #f8f9fa;
+  border: 0.5pt solid #d1d5db;
+  border-left: 5pt solid #7a8fa0;
+  border-radius: 3pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
@@ -335,6 +425,31 @@
 .print-content tr {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* Compact table variant — denser spacing, smaller font */
+.print-content table.table-layout-compact {
+  font-size: 8.5pt;
+  margin: 12pt 0;
+}
+
+.print-content table.table-layout-compact th,
+.print-content table.table-layout-compact td {
+  padding: 2.5pt 5pt;
+}
+
+/* Scientific table variant — slightly larger, more breathing room */
+.print-content table.table-layout-scientific {
+  font-size: 9.5pt;
+  margin: 20pt 0;
+}
+
+.print-content table.table-layout-scientific th {
+  padding: 5pt 8pt;
+}
+
+.print-content table.table-layout-scientific td {
+  padding: 4pt 8pt;
 }
 
 /* ===== IMAGES & FIGURES ===== */
@@ -662,8 +777,31 @@
   color: inherit;
   display: flex;
   align-items: baseline;
-  gap: 4pt;
+  gap: 0;
   width: 100%;
+}
+
+.print-content .lof-text,
+.print-content .lot-text {
+  flex: 0 0 auto;
+  max-width: 82%;
+}
+
+.print-content .lof-dots,
+.print-content .lot-dots {
+  flex: 1 1 auto;
+  border-bottom: 0.75pt dotted #bbb;
+  margin: 0 4pt 2pt;
+  min-width: 8pt;
+  overflow: hidden;
+}
+
+.print-content .lof-page-num,
+.print-content .lot-page-num {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 18pt;
 }
 
 .print-content .lof-num,
@@ -803,14 +941,36 @@
 }
 
 .print-content .table-of-contents a {
-  display: block;
+  display: flex;
+  align-items: baseline;
   text-decoration: none;
   color: #000;
-  text-align: left;
+  gap: 0;
 }
 
+.print-content .table-of-contents .toc-text {
+  flex: 0 0 auto;
+  max-width: 80%;
+}
+
+.print-content .table-of-contents .toc-dots {
+  flex: 1 1 auto;
+  border-bottom: 0.75pt dotted #aaa;
+  margin: 0 4pt 2pt;
+  min-width: 8pt;
+  overflow: hidden;
+}
+
+.print-content .table-of-contents .toc-page-num {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 18pt;
+}
+
+/* Suppress Paged.js leader()/target-counter() — resolved client-side instead */
 .print-content .table-of-contents a::after {
-  content: " " leader('.') " " target-counter(attr(href), page);
+  content: none !important;
 }
 
 /* ===== FOOTNOTES ===== */

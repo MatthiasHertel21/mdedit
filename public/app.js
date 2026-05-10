@@ -5139,6 +5139,86 @@ const getPagedExportHtml = async ({ layoutCss, requirePagedOutput = false } = {}
       }
     }
 
+    // Inject TOC page numbers: look up each heading's page in the live Paged.js layout
+    // and bake the number into the clone as <span class="toc-page-num">.
+    // Paged.js CSS `target-counter()` is not understood by Chromium, so we do it here.
+    const tocLinks = ppClone.querySelectorAll('.table-of-contents a[href^="#"]');
+    if (tocLinks.length > 0) {
+      tocLinks.forEach((link) => {
+        const targetId = link.getAttribute('href').slice(1);
+        let pageNum = null;
+        try {
+          const escaped = CSS.escape(targetId);
+          const targetEl = printPreviewRoot.querySelector(`[id="${escaped}"]`)
+            || printPreviewRoot.querySelector(`#${escaped}`);
+          if (targetEl) {
+            const pagedPage = targetEl.closest('.pagedjs_page');
+            pageNum = pagedPage?.getAttribute('data-page-number') || null;
+          }
+        } catch (e) { /* ignore invalid selectors */ }
+
+        if (!link.querySelector('.toc-text')) {
+          const textSpan = document.createElement('span');
+          textSpan.className = 'toc-text';
+          while (link.firstChild) textSpan.appendChild(link.firstChild);
+          link.appendChild(textSpan);
+        }
+        if (!link.querySelector('.toc-dots')) {
+          const dotsSpan = document.createElement('span');
+          dotsSpan.className = 'toc-dots';
+          dotsSpan.setAttribute('aria-hidden', 'true');
+          link.appendChild(dotsSpan);
+        }
+        if (!link.querySelector('.toc-page-num')) {
+          const pageSpan = document.createElement('span');
+          pageSpan.className = 'toc-page-num';
+          pageSpan.textContent = pageNum || '';
+          link.appendChild(pageSpan);
+        }
+      });
+    }
+
+    // Inject LoF/LoT page numbers — same approach as TOC above.
+    // Each .lof-entry a / .lot-entry a has href="#figure-id"; look up the target
+    // in the live Paged.js layout to find the page number, then inject spans.
+    [
+      { listSel: '.lof-entry', textCls: 'lof-text', dotsCls: 'lof-dots', numCls: 'lof-page-num' },
+      { listSel: '.lot-entry', textCls: 'lot-text', dotsCls: 'lot-dots', numCls: 'lot-page-num' },
+    ].forEach(({ listSel, textCls, dotsCls, numCls }) => {
+      ppClone.querySelectorAll(`${listSel} a[href^="#"]`).forEach((link) => {
+        const targetId = link.getAttribute('href').slice(1);
+        let pageNum = null;
+        try {
+          const escaped = CSS.escape(targetId);
+          const targetEl = printPreviewRoot.querySelector(`[id="${escaped}"]`)
+            || printPreviewRoot.querySelector(`#${escaped}`);
+          if (targetEl) {
+            const pagedPage = targetEl.closest('.pagedjs_page');
+            pageNum = pagedPage?.getAttribute('data-page-number') || null;
+          }
+        } catch (e) { /* ignore invalid selectors */ }
+
+        if (!link.querySelector(`.${textCls}`)) {
+          const textSpan = document.createElement('span');
+          textSpan.className = textCls;
+          while (link.firstChild) textSpan.appendChild(link.firstChild);
+          link.appendChild(textSpan);
+        }
+        if (!link.querySelector(`.${dotsCls}`)) {
+          const dotsSpan = document.createElement('span');
+          dotsSpan.className = dotsCls;
+          dotsSpan.setAttribute('aria-hidden', 'true');
+          link.appendChild(dotsSpan);
+        }
+        if (!link.querySelector(`.${numCls}`)) {
+          const pageSpan = document.createElement('span');
+          pageSpan.className = numCls;
+          pageSpan.textContent = pageNum || '';
+          link.appendChild(pageSpan);
+        }
+      });
+    });
+
     const marker = /(pagedjs|@page|print-content|page-break|column-break|md-columns|section-break|katex)/i;
     const cssChunks = [];
     document.querySelectorAll("style").forEach((styleEl) => {

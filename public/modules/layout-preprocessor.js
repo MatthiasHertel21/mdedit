@@ -29,6 +29,11 @@ const parseLayoutToken = (value) => {
 
 const isTocPlaceholder = (value) => /^\[\[?_?toc_?\]?\]$/i.test(String(value || '').trim());
 
+const parseTocDepth = (value) => {
+  const m = String(value || '').match(/\bdepth=(\d+)/i);
+  return m ? Math.max(1, Math.min(6, parseInt(m[1], 10))) : 3;
+};
+
 const protectMarkdownCode = (markdown) => {
   const placeholders = [];
   let protectedText = String(markdown || '');
@@ -277,6 +282,9 @@ export class LayoutPreprocessor {
 
     this.hydrateLayoutTokens(doc);
     this.wrapColumnBlocks(doc);
+    this.wrapTitlePageContent(doc);
+    // Must run before hydrateTableOfContents so title-page headings are tagged
+    this.applyTitlePageFixes(doc);
 
     // Figures and table captions — must run before list building
     this.applyFigures(doc);
@@ -449,13 +457,15 @@ export class LayoutPreprocessor {
     });
   }
 
-  buildTableOfContents(doc) {
+  buildTableOfContents(doc, maxDepth = 3) {
     const headings = Array.from(doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6'))
       .filter((heading) => {
         if (!heading.id || heading.closest('.table-of-contents')) return false;
         if (heading.closest('.md-columns, .md-column')) return false;
+        if (heading.closest('.title-page') || heading.dataset.notoc) return false;
+        if (heading.classList.contains('no-toc')) return false;
         const level = Number.parseInt(heading.tagName.slice(1), 10) || 1;
-        return level <= 3;
+        return level <= maxDepth;
       });
 
     if (headings.length === 0) return null;
@@ -585,12 +595,53 @@ export class LayoutPreprocessor {
     if (placeholderNodes.length === 0) return;
 
     placeholderNodes.forEach((element, index) => {
-      const toc = this.buildTableOfContents(doc);
+      const depth = parseTocDepth(element.textContent || '');
+      const toc = this.buildTableOfContents(doc, depth);
       if (toc) {
         element.replaceWith(index === 0 ? toc : toc.cloneNode(true));
         return;
       }
       element.remove();
+    });
+  }
+
+  wrapTitlePageContent(doc) {
+    Array.from(doc.querySelectorAll('.title-page-marker[data-start="true"]')).forEach((start) => {
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'title-page';
+
+      let sibling = start.nextSibling;
+      while (sibling) {
+        const nextSibling = sibling.nextSibling;
+        if (
+          sibling.nodeType === Node.ELEMENT_NODE &&
+          sibling.classList.contains('title-page-marker') &&
+          sibling.dataset.end === 'true'
+        ) {
+          sibling.remove();
+          break;
+        }
+        wrapper.appendChild(sibling);
+        sibling = nextSibling;
+      }
+
+      start.replaceWith(wrapper);
+    });
+    // Remove any orphaned end markers (e.g. no matching start)
+    doc.querySelectorAll('.title-page-marker[data-end="true"]').forEach((el) => el.remove());
+  }
+
+  applyTitlePageFixes(doc) {
+    // Pandoc fenced_divs outputs <section class="title-page">.
+    // 1. Force Paged.js page-break after the section via dataset
+    //    (CSS break-after may be ignored when polisherStylesheets are passed).
+    // 2. Tag all headings inside as data-notoc so buildTableOfContents skips them.
+    doc.querySelectorAll('section.title-page, div.title-page, .title-page').forEach((section) => {
+      // Paged.js reads data-break-after from the element dataset during fragmentation.
+      section.dataset.breakAfter = 'page';
+      section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+        h.dataset.notoc = '1';
+      });
     });
   }
 
