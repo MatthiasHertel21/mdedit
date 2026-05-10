@@ -18,6 +18,11 @@ import db from "./db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const INDEX_HTML_PATH = path.join(__dirname, "public", "index.html");
+const DEMO_REFERENCE_DOCUMENTS = [
+  { key: "masterthesis", filename: "masterthesis-reference.md" },
+  { key: "book", filename: "book-reference.md" },
+  { key: "quickread", filename: "quickread-reference.md" }
+];
 
 // Export queue to prevent too many concurrent pandoc processes
 const exportQueue = {
@@ -569,6 +574,20 @@ app.get("/api/pastes", async (req) => {
     "SELECT id, title, created_at, updated_at FROM pastes WHERE session_id = ? ORDER BY updated_at DESC LIMIT 50"
   );
   return stmt.all(req.sessionId);
+});
+
+app.get("/api/demo-reference-documents", async (req, reply) => {
+  try {
+    const documents = await Promise.all(DEMO_REFERENCE_DOCUMENTS.map(async ({ key, filename }) => {
+      const markdown = await fs.promises.readFile(path.join(__dirname, "docs", "examples", filename), "utf8");
+      return { key, markdown };
+    }));
+    return { documents };
+  } catch (error) {
+    req.log.error({ error }, "Failed to load demo reference documents");
+    reply.code(500);
+    return { error: "Failed to load demo reference documents" };
+  }
 });
 
 app.get("/api/pastes/:id", async (req, reply) => {

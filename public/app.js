@@ -1823,6 +1823,109 @@ Replace this text with your own document and keep writing.`
 
 const getDemoMarkdown = () => DEMO_MARKDOWN_BY_LOCALE[currentLocale] || DEMO_MARKDOWN_BY_LOCALE.en;
 
+const demoReferencePasteIdsKey = "demoReferencePasteIds";
+const DEMO_REFERENCE_TITLE_BY_LOCALE = {
+  de: {
+    masterthesis: "Masterthesis Referenz",
+    book: "Buch Referenz",
+    quickread: "Quickread Referenz"
+  },
+  en: {
+    masterthesis: "Masterthesis Reference",
+    book: "Book Reference",
+    quickread: "Quickread Reference"
+  }
+};
+
+const getDemoReferenceTitle = (key) => {
+  const localizedTitles = DEMO_REFERENCE_TITLE_BY_LOCALE[currentLocale] || DEMO_REFERENCE_TITLE_BY_LOCALE.en;
+  return localizedTitles[key] || key;
+};
+
+const loadStoredDemoReferencePasteIds = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(demoReferencePasteIdsKey) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveStoredDemoReferencePasteIds = (idsByKey) => {
+  localStorage.setItem(demoReferencePasteIdsKey, JSON.stringify(idsByKey));
+};
+
+const ensureDemoReferencePastes = async () => {
+  const demoResponse = await fetch("/api/demo-reference-documents");
+  if (!demoResponse.ok) {
+    throw new Error(`HTTP ${demoResponse.status}`);
+  }
+
+  const demoPayload = await demoResponse.json();
+  const demoDocuments = Array.isArray(demoPayload.documents) ? demoPayload.documents : [];
+  if (!demoDocuments.length) {
+    throw new Error("No demo reference documents returned");
+  }
+
+  const existingResponse = await fetch("/api/pastes");
+  if (!existingResponse.ok) {
+    throw new Error(`HTTP ${existingResponse.status}`);
+  }
+
+  const existingPastes = await existingResponse.json();
+  const availableIds = new Set(existingPastes.map((paste) => normalizePasteId(paste.id)));
+  const storedIds = loadStoredDemoReferencePasteIds();
+  const nextStoredIds = { ...storedIds };
+  const orderedPasteIds = [];
+
+  for (const document of demoDocuments) {
+    const key = String(document?.key || "").trim();
+    const markdown = typeof document?.markdown === "string" ? document.markdown : "";
+    if (!key || !markdown.trim()) continue;
+
+    let pasteId = storedIds[key];
+    if (!pasteId || !availableIds.has(normalizePasteId(pasteId))) {
+      const createResponse = await fetch("/api/pastes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markdown, title: getDemoReferenceTitle(key) })
+      });
+      if (!createResponse.ok) {
+        throw new Error(`HTTP ${createResponse.status}`);
+      }
+      const createdPaste = await createResponse.json();
+      pasteId = createdPaste.id;
+    }
+
+    nextStoredIds[key] = pasteId;
+    orderedPasteIds.push(pasteId);
+  }
+
+  saveStoredDemoReferencePasteIds(nextStoredIds);
+
+  const workspaces = getWorkspaces();
+  const workspace = workspaces[currentWorkspace];
+  if (workspace) {
+    const orderedIds = new Set(orderedPasteIds.map((id) => normalizePasteId(id)));
+    const existingWorkspacePastes = Array.isArray(workspace.pastes) ? workspace.pastes : [];
+    workspace.pastes = [
+      ...orderedPasteIds,
+      ...existingWorkspacePastes.filter((id) => !orderedIds.has(normalizePasteId(id)))
+    ];
+    saveWorkspaces(workspaces);
+  }
+
+  const orderedIds = new Set(orderedPasteIds.map((id) => normalizePasteId(id)));
+  historyOrder = [
+    ...orderedPasteIds,
+    ...historyOrder.filter((id) => !orderedIds.has(normalizePasteId(id)))
+  ];
+  saveHistoryOrder();
+
+  await loadHistory();
+  return nextStoredIds;
+};
+
 let lastToast = { text: "", at: 0 };
 
 const showToast = (message, type = "info", duration = 2400) => {
@@ -5125,21 +5228,19 @@ const resetEditor = () => {
   setStatus(t("newDoc"), "success");
 };
 
-const loadDemoDocument = () => {
-  currentPasteId = null;
-  currentPasteIsShared = false;
-  lastSavedMarkdown = "";
-  clearedForNew = false;
-  setMarkdown(getDemoMarkdown());
-  selectedNodeId = null;
-  refreshHeadingData();
-  renderPreview();
-  renderTree();
-  updateDocumentActionButtons();
-  scheduleRenderHistory();
-  closeTipsModal();
-  editorView?.focus();
-  setStatus(t("demoLoaded"), "success");
+const loadDemoDocument = async () => {
+  try {
+    const demoPasteIds = await ensureDemoReferencePastes();
+    closeTipsModal();
+    if (demoPasteIds.masterthesis) {
+      await loadPaste(demoPasteIds.masterthesis);
+    }
+    editorView?.focus();
+    setStatus(t("demoLoaded"), "success");
+  } catch (error) {
+    console.error("Failed to load demo reference documents:", error);
+    setStatus(`${t("saveFailed")}: ${error?.message || t("saveFailed")}`, "error");
+  }
 };
 
 const debounce = (fn, delay) => {
