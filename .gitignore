@@ -29,3 +29,6 @@ deploy/*.local.yml
 deploy/*.private.yml
 deploy/*.override.yml
 deploy-prod.local.sh
+
+# Local test/dev scripts (not published)
+scripts/layout-unit-test.js
