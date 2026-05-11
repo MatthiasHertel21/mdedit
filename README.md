@@ -4,80 +4,55 @@
    <img src="public/brand/mdedit-logo.png" alt="mdedit.io logo" width="360">
 </p>
 
-mdedit.io is a browser-based Markdown editor for long-form writing, structured documents, and shareable drafts.
+**mdedit.io is a no-account Markdown editor for serious documents.**
 
-It combines live preview, document outline, collaboration, AI-assisted editing, printable layout controls, and export to Markdown, DOCX, and PDF in one self-hosted app.
+Write in Markdown, navigate long documents via outline, collaborate in the browser, and export print-ready PDF and DOCX files — without Word, LaTeX, or a desktop app.
 
-> Write in Markdown, keep structure visible, share only when you decide to, and export when the draft is ready.
+> **[→ Try it now at mdedit.io](https://mdedit.io)**
+
+---
+
+### What the output looks like
+
+<!-- TODO: replace with screenshot of PDF output (title page or table page) -->
+![mdedit.io PDF output screenshot](docs/assets/readme-pdf-output.png)
+
+**[→ Download sample PDF output](docs/examples/example-output.pdf)**
+
+---
+
+### The editor
 
 ![mdedit.io editor screenshot](docs/assets/readme-editor.png)
 
 ## Public Beta
 
 - Status: active public beta
-- Best for: notes, articles, handouts, technical drafts, and shareable working documents
+- Best for: **thesis drafts, technical specs, concept papers, structured reports**
 - Deployment model: self-hosted web application, not an npm package
 
-Try the local app after startup at `http://localhost:3210`.
+Try the live app at **[mdedit.io](https://mdedit.io)** — no account required.  
+Or run it locally after startup at `http://localhost:3210`.
 
-## How It Feels
+## Features
 
-mdedit.io is built for the gap between a plain text editor and a full publishing system.
-
-You write in Markdown, keep a live preview next to the source, move through long documents via the outline, adjust print layout when the document starts to matter, and share a permalink only when you want the draft to leave the current session.
-
-The app is especially useful when a document starts simple but grows into something structured enough to need headings, export paths, review, or collaboration.
-
-## Why mdedit.io?
-
-- Write and preview Markdown side by side
-- Navigate long documents through a heading-based outline
-- Share documents explicitly via permalink instead of making everything public by default
-- Collaborate in the browser with built-in collab features
-- Use AI assistance for editing and document work
-- Export working drafts to Markdown, DOCX, and PDF
-
-## Try These Paths
-
-- Open the example document in [docs/examples/example.md](docs/examples/example.md)
-- Start locally with Docker and open `http://localhost:3210`
-- Test sharing deliberately instead of publishing everything by default
-- Run `npm run release:check` before a public rollout
-
-## Feedback
-
-Feedback, bug reports, and product suggestions are welcome through the repository issue tracker.
-
-The repo includes dedicated issue forms for bug reports, product feedback, and general questions to keep reports actionable.
-
-For contribution workflow and local validation, see [CONTRIBUTING.md](CONTRIBUTING.md). For the current security posture and remaining hardening work, see [docs/operations/SECURITY.md](docs/operations/SECURITY.md).
-
-If you want a quick walkthrough of the feature surface, start with the example document in [docs/examples/example.md](docs/examples/example.md).
-
-## Documentation
-
-- Operations and deployment docs: `docs/operations/`
-- Architecture and engineering notes: `docs/engineering/`
-- Product and feature concepts: `docs/concepts/`
-- Examples and test material: `docs/examples/`, `docs/testing/`
-
-You can find an overview in [docs/README.md](docs/README.md).
-
-## Repository Scope
-
-This repository contains the mdedit.io application itself.
-
-- `package.json` uses `"private": true` to prevent accidental publication to the npm registry
-- the source is open and licensed under Apache 2.0, except for brand assets and trademarks noted below
-- browser dependencies are bundled locally for the active runtime path
+- **No account required** — open the editor, start writing
+- **Live preview** side by side with the Markdown source
+- **Outline / tree navigation** for long structured documents
+- **Print-ready PDF export** with page layout controls
+- **DOCX export** for Word-compatible delivery
+- **Mermaid diagrams** and **KaTeX math** rendered inline
+- **Citations** via BibTeX / CSL with automatic reference lists
+- **AI assistance** for editing and document work (bring your own key)
+- **Lightweight collaboration** — share a permalink, edit together
+- **Self-hostable** with Docker, Apache 2.0 license
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20 or newer for local development, release checks, and `deploy-prod.sh`
+- Node.js 20 or newer for local development and `deploy-prod.sh`
 - Docker and Docker Compose for the recommended runtime path
-- Pandoc/LaTeX only for certain export paths outside the container
 
 The browser runtime is loaded from locally bundled assets in `public/vendor/` and `public/vendor/npm/`. The active app path does not depend on external browser CDNs.
 
@@ -101,8 +76,6 @@ docker compose logs -f
 The app is available locally at `http://localhost:3210`.
 
 See [docs/operations/DOCKER.md](docs/operations/DOCKER.md) for details.
-
-**Security note for production:**
 
 Before deploying to production, you **MUST** set a secure cookie secret:
 
@@ -145,6 +118,22 @@ npm run release:check
 4. The app runs at `http://localhost:3210`.
 
 Note: `npm run release:check` and `./deploy-prod.sh` require local Node 20+. If your host intentionally stays older, use the Docker path for production-like test runs.
+
+## Feedback & Contributing
+
+Feedback, bug reports, and feature suggestions are welcome through the [issue tracker](https://github.com/MatthiasHertel21/mdedit/issues).
+
+For contribution workflow and local validation, see [CONTRIBUTING.md](CONTRIBUTING.md).  
+For security posture and remaining hardening work, see [docs/operations/SECURITY.md](docs/operations/SECURITY.md).
+
+## Documentation
+
+- Operations and deployment: `docs/operations/`
+- Architecture and engineering notes: `docs/engineering/`
+- Product and feature concepts: `docs/concepts/`
+- Examples: `docs/examples/`
+
+Overview: [docs/README.md](docs/README.md)
 
 ## Nginx Reverse Proxy (example)
 
