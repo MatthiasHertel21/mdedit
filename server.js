@@ -2279,6 +2279,19 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
     .pagedjs_margin-bottom-right::after {
       content: none !important;
     }
+    /* Reset pseudo-element content on the inner .pagedjs_margin-content element.
+       Paged.js generates CSS rules (not @page rules, so not stripped by
+       stripAtPageRules) that inject page numbers via ::before/::after pseudo-
+       elements on .pagedjs_margin-content. When Chromium renders the exported
+       HTML in print/PDF mode, CSS counter(page) resolves to the PDF page number,
+       producing a stray "1" on the title page even though the DOM text node is
+       correctly empty. Resetting here ensures only DOM text nodes provide content
+       (Paged.js already baked the correct numbers into those for pages 2+, and
+       page 1 is correctly empty per @page :first processing). */
+    .pagedjs_margin-content::before,
+    .pagedjs_margin-content::after {
+      content: none !important;
+    }
     .pagedjs_pagebox,
     .pagedjs_area,
     .pagedjs_page_content {
@@ -2382,6 +2395,24 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       line-height: 1.5 !important;
       white-space: pre-wrap !important;
       overflow-wrap: anywhere !important;
+    }
+    /* Fallback: bare pre.sourceCode when div.sourceCode wrapper is absent */
+    pre.sourceCode {
+      background: #f3f4f6 !important;
+      border: 0.75pt solid #c8cdd4 !important;
+      border-left: 3pt solid #7a8fa0 !important;
+      border-radius: 2pt !important;
+      margin: 12pt 0 !important;
+      padding: 9pt 12pt !important;
+      font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+      font-size: 8.8pt !important;
+      line-height: 1.5 !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
     }
     /* TOC dot leaders and page numbers (injected client-side as .toc-page-num spans) */
     .print-content .table-of-contents a {

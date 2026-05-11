@@ -119,8 +119,13 @@ export const buildPagedRenderContract = ({
 
               /* Pandoc syntax-highlighted code blocks — guaranteed present in Paged.js
                * styledHTML so the rules affect fragmentation (break-inside: avoid) and
-               * survive serialisation into the paged export HTML for the PDF path. */
-              div.sourceCode {
+               * survive serialisation into the paged export HTML for the PDF path.
+               * Two selector strategies:
+               *   div.sourceCode — Pandoc wraps <pre> in this div (primary case)
+               *   pre.sourceCode — fallback if the outer div is absent (e.g. after
+               *                    Paged.js page-break fragmentation edge cases) */
+              div.sourceCode,
+              pre.sourceCode {
                 background: #f3f4f6 !important;
                 border: 0.75pt solid #c8cdd4 !important;
                 border-left: 3pt solid #7a8fa0 !important;
@@ -143,8 +148,18 @@ export const buildPagedRenderContract = ({
                 white-space: pre-wrap !important;
                 overflow-wrap: anywhere !important;
               }
+              pre.sourceCode {
+                padding: 9pt 12pt !important;
+                font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+                font-size: 8.8pt !important;
+                line-height: 1.5 !important;
+                white-space: pre-wrap !important;
+                overflow-wrap: anywhere !important;
+              }
               div.sourceCode code,
-              div.sourceCode span {
+              div.sourceCode span,
+              pre.sourceCode code,
+              pre.sourceCode span {
                 font-family: inherit !important;
               }
             </style>
@@ -162,6 +177,8 @@ export const buildPagedRenderContract = ({
     // Prevent Paged.js from splitting Pandoc syntax-highlighted code blocks.
     // Without this, div.sourceCode loses its visual frame on split pages.
     'div.sourceCode { break-inside: avoid; page-break-inside: avoid; }',
+    // Also protect bare pre.sourceCode (fallback if div.sourceCode wrapper is absent).
+    'pre.sourceCode { break-inside: avoid; page-break-inside: avoid; }',
     // Keep footnote list items (number + text) on the same page.
     '.footnotes li { break-inside: avoid; page-break-inside: avoid; }',
     // Keep the footnote separator (hr) with the footnote list.
