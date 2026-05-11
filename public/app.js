@@ -1337,6 +1337,8 @@ const elements = {
   notFoundOverlay: document.getElementById("notFoundOverlay"),
   notFoundClose: document.getElementById("notFoundClose"),
   permalinkBtn: document.getElementById("permalinkBtn"),
+  copyRawLinkBtn: document.getElementById("copyRawLinkBtn"),
+  copyPdfLinkBtn: document.getElementById("copyPdfLinkBtn"),
   copyMdBtn: document.getElementById("copyMdBtn"),
   downloadMdBtn: document.getElementById("downloadMdBtn"),
   copyTextBtn: document.getElementById("copyTextBtn"),
@@ -7474,6 +7476,27 @@ elements.permalinkBtn?.addEventListener("click", async () => {
   copyToClipboard(url);
   setStatus(t("permalinkCopied"), "success");
 });
+
+async function shareAndCopyLink(suffix, toastKey) {
+  if (!currentPasteId) { setStatus(t("saveFirst"), "error"); return; }
+  if (!currentPasteIsShared) {
+    try {
+      const res = await fetch(`/api/pastes/${currentPasteId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shared: true })
+      });
+      if (res.ok) currentPasteIsShared = true;
+    } catch (err) {
+      console.error("Failed to share paste:", err);
+    }
+  }
+  copyToClipboard(`${window.location.origin}/${currentPasteId}/${suffix}`);
+  setStatus(t(toastKey), "success");
+}
+
+elements.copyRawLinkBtn?.addEventListener("click", () => shareAndCopyLink("raw", "rawLinkCopied"));
+elements.copyPdfLinkBtn?.addEventListener("click", () => shareAndCopyLink("pdf", "pdfLinkCopied"));
 
 elements.copyMdBtn?.addEventListener("click", () => copyToClipboard(getMarkdown()));
 elements.downloadMdBtn?.addEventListener("click", downloadMarkdown);

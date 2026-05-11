@@ -3015,6 +3015,46 @@ app.get("/", async (req, reply) => {
   return html;
 });
 
+// ── Shared paste direct-download routes ──────────────────────────────────────
+// These routes allow linking directly to the markdown source and
+// generated PDF/DOCX of any shared paste, useful for showcase and G2M links.
+// Only works for pastes that have sharing enabled (shared = 1).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getSharedPaste(id) {
+  if (!UUID_RE.test(id)) return null;
+  return db.prepare("SELECT id, title, markdown FROM pastes WHERE id = ? AND shared = 1").get(id) || null;
+}
+
+// GET /:id/raw  → download the raw markdown of a shared paste
+app.get("/:id/raw", async (req, reply) => {
+  const row = getSharedPaste(req.params.id);
+  if (!row) { reply.code(404); return { error: "Not found" }; }
+  const safeTitle = (row.title || "document")
+    .replace(/[^a-z0-9-_\u00C0-\u024F]+/gi, "-").substring(0, 100).toLowerCase();
+  reply.header("Content-Disposition", `attachment; filename="${safeTitle}.md"`);
+  reply.type("text/markdown; charset=utf-8");
+  return row.markdown;
+});
+
+// GET /:id/pdf  → generate and download a PDF of a shared paste via Pandoc
+app.get("/:id/pdf", async (req, reply) => {
+  const row = getSharedPaste(req.params.id);
+  if (!row) { reply.code(404); return { error: "Not found" }; }
+  return exportQueue.execute(() =>
+    exportWithPandoc({ body: { markdown: row.markdown, title: row.title || "" } }, reply, "pdf")
+  );
+});
+
+// GET /:id/docx  → generate and download a DOCX of a shared paste via Pandoc
+app.get("/:id/docx", async (req, reply) => {
+  const row = getSharedPaste(req.params.id);
+  if (!row) { reply.code(404); return { error: "Not found" }; }
+  return exportQueue.execute(() =>
+    exportWithPandoc({ body: { markdown: row.markdown, title: row.title || "" } }, reply, "docx")
+  );
+});
+
 // Permalink route - handles UUIDs
 app.get("/:id", async (req, reply) => {
   const pasteId = req.params.id;
