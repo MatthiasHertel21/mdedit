@@ -155,9 +155,23 @@ export const buildPagedRenderContract = ({
           </html>
         `;
 
+  // Hardcoded break rules that must reach the Paged.js chunker but are defined in
+  // print.css (not in safeLayoutCSS), so extractBreakRules() would miss them.
+  // The chunker only uses polisher-registered CSS for fragmentation decisions.
+  const hardcodedBreakRules = [
+    // Prevent Paged.js from splitting Pandoc syntax-highlighted code blocks.
+    // Without this, div.sourceCode loses its visual frame on split pages.
+    'div.sourceCode { break-inside: avoid; page-break-inside: avoid; }',
+    // Keep footnote list items (number + text) on the same page.
+    '.footnotes li { break-inside: avoid; page-break-inside: avoid; }',
+    // Keep the footnote separator (hr) with the footnote list.
+    '.footnotes hr { break-after: avoid; page-break-after: avoid; }',
+  ].join('\n');
+
   const polisherCSS = [
     extractAtPageRules(safeLayoutCSS),
     extractBreakRules(safeLayoutCSS),
+    hardcodedBreakRules,
     debugPageRules
   ].filter(Boolean).join('\n');
 
