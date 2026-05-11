@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Dark Blue",
   "layoutColorLightBlue": "Light Blue",
   "layoutColorDarkOrange": "Dark Orange",
-  "aboutVersion": "Version"
+  "aboutVersion": "Version",
+  "layoutBlockPlaceholder": "{layout block}"
 }

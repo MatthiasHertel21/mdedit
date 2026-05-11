@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Ciemnoniebieski",
   "layoutColorLightBlue": "Jasnoniebieski",
   "layoutColorDarkOrange": "Ciemnopomarańczowy",
-  "aboutVersion": "Wersja"
+  "aboutVersion": "Wersja",
+  "layoutBlockPlaceholder": "{blok układu}"
 }

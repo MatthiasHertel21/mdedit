@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Donkerblauw",
   "layoutColorLightBlue": "Lichtblauw",
   "layoutColorDarkOrange": "Donkeroranje",
-  "aboutVersion": "Versie"
+  "aboutVersion": "Versie",
+  "layoutBlockPlaceholder": "{opmaakblok}"
 }

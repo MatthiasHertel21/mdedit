@@ -2069,7 +2069,7 @@ section {
   font-size: 12px;
 }
 
-.bibliography-block-placeholder {
+.block-placeholder {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
@@ -2079,6 +2079,11 @@ section {
   color: var(--accent);
   font-size: 12px;
   cursor: pointer;
+  user-select: none;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {

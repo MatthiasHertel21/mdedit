@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Blu scuro",
   "layoutColorLightBlue": "Blu chiaro",
   "layoutColorDarkOrange": "Arancione scuro",
-  "aboutVersion": "Versione"
+  "aboutVersion": "Versione",
+  "layoutBlockPlaceholder": "{blocco layout}"
 }

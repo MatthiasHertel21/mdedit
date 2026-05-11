@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Темно-синий",
   "layoutColorLightBlue": "Голубой",
   "layoutColorDarkOrange": "Темно-оранжевый",
-  "aboutVersion": "Версия"
+  "aboutVersion": "Версия",
+  "layoutBlockPlaceholder": "{блок макета}"
 }

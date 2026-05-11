@@ -2135,7 +2135,14 @@ const updateLayoutBlockVisibility = () => {
   const from = editorView.posFromIndex(start);
   const to = editorView.posFromIndex(end);
   const placeholder = document.createElement("span");
-  placeholder.className = "layout-block-placeholder";
+  placeholder.className = "block-placeholder";
+  placeholder.title = t("layoutBlockPlaceholder");
+  placeholder.setAttribute("role", "button");
+  placeholder.setAttribute("tabindex", "0");
+  placeholder.textContent = t("layoutBlockPlaceholder");
+  const onLayoutClick = () => openLayoutEditor(previewPreset || "scientific");
+  placeholder.addEventListener("click", onLayoutClick);
+  placeholder.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onLayoutClick(); } });
   layoutBlockMarker = editorView.getDoc().markText(from, to, {
     replacedWith: placeholder,
     clearOnEnter: false
@@ -2159,15 +2166,16 @@ const updateBibliographyBlockVisibility = () => {
   const end = match.index + match[0].length;
   const from = editorView.posFromIndex(start);
   const to = editorView.posFromIndex(end);
-  const placeholder = document.createElement("button");
-  placeholder.type = "button";
-  placeholder.className = "bibliography-block-placeholder";
-  placeholder.textContent = t("citationBibliographyBlockPlaceholder")
-    .replace("{count}", extractEmbeddedBibliographyItems(text).length);
-  placeholder.addEventListener("click", () => {
-    bibliographyBlockMarker?.clear();
-    bibliographyBlockMarker = null;
-  });
+  const count = extractEmbeddedBibliographyItems(text).length;
+  const placeholder = document.createElement("span");
+  placeholder.className = "block-placeholder";
+  placeholder.setAttribute("role", "button");
+  placeholder.setAttribute("tabindex", "0");
+  placeholder.textContent = t("citationBibliographyBlockPlaceholder").replace("{count}", count);
+  placeholder.title = t("citationBibliography");
+  const onBibClick = () => openBibliographyPanel();
+  placeholder.addEventListener("click", onBibClick);
+  placeholder.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBibClick(); } });
   bibliographyBlockMarker = editorView.getDoc().markText(from, to, {
     replacedWith: placeholder,
     clearOnEnter: false

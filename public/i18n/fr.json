@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Bleu foncé",
   "layoutColorLightBlue": "Bleu clair",
   "layoutColorDarkOrange": "Orange foncé",
-  "aboutVersion": "Version"
+  "aboutVersion": "Version",
+  "layoutBlockPlaceholder": "{bloc de mise en page}"
 }

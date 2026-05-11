@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "深蓝色",
   "layoutColorLightBlue": "浅蓝色",
   "layoutColorDarkOrange": "深橙色",
-  "aboutVersion": "版本"
+  "aboutVersion": "版本",
+  "layoutBlockPlaceholder": "{布局块}"
 }

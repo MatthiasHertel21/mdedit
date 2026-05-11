@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Koyu mavi",
   "layoutColorLightBlue": "Açık mavi",
   "layoutColorDarkOrange": "Koyu turuncu",
-  "aboutVersion": "Sürüm"
+  "aboutVersion": "Sürüm",
+  "layoutBlockPlaceholder": "{düzen bloğu}"
 }

@@ -663,5 +663,6 @@
   "layoutColorDarkBlue": "Dunkelblau",
   "layoutColorLightBlue": "Hellblau",
   "layoutColorDarkOrange": "Dunkelorange",
-  "aboutVersion": "Version"
+  "aboutVersion": "Version",
+  "layoutBlockPlaceholder": "{Layout-Block}"
 }
