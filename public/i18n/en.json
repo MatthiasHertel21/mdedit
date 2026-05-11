@@ -590,6 +590,7 @@
   "citationKeyRequired": "Citation key is required.",
   "citationKeyExists": "Citation key already exists.",
   "citationRenderFailed": "Citation rendering failed",
+  "citationRendering": "Resolving citations…",
   "citationBibliographyBlockPlaceholder": "{bibliography: {count} items}",
   "collabChat": "Team chat",
   "collabChatPlaceholder": "Message the team...",

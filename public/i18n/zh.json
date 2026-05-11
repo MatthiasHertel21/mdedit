@@ -590,6 +590,7 @@
   "citationKeyRequired": "Citation key is required.",
   "citationKeyExists": "Citation key already exists.",
   "citationRenderFailed": "Citation rendering failed",
+  "citationRendering": "正在解析引用…",
   "citationBibliographyBlockPlaceholder": "{bibliography: {count} items}",
   "collabChat": "团队聊天",
   "collabChatPlaceholder": "给团队发送消息...",
