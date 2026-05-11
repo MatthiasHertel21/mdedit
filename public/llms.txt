@@ -1,0 +1,57 @@
+# mdedit.io
+
+> mdedit.io is a no-account, browser-based Markdown editor for serious documents — live preview, structured layout control, Mermaid, KaTeX, AI assistance, real-time collaboration, and professional PDF/DOCX export. Self-hostable and open source (Apache 2.0).
+
+## What mdedit.io is
+
+mdedit.io is a browser-based production environment for serious Markdown documents. It is not a generic note-taking tool or wiki. It is designed for longer, structured documents that require layout control, print-quality export, and reproducible output: scientific papers, theses, reports, technical documentation, books, and whitepapers.
+
+The product runs entirely in the browser. No account is required. Documents are stored server-side per session. The app is self-hostable via Docker.
+
+## Core features
+
+- **Live preview**: rendered Markdown with Mermaid diagrams and KaTeX math, updated as you type
+- **Outline tree**: document structure as navigable tree, synced to editor cursor position
+- **Layout control**: document-local layout block (`layout` code fence) for page size, margins, headers, footers, typography, table styles, figure rules, and column layout
+- **Three layout presets**: Scientific, Compact, Literary — plus Document mode that uses inline layout declarations
+- **Paged preview**: print-like paginated view using Paged.js, showing actual page breaks before export
+- **PDF export**: via Chromium/Puppeteer server-side, using the paged preview as source
+- **DOCX export**: via Pandoc, including citations via Citeproc
+- **Mermaid diagrams**: flowcharts, sequence, state, class, ER, Gantt, Mindmap, Timeline, and more
+- **KaTeX math**: inline (`$...$`) and display (`$$...$$`) math rendering
+- **Scientific document mode**: YAML frontmatter with author, date, bibliography, CSL citation style; Citeproc integration for citation rendering and bibliography generation
+- **AI writing assistant**: integrated AI panel with document context, multiple chat sessions, model configuration
+- **Real-time collaboration**: shared documents with presence indicators and optional password protection
+- **Extended Markdown syntax**: footnotes, definition lists, task lists, MultiMarkdown tables, emojis, subscript, superscript, highlight, abbreviations, attributes, admonitions, column containers, page/section/column break markers
+- **Folder management**: documents organized in folders, with drag-and-drop reordering and ZIP export
+- **Self-hosting**: Docker Compose setup, environment-variable configuration, no cloud dependency
+
+## What mdedit.io is not
+
+- Not a real-time chat or team wiki
+- Not a generic note-taking app (though it works for notes)
+- Not an offline-first app (requires server connection)
+- Not a plugin-based IDE extension
+
+## Audiences
+
+- Academic authors writing theses, papers, and research documents
+- Technical writers producing documentation, specifications, and reports
+- Professional authors working on books, whitepapers, and strategy documents
+- Developers and teams who need reproducible Markdown-based document output
+- Self-hosters who want a private, installation-free writing environment
+
+## Technical facts
+
+- Frontend: browser-based, no framework, CodeMirror editor, Paged.js for print preview
+- Backend: Node.js with Fastify, SQLite for document storage
+- Export: Puppeteer (PDF), Pandoc (DOCX, citations)
+- Open source: Apache License 2.0
+- Repository: https://github.com/MatthiasHertel21/mdedit
+- Live instance: https://mdedit.io/
+- Help and feature reference: https://mdedit.io/help-en.html
+
+## Licensing
+
+Source code: Apache License 2.0
+Brand assets (logo, icon, wordmark): not covered by Apache 2.0, all rights reserved

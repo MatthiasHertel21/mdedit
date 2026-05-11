@@ -2,23 +2,24 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>mdedit.io - No-account Markdown editor with PDF/DOCX export</title>
-    <meta name="description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <title>mdedit.io — Browser-based Markdown editor for serious documents</title>
+    <meta name="description" content="mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, Mermaid diagrams, KaTeX math, AI assistance, collaboration, and professional PDF/DOCX export. Self-hostable. Open source." />
+    <meta name="keywords" content="markdown editor, browser markdown, PDF export, DOCX export, Mermaid, KaTeX, scientific writing, thesis, live preview, open source, self-hosted, no account" />
     <link rel="canonical" href="https://mdedit.io/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="mdedit.io - No-account Markdown editor" />
-    <meta property="og:description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
+    <meta property="og:title" content="mdedit.io — Browser-based Markdown editor for serious documents" />
+    <meta property="og:description" content="mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, Mermaid, KaTeX, AI assistance, collaboration, and professional PDF/DOCX export." />
     <meta property="og:url" content="https://mdedit.io/" />
     <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="mdedit.io social card with product summary and beta call to action" />
+    <meta property="og:image:alt" content="mdedit.io — browser-based Markdown editor with live preview, layout control, and PDF/DOCX export" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="mdedit.io - No-account Markdown editor" />
-    <meta name="twitter:description" content="mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export." />
+    <meta name="twitter:title" content="mdedit.io — Browser-based Markdown editor for serious documents" />
+    <meta name="twitter:description" content="mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, Mermaid, KaTeX, AI assistance, collaboration, and professional PDF/DOCX export." />
     <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
-    <meta name="twitter:image:alt" content="mdedit.io social card with product summary and beta call to action" />
+    <meta name="twitter:image:alt" content="mdedit.io — browser-based Markdown editor with live preview, layout control, and PDF/DOCX export" />
     <meta name="application-name" content="mdedit.io" />
     <meta name="theme-color" content="#0089cf" />
     <script type="application/ld+json">
@@ -27,9 +28,35 @@
         "@type": "SoftwareApplication",
         "name": "mdedit.io",
         "applicationCategory": "Productivity",
+        "applicationSubCategory": "Document Editor",
         "operatingSystem": "Web",
         "url": "https://mdedit.io/",
-        "description": "mdedit.io is a no-account browser-based Markdown editor for longer documents with live preview, outline view, Mermaid, KaTeX, AI assistance, collaboration and PDF/DOCX export."
+        "description": "mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, Mermaid diagrams, KaTeX math, AI assistance, real-time collaboration, and professional PDF/DOCX export. Self-hostable and open source.",
+        "featureList": [
+          "No account required",
+          "Live Markdown preview",
+          "Outline and document tree",
+          "Layout control with page size, margins, headers and footers",
+          "Mermaid diagram rendering",
+          "KaTeX math formulas",
+          "AI writing assistant",
+          "Real-time collaboration",
+          "PDF export",
+          "DOCX export",
+          "Scientific document mode with citations",
+          "Print-oriented paged preview",
+          "Self-hostable via Docker",
+          "Open source under Apache 2.0"
+        ],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "softwareVersion": "0.2",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "codeRepository": "https://github.com/MatthiasHertel21/mdedit",
+        "isAccessibleForFree": true
       }
     </script>
     <link rel="stylesheet" href="/styles.css" />
@@ -62,22 +89,51 @@
         </div>
         <div id="collapsedOpenItems" class="collapsed-open-items"></div>
         <div class="sidebar-content">
-          <div id="currentSpaceName" class="current-space-name">Standard</div>
+          <div id="currentFolderName" class="current-folder-name">Standard</div>
+          <div id="mobileSidebarMenuActions" class="mobile-sidebar-menu-actions">
+            <button id="mobileMenuPagedBtn" class="icon" type="button" aria-label="Paged Mode" title="Paged Mode">
+              <i class="fa-solid fa-file-lines"></i>
+              <span class="icon-label">Paged Mode</span>
+            </button>
+            <button id="mobileMenuTipsBtn" class="icon" type="button" aria-label="Tipps anzeigen" title="Tipps" data-i18n-title="tips" data-i18n-aria="tips">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span class="icon-label" data-i18n="tips">Tipps</span>
+            </button>
+            <button id="mobileMenuSettingsBtn" class="icon" type="button" aria-label="Einstellungen" title="Einstellungen" data-i18n-title="settings" data-i18n-aria="settings">
+              <i class="fa-solid fa-gear"></i>
+              <span class="icon-label" data-i18n="settings">Einstellungen</span>
+            </button>
+            <button id="mobileMenuLayoutBtn" class="icon" type="button" aria-label="Layout-Einstellungen" title="Layout-Einstellungen">
+              <i class="fa-solid fa-swatchbook"></i>
+              <span class="icon-label">Layout-Einstellungen</span>
+            </button>
+            <a id="mobileMenuHelpLink" class="icon" href="/help-en.html" target="_blank" rel="noopener" aria-label="Hilfe &amp; Syntax-Referenz" title="Hilfe &amp; Syntax-Referenz">
+              <i class="fa-solid fa-circle-question"></i>
+              <span class="icon-label">Hilfe</span>
+            </a>
+            <button id="mobileMenuDemoBtn" class="icon" type="button" aria-label="Demo-Dokument öffnen" title="Demo-Dokument">
+              <i class="fa-solid fa-rocket"></i>
+              <span class="icon-label">Demo-Dokument</span>
+            </button>
+          </div>
+          <div id="mobileSidebarContextActions" class="mobile-sidebar-context-actions"></div>
           <div id="historyList" class="history"></div>
         </div>
         <div class="sidebar-bottom">
-          <button id="pinToggle" class="icon" title="Sidebar anheften" aria-label="Sidebar anheften">
-            <i class="fa-solid fa-thumbtack"></i>
-            <span class="icon-label" data-i18n="pin">Anheften</span>
-          </button>
-          <button id="tipsBtn" class="icon" title="Tipps (F2)" aria-label="Tipps anzeigen" data-i18n-title="tips" data-i18n-aria="tips">
-            <i class="fa-solid fa-lightbulb"></i>
-            <span class="icon-label" data-i18n="tips">Tipps</span>
-          </button>
-          <button id="settingsBtn" class="icon" title="Einstellungen" aria-label="Einstellungen" data-i18n-title="settings" data-i18n-aria="settings">
-            <i class="fa-solid fa-gear"></i>
-            <span class="icon-label" data-i18n="settings">Einstellungen</span>
-          </button>
+          <div id="sidebarUtilityActions" class="sidebar-utility-actions">
+            <button id="pinToggle" class="icon" title="Sidebar anheften" aria-label="Sidebar anheften">
+              <i class="fa-solid fa-thumbtack"></i>
+              <span class="icon-label" data-i18n="pin">Anheften</span>
+            </button>
+            <button id="tipsBtn" class="icon" title="Tipps (F2)" aria-label="Tipps anzeigen" data-i18n-title="tips" data-i18n-aria="tips">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span class="icon-label" data-i18n="tips">Tipps</span>
+            </button>
+            <button id="settingsBtn" class="icon" title="Einstellungen" aria-label="Einstellungen" data-i18n-title="settings" data-i18n-aria="settings">
+              <i class="fa-solid fa-gear"></i>
+              <span class="icon-label" data-i18n="settings">Einstellungen</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -85,60 +141,46 @@
 
       <main class="main">
         <div class="mobile-topbar">
-          <div class="mobile-topbar-actions">
-            <button id="mobileSpacesBtn" class="header-icon mobile-topbar-space" type="button" aria-label="Spaces" title="Spaces">
-              <i class="fa-solid fa-layer-group"></i>
-              <span id="mobileCurrentSpaceName">Standard</span>
+          <div class="mobile-topbar-main">
+            <button id="mobileFoldersBtn" class="header-icon mobile-topbar-folder" type="button" aria-label="Dateien und Ordner öffnen" title="Dateien und Ordner">
+              <img class="mobile-folder-brand-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+              <span id="mobileCurrentFolderName" class="mobile-folder-button-label">Standard</span>
             </button>
-            <div class="mobile-overflow-menu">
-              <button id="mobileOverflowToggle" class="header-icon" type="button" aria-label="Menü" title="Menü" aria-expanded="false" aria-controls="mobileOverflowPanel">
-                <i class="fa-solid fa-bars"></i>
+            <div class="mobile-topbar-shortcuts">
+              <div id="mobileTopbarPrimaryHost" class="mobile-topbar-primary-host"></div>
+              <span class="header-divider mobile-topbar-divider" aria-hidden="true"></span>
+              <button id="mobileEditScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="Markdown" title="Markdown" data-i18n-aria="markdown" data-i18n-title="markdown">
+                <i class="fa-solid fa-pen-to-square"></i>
               </button>
-              <div id="mobileOverflowPanel" class="mobile-overflow-panel hidden" role="menu">
-                <div class="mobile-overflow-section" role="none">
-                  <div class="mobile-overflow-section-label" data-i18n="tabView">Ansicht</div>
-                  <div class="mobile-view-switch mobile-view-switch-menu" role="tablist" aria-label="Mobile workspace view">
-                    <button id="mobileEditorToggle" class="mobile-view-btn mobile-view-icon-btn active" type="button" data-mobile-view="editor" role="tab" aria-selected="true" data-i18n-title="markdown" data-i18n-aria="markdown" title="Markdown" aria-label="Markdown">
-                      <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
-                    <button id="mobilePreviewToggle" class="mobile-view-btn mobile-view-icon-btn" type="button" data-mobile-view="preview" role="tab" aria-selected="false" data-i18n-title="preview" data-i18n-aria="preview" title="Preview" aria-label="Preview">
-                      <i class="fa-solid fa-eye"></i>
-                    </button>
-                    <button id="mobileStackedToggle" class="mobile-view-btn mobile-view-icon-btn" type="button" data-mobile-view="stacked" role="tab" aria-selected="false" title="Markdown + Preview" aria-label="Markdown + Preview">
-                      <i class="fa-solid fa-window-restore"></i>
-                    </button>
-                  </div>
-                </div>
-                <button id="mobileMenuHistoryToggle" class="mobile-overflow-item" type="button" role="menuitem" title="Verlauf" aria-label="Verlauf">
-                  <i class="fa-solid fa-clock-rotate-left"></i>
-                  <span>Verlauf</span>
-                </button>
-                <button id="mobileTipsBtn" class="mobile-overflow-item" type="button" role="menuitem">
-                  <i class="fa-solid fa-lightbulb"></i>
-                  <span data-i18n="tips">Tipps</span>
-                </button>
-                <button id="mobileSettingsBtn" class="mobile-overflow-item" type="button" role="menuitem">
-                  <i class="fa-solid fa-gear"></i>
-                  <span data-i18n="settings">Einstellungen</span>
-                </button>
-              </div>
+              <button id="mobileRenderScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="Preview" title="Preview" data-i18n-aria="preview">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button id="mobileTreeScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="Baum" title="Baum" data-i18n-aria="tree" data-i18n-title="tree">
+                <i class="fa-solid fa-network-wired"></i>
+              </button>
+              <button id="mobileAiScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="KI-Assistent" title="KI-Assistent" data-i18n-aria="aiChat" data-i18n-title="aiChat">
+                <i class="fa-solid fa-robot"></i>
+              </button>
             </div>
+            <button id="mobileSidebarToggle" class="header-icon mobile-topbar-burger" type="button" aria-label="Menü öffnen" title="Menü">
+              <i class="fa-solid fa-bars"></i>
+            </button>
           </div>
         </div>
         <div class="content two-col">
           <section class="editor">
             <div class="section-header header-actions">
               <div class="header-left">
-                <button id="newPasteBtn" class="header-icon" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
+                <div id="editorHeaderPrimaryActions" class="mobile-action-source header-icons">
+                  <button id="newPasteBtn" class="header-icon" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
                 <span data-i18n="markdown">Markdown</span>
               </div>
-              <div class="header-icons">
-                <button id="deleteCurrentPasteBtn" class="header-icon hidden" title="Löschen" aria-label="Löschen" data-i18n-title="delete" data-i18n-aria="delete">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-                <div class="share-menu">
+              <div class="header-right-group">
+                <div id="editorHeaderShareActions" class="mobile-action-source">
+                  <div class="share-menu">
                   <button id="shareBtn" class="header-icon" title="Teilen" aria-label="Teilen">
                     <i class="fa-solid fa-share-nodes"></i>
                   </button>
@@ -170,10 +212,16 @@
                     </button>
                   </div>
                 </div>
+                </div>
+                <div id="editorHeaderActions" class="header-icons mobile-action-source">
+                  <button id="deleteCurrentPasteBtn" class="header-icon hidden" title="Löschen" aria-label="Löschen" data-i18n-title="delete" data-i18n-aria="delete">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
                 <div id="collabPresenceContainer" class="collab-presence-container hidden"></div>
                 <button id="collabPasswordBtn" class="header-icon hidden" title="Passwort" aria-label="Passwort" style="display: none;" data-i18n-title="collabPassword" data-i18n-aria="collabPassword">
                   <i class="fa-solid fa-key"></i>
                 </button>
+                </div>
               </div>
             </div>
             <div id="markdownEditor" class="editor-host"></div>
@@ -187,7 +235,7 @@
               <div id="previewPanel" class="panel active">
                 <div class="section-header header-actions">
                   <span id="previewTitle" data-i18n="preview">Vorschau</span>
-                  <div class="header-right-group">
+                  <div id="previewHeaderActions" class="header-right-group mobile-action-source">
                     <div class="preview-presets" role="group" aria-label="Preview presets">
                       <button id="previewPresetTrigger" class="preview-preset-btn" type="button">
                         <span id="previewPresetLabel" data-i18n="presetScientific">Wissenschaftlich</span>
@@ -251,7 +299,7 @@
               <div id="treePanel" class="panel">
                 <div class="section-header header-actions">
                   <span data-i18n="tree">Baum</span>
-                  <div class="header-icons">
+                  <div id="treeHeaderActions" class="header-icons mobile-action-source">
                     <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
                       <i class="fa-solid fa-align-left"></i>
                     </button>
@@ -270,13 +318,12 @@
                   </div>
                 </div>
               </div>
-              <!-- AI Chat Panel -->
               <div id="aiChatPanel" class="panel">
                 <div class="section-header header-actions">
                   <div class="chat-title-row">
                     <span data-i18n="aiChat">KI-Assistent</span>
                   </div>
-                  <div class="header-icons">
+                  <div id="chatHeaderActions" class="header-icons mobile-action-source">
                     <button id="undoAiChangeBtn" title="Rückgängig" aria-label="Letzte AI-Änderung rückgängig machen" data-i18n-title="undo" style="display: none;">
                       <i class="fa-solid fa-rotate-left"></i>
                     </button>
@@ -399,16 +446,50 @@
       </div>
     </div>
 
-    <div id="spacesOverlay" class="modal-overlay hidden"></div>
-    <div id="spacesModal" class="modal modal-large hidden">
+    <div id="foldersOverlay" class="modal-overlay hidden"></div>
+    <div id="foldersModal" class="modal modal-large hidden">
       <div class="modal-header">
-        <h2 data-i18n="spacesOverview">Spaces Übersicht</h2>
-        <button id="spacesClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
+        <h2><img class="modal-brand-icon" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" /> Dateien und Ordner</h2>
+        <button id="foldersClose" class="icon" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="modal-body">
-        <div id="spacesGrid" class="spaces-grid"></div>
+        <div class="folders-toolbar">
+          <div class="folders-current-card">
+            <div class="folders-current-label">Aktiver Bereich</div>
+            <div id="foldersCurrentInfo" class="folders-current-info">Ordner 'Standard' - 0 Dokumente lokal gespeichert</div>
+          </div>
+          <div class="folders-toolbar-groups">
+            <div class="folders-action-group">
+              <span class="folders-action-group-title">Dokumente</span>
+              <div class="folders-toolbar-actions">
+                <button id="foldersNewDocBtn" class="icon-btn folders-action-btn" type="button" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
+                  <i class="fa-solid fa-file-circle-plus"></i>
+                  <span class="action-label">Neu</span>
+                </button>
+                <button id="foldersDeleteDocBtn" class="icon-btn icon-btn-danger folders-action-btn" type="button" title="Dokument löschen" aria-label="Dokument löschen">
+                  <i class="fa-solid fa-file-circle-minus"></i>
+                  <span class="action-label">Löschen</span>
+                </button>
+              </div>
+            </div>
+            <div class="folders-action-group">
+              <span class="folders-action-group-title">Ordner</span>
+              <div class="folders-toolbar-actions">
+                <button id="foldersNewFolderBtn" class="icon-btn folders-action-btn" type="button" title="Neu" aria-label="Neu" data-i18n-title="workspaceNew" data-i18n-aria="workspaceNew">
+                  <i class="fa-solid fa-folder-plus"></i>
+                  <span class="action-label">Neu</span>
+                </button>
+                <button id="foldersDeleteCurrentBtn" class="icon-btn icon-btn-danger folders-action-btn" type="button" title="Löschen" aria-label="Löschen" data-i18n-title="workspaceDelete" data-i18n-aria="workspaceDelete">
+                  <i class="fa-solid fa-trash"></i>
+                  <span class="action-label">Löschen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="foldersGrid" class="folders-grid"></div>
       </div>
     </div>
 
@@ -812,24 +893,24 @@
           <div class="settings-grid">
             <div class="setting setting-full">
               <div class="setting-text">
-                <div class="setting-title" data-i18n="workspaceTitle">Workspace</div>
-                <div class="setting-description" data-i18n="workspaceDesc">Verwalten Sie verschiedene Dokumentsätze separat</div>
-                <div class="workspace-controls">
-                  <select id="workspaceSelect" class="setting-select"></select>
-                  <button id="newWorkspaceBtn" class="icon-btn" title="Neu" data-i18n-title="workspaceNew">
+                <div class="setting-title" data-i18n="workspaceTitle">Ordner</div>
+                <div class="setting-description" data-i18n="workspaceDesc">Verwalten Sie verschiedene Dokumentgruppen separat</div>
+                <div class="folder-controls">
+                  <select id="folderSelect" class="setting-select"></select>
+                  <button id="newFolderBtn" class="icon-btn" title="Neu" data-i18n-title="workspaceNew">
                     <i class="fa-solid fa-plus"></i>
                   </button>
-                  <button id="renameWorkspaceBtn" class="icon-btn" title="Umbenennen" data-i18n-title="workspaceRename">
+                  <button id="renameFolderBtn" class="icon-btn" title="Umbenennen" data-i18n-title="workspaceRename">
                     <i class="fa-solid fa-pen"></i>
                   </button>
                   <button id="exportAllBtn" class="icon-btn" title="ZIP Download" data-i18n-title="workspaceZipDownload">
                     <i class="fa-solid fa-file-zipper"></i>
                   </button>
-                  <button id="deleteWorkspaceBtn" class="icon-btn icon-btn-danger" title="Löschen" data-i18n-title="workspaceDelete">
+                  <button id="deleteFolderBtn" class="icon-btn icon-btn-danger" title="Löschen" data-i18n-title="workspaceDelete">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </div>
-                <div id="workspaceInfo" class="workspace-info"></div>
+                <div id="folderInfo" class="folder-info"></div>
               </div>
             </div>
             <div class="setting setting-full">
@@ -842,7 +923,7 @@
                     </div>
                     <div class="storage-action-text">
                       <div class="storage-action-title" data-i18n="storageBackupZipTitle">Save to ZIP</div>
-                      <div class="storage-action-desc" data-i18n="storageBackupZipDesc">Erstellt ein ZIP-Archiv mit allen Dokumenten aus allen Spaces und allen Bildern</div>
+                      <div class="storage-action-desc" data-i18n="storageBackupZipDesc">Erstellt ein ZIP-Archiv mit allen Dokumenten aus allen Ordnern und allen Bildern</div>
                     </div>
                   </button>
                   <button id="syncNowBtn" class="storage-action-item">
@@ -866,7 +947,7 @@
               <div class="danger-zone-content">
                 <div class="danger-zone-text">
                   <div class="danger-zone-title" data-i18n="storageClearTitle">Lokalen Speicher leeren</div>
-                  <div class="danger-zone-desc" data-i18n="storageClearLocalDesc">Entfernt Workspace-Zuordnungen, Einstellungen und lokale Sicherungen aus diesem Browser. Server-Dokumente bleiben erhalten.</div>
+                  <div class="danger-zone-desc" data-i18n="storageClearLocalDesc">Entfernt Ordner-Zuordnungen, Einstellungen und lokale Sicherungen aus diesem Browser. Server-Dokumente bleiben erhalten.</div>
                 </div>
                 <button id="clearSyncBtn" class="btn-danger-outline">
                   <i class="fa-solid fa-eraser"></i> <span data-i18n="storageClearLocalAction">Clear Local Storage</span>

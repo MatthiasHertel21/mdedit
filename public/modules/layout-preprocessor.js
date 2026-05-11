@@ -598,6 +598,9 @@ export class LayoutPreprocessor {
       const depth = parseTocDepth(element.textContent || '');
       const toc = this.buildTableOfContents(doc, depth);
       if (toc) {
+        // Paged.js reads dataset.breakBefore during fragmentation — CSS break-before
+        // on .table-of-contents is not processed by the polisher.
+        toc.dataset.breakBefore = 'page';
         element.replaceWith(index === 0 ? toc : toc.cloneNode(true));
         return;
       }
@@ -635,12 +638,15 @@ export class LayoutPreprocessor {
     // Pandoc fenced_divs outputs <section class="title-page">.
     // 1. Force Paged.js page-break after the section via dataset
     //    (CSS break-after may be ignored when polisherStylesheets are passed).
-    // 2. Tag all headings inside as data-notoc so buildTableOfContents skips them.
+    // 2. Tag all headings inside as data-notoc and remove their id so
+    //    buildTableOfContents skips them via every filter path.
     doc.querySelectorAll('section.title-page, div.title-page, .title-page').forEach((section) => {
       // Paged.js reads data-break-after from the element dataset during fragmentation.
       section.dataset.breakAfter = 'page';
       section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
         h.dataset.notoc = '1';
+        // Remove id so the heading also fails the !heading.id guard in buildTableOfContents.
+        h.removeAttribute('id');
       });
     });
   }
@@ -737,7 +743,7 @@ export class LayoutPreprocessor {
 
   applyTableLayouts(doc) {
     const markers = doc.querySelectorAll('.table-layout-marker');
-    
+
     markers.forEach(marker => {
       const layout = marker.dataset.layout;
       let nextElement = marker.nextElementSibling;

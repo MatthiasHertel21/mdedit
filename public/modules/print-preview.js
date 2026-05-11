@@ -16,7 +16,7 @@ export class PrintPreview {
     this.currentPage = 1;
     this.totalPages = 0;
     this.zoom = 1;
-    this.minZoom = 0.6;
+    this.minZoom = 0.25;
     this.maxZoom = 1.8;
     this.zoomStep = 0.1;
     this.isRendering = false;
@@ -205,6 +205,12 @@ export class PrintPreview {
       event.preventDefault();
       this.adjustZoom(event.deltaY < 0 ? this.zoomStep : -this.zoomStep);
     }, { passive: false });
+    window.addEventListener('resize', () => {
+      if (!this.isActive) {
+        return;
+      }
+      requestAnimationFrame(() => this.fitToWidth());
+    });
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -288,6 +294,30 @@ export class PrintPreview {
     pages.style.setProperty('--print-preview-scale', String(this.zoom));
     pages.style.zoom = String(this.zoom);
     this.updatePageInfo();
+  }
+
+  fitToWidth() {
+    const scrollContainer = this.elements.printPreviewScroll;
+    const firstPage = this.elements.printPreview?.querySelector('.pagedjs_page');
+    if (!scrollContainer || !firstPage) {
+      return;
+    }
+
+    const styles = window.getComputedStyle(scrollContainer);
+    const horizontalPadding = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+    const availableWidth = scrollContainer.clientWidth - horizontalPadding - 12;
+    const pageWidth = firstPage.offsetWidth;
+    if (availableWidth <= 0 || pageWidth <= 0) {
+      return;
+    }
+
+    const fittedZoom = Number(Math.min(this.maxZoom, Math.max(this.minZoom, availableWidth / pageWidth)).toFixed(2));
+    if (!Number.isFinite(fittedZoom)) {
+      return;
+    }
+
+    this.zoom = fittedZoom;
+    this.applyZoom();
   }
 
   adjustZoom(delta) {
@@ -465,8 +495,7 @@ export class PrintPreview {
           warning.remove();
         }
         
-        this.updatePageInfo();
-        this.applyZoom();
+        this.fitToWidth();
         
         // Scroll to first page
         this.scrollToPage(1);

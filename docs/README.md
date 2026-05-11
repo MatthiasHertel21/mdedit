@@ -23,6 +23,7 @@
 - [Citations Concept](concepts/citations-concept.md)
 - [Citations Implementation Plan](concepts/citations-implementation-plan.md)
 - [Citations UX Concept](concepts/citations-ux-concept.md)
+- [Lean Mobile Authoring UX Concept](concepts/mobile-authoring-ux-concept.md)
 
 ## Planning
 

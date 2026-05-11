@@ -1,223 +1,316 @@
 ---
 preset: compact
-header: false
-footer: false
+header: "mdedit.io — Feature Showcase"
+footer: "mdedit.io | mdedit.io"
+toc: true
 ---
 
-# mdedit.io Compact-Layout Referenztest — Quickread
+# mdedit.io Feature Showcase
 
-**Prüfziele für das Compact-Preset**
+**mdedit.io** is a browser-based Markdown editor for serious documents — theses, papers, reports, books. No account required. Open source. Self-hostable.
 
-| Nr | Prüfziel | OK? |
-|---:|---|:---:|
-| 1 | Enge Zeilenabstände | ☐ |
-| 2 | Kompakte Absatzabstände | ☐ |
-| 3 | Tabellen mit Gitternetz | ☐ |
-| 4 | Listen dicht gesetzt | ☐ |
-| 5 | Kleines Float-Bild mit Textumfluss | ☐ |
-| 6 | Zentriertes Bild | ☐ |
-| 7 | Admonition-Boxen (info, warning) | ☐ |
-| 8 | Inline-Code und Codeblock | ☐ |
-| 9 | Horizontale Linie | ☐ |
-| 10 | Seitennummern optional / nicht dominant | ☐ |
-| 11 | Überschriften kompakt, keine großen Abstände | ☐ |
-| 12 | Checkboxen in Tabellen | ☐ |
+This document demonstrates every major feature by writing *about* the product itself. Export it as PDF to see mdedit.io in action.
 
 [[toc]]
 
 <!-- page-break -->
 
-# 1 Kurzübersicht
+# 1 The Editor
 
-Das **Compact-Preset** ist für schnell zu lesende Dokumente gedacht: Handbücher, Checklisten, technische Referenzblätter, Meeting-Protokolle. Keine langen Prosaabsätze — stattdessen kurze Abschnitte, Listen und Tabellen.
+mdedit.io opens instantly in your browser. No signup, no installation, no cloud account. Your documents are stored in the editor's local session and can be exported, shared, or synced at any time.
 
-**Leitsatz:** So dicht wie nötig, so lesbar wie möglich.
+## 1.1 What you see
 
-# 2 Listen und Aufzählungen
+:::: columns
+::: column
+**Left — Sidebar**
 
-## 2.1 Ungeordnete Liste
+The sidebar shows your document history and folders. Documents can be dragged, renamed, grouped into folders, and exported as ZIP. Use the search field to filter large histories.
+:::
+::: column
+**Right — Panels**
 
-- Punkt A: Kurze Aussage
-- Punkt B: Weitere kurze Aussage
-- Punkt C: `inline-code` im Listenelement
-- Punkt D: **Fett** und *kursiv* kombiniert
-- Punkt E: Sehr lange Aussage, die über mehr als eine Zeile laufen soll, um hängende Einrückung zu prüfen
+Three right-hand panels share a single tab bar: **Preview**, **Outline**, and **AI**. Switch with a click or a keyboard shortcut. The preview updates live as you type.
+:::
+::::
 
-## 2.2 Geordnete Liste
+## 1.2 Keyboard shortcuts
 
-1. Ersten Schritt durchführen
-2. Ergebnis prüfen
-3. Ggf. korrigieren
-4. Nächsten Schritt starten
-5. Abschluss dokumentieren
+| Action | Shortcut |
+|:---|:---|
+| Toggle AI panel | `Alt+Space` / `Ctrl+Space` |
+| Bold | `Ctrl+B` |
+| Italic | `Ctrl+I` |
+| Export PDF | Share menu → Download PDF |
+| Next document | `Ctrl+→` |
+| Previous document | `Ctrl+←` |
+| Toggle sidebar | sidebar pin button |
 
-## 2.3 Verschachtelte Liste
+## 1.3 Layout presets
 
-- Kategorie 1
-  - Punkt 1.1
-  - Punkt 1.2
-    - Detail 1.2.1
-- Kategorie 2
-  - Punkt 2.1
+Switch the preview rendering between four presets:
 
-# 3 Tabellen
+Scientific
+: Wide margins, justified text, floating figures, citation support. Designed for academic papers and theses.
 
-## 3.1 Kompakttabelle mit Gitternetz
+Compact
+: Tight line spacing, grid tables, dense lists. Ideal for reference sheets, reports, and handbooks.
 
-Diese Tabelle prüft das Compact-Preset: Gitternetz soll sichtbar sein, Schrift etwas kleiner, Padding eng.
+Literary
+: Generous line height, slightly wider body font, chapter-style headings. For books and long-form prose.
 
-<!-- table:compact -->
-
-| Schritt | Beschreibung | Status |
-|---:|---|:---:|
-| 1 | Vorlage laden | ✓ |
-| 2 | Inhalt einfügen | ✓ |
-| 3 | Layout prüfen | ☐ |
-| 4 | Export testen | ☐ |
-| 5 | Freigeben | ☐ |
-
-## 3.2 Checkliste als Tabelle
-
-| Aufgabe | Priorität | Erledigt |
-|---|:---:|:---:|
-| Server-Konfiguration prüfen | Hoch | ☐ |
-| Backup anlegen | Hoch | ✓ |
-| Zugriffsrechte kontrollieren | Mittel | ☐ |
-| Logs auswerten | Mittel | ☐ |
-| Dokumentation aktualisieren | Niedrig | ☐ |
-| Monitoring einschalten | Niedrig | ☐ |
-
-## 3.3 Datentabelle mit vielen Zeilen
-
-| ID | Parameter | Wert | Einheit | Notiz |
-|---:|---|---:|---|---|
-| 1 | Temperatur | 23,4 | °C | Normwert |
-| 2 | Luftdruck | 1013 | hPa | Normwert |
-| 3 | Luftfeuchte | 58 | % | Normwert |
-| 4 | CO₂-Gehalt | 412 | ppm | Schwellenwert 800 |
-| 5 | Beleuchtung | 520 | Lux | Mindest 300 |
-| 6 | Lautstärke | 34 | dB | Grenzwert 55 |
-| 7 | Latenz | 12 | ms | Zielwert <50 |
-| 8 | Paketloss | 0,1 | % | Zielwert <1 |
-| 9 | CPU-Last | 14 | % | Zielwert <80 |
-| 10 | RAM-Nutzung | 62 | % | Zielwert <90 |
+Document
+: Uses the `layout` code fence from the Markdown source. Gives you full typographic control per document.
 
 <!-- page-break -->
 
-# 4 Abbildungen
+# 2 Markdown Syntax
 
-## 4.1 Float-Abbildung rechts
+## 2.1 Standard elements
 
-Das Compact-Preset prüft, ob ein kleines Float-Bild (30 % Breite) den Text sauber umfließen lässt. Der Text soll direkt neben dem Bild laufen, ohne Überlappung.
+mdedit.io renders standard CommonMark/GFM Markdown. All typical elements are supported.
 
-<!-- img: align=right width=30% shadow -->
+*Italic*, **bold**, ~~strikethrough~~, `inline code`, and ==highlighted text== all render correctly.
 
-![Abbildung 1: Quadratisches Referenzdiagramm (Float-Test)](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/9aeaae98.png)
+> mdedit.io is not a note-taking app. It is a production environment for documents that need to look right when exported.
+>
+> — mdedit.io project description
 
-Dieser Text umfließt das Bild. Er ist kurz, aber lang genug, um den Float sichtbar zu machen. Das `shadow`-Attribut prüft, ob ein dezenter Schatten gesetzt wird. Beim Compact-Preset soll der Schatten nicht zu dominant wirken.
+## 2.2 Task lists
 
-Nach dem Float: Der Text läuft wieder über die volle Breite.
+Release checklist for every deploy:
 
-## 4.2 Zentriertes Bild
+- [x] i18n validation passes
+- [x] Production audit clean
+- [x] Citation smoke test passes
+- [x] Visual smoke test passes
+- [ ] Paged preview parity test (in progress)
+- [ ] Layout unit tests in release gate
 
-<!-- img: align=center width=60% -->
+## 2.3 Tables with MultiMarkdown
 
-![Abbildung 2: Workflow-Diagramm — Datenfluss-Überblick](/assets/a2a9ae60-6e00-4d99-95a1-ef7f70ea01b7/c5bfdaad.png)
+mdedit.io supports MultiMarkdown table extensions: multi-line cells, row spans, header-less tables, and column alignment.
 
-Das Bild nimmt 60 % der Breite ein und ist zentriert. Beim Compact-Preset sollen Bildabstände kleiner sein als beim Literature-Preset.
+| Feature | Status | Notes |
+|:---|:---:|:---|
+| Live preview | ✓ | Updates on every keystroke |
+| PDF export | ✓ | Via Puppeteer/Chromium |
+| DOCX export | ✓ | Via Pandoc |
+| Collaboration | ✓ | With presence indicators |
+| AI assistant | ✓ | Multi-model, multi-chat |
+| Offline mode | — | Requires server connection |
 
-# 5 Admonitions
+## 2.4 Extended syntax
 
-## 5.1 Info-Box
+Beyond standard Markdown, mdedit.io adds:
 
-::: info
-Diese Info-Box prüft Hintergrundfarbe und Padding im Compact-Preset. Der Hintergrund soll sichtbar, aber sehr dezent sein. Die Box darf nicht mehr Raum einnehmen als nötig.
+Footnotes
+: Use `[^1]` in text and `[^1]: note` at the end.[^fn-example]
+
+Definition lists
+: This section shows them. Term on one line, `: Definition` below.
+
+Abbreviations
+: Define with `*[abbr]: expansion` anywhere in the document. The abbr renders the tooltip automatically.
+
+Subscript and superscript
+: H~2~O is water. E=mc^2^ is physics.
+
+Emoji
+: Use short codes: :rocket: :books: :white_check_mark:
+
+[^fn-example]: This is a footnote rendered by mdedit.io. It appears in the footer area on export.
+
+<!-- page-break -->
+
+# 3 Scientific Features
+
+## 3.1 Math with KaTeX
+
+mdedit.io renders mathematical formulas using KaTeX — both inline and as display blocks.
+
+Inline formula: the energy-mass equivalence is $E = mc^2$, where $m$ is mass and $c$ is the speed of light.
+
+The normal distribution probability density:
+
+$$
+f(x) = \frac{1}{\sigma\sqrt{2\pi}}\, e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
+$$
+
+The quadratic formula for roots of $ax^2 + bx + c = 0$:
+
+$$
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$
+
+## 3.2 Citations and bibliography
+
+In Document or Scientific mode, add a YAML frontmatter block with `bibliography` and `csl` fields. mdedit.io uses Citeproc via Pandoc to render in-text citations and a full bibliography on export.
+
+```yaml
+---
+title: My Paper
+author: A. Author
+bibliography: refs.bib
+csl: apa.csl
+---
+```
+
+Cite in text with `[@key]` or `@key`. The bibliography is placed automatically at the end of the document in the configured citation style.
+
+## 3.3 Admonitions
+
+::: note
+**Tip:** In Scientific preset, images inside a `figure` container float beside the text. Captions are rendered automatically from the alt text.
 :::
-
-## 5.2 Warning-Box
 
 ::: warning
-Diese Warning-Box prüft farbige Hintergründe im Compact-Kontext. Warnung muss sofort erkennbar sein, aber nicht wie ein Präsentationsslide wirken.
+**Export note:** Use the paged preview (Page view) to inspect page breaks before generating a PDF. What you see in paged preview is what Chromium renders.
 :::
 
-## 5.3 Horizontale Linie nach Admonition
+::: success
+**Collaboration:** Share a document link and edit together in real time. Presence indicators show who is active. Protect with a password if needed.
+:::
+
+<!-- page-break -->
+
+# 4 Mermaid Diagrams
+
+mdedit.io renders Mermaid diagrams directly from fenced code blocks. A visual editor with properties panel and zoom is available for diagram editing.
+
+## 4.1 Document pipeline
+
+```mermaid
+flowchart LR
+    A([Write Markdown]) --> B[Live Preview]
+    B --> C{Export format?}
+    C -->|PDF| D[Chromium/Paged.js]
+    C -->|DOCX| E[Pandoc/Citeproc]
+    D --> F([Final PDF])
+    E --> G([Final DOCX])
+```
+
+## 4.2 Supported diagram types
+
+```mermaid
+mindmap
+  root((mdedit.io\nDiagrams))
+    Flowchart
+    Sequence
+    State
+    Class
+    ER Diagram
+    Gantt
+    Mindmap
+    Timeline
+    Pie Chart
+    Journey
+    QuadrantChart
+    GitGraph
+```
+
+<!-- page-break -->
+
+# 5 Layout Control
+
+The `layout` code fence lets you define typographic settings per document, without touching any CSS. Settings cascade from the global preset.
+
+~~~markdown
+```layout
+page: A4
+margin: [25mm, 20mm, 25mm, 20mm]
+font-size: 11pt
+line-height: 1.5
+columns: 1
+header: "My Report | {date}"
+footer: "{title} | {page}"
+table-style: grid
+figure-style: float
+```
+~~~
+
+## 5.1 Columns
+
+Text can flow in two columns using the `columns` container:
+
+:::: columns
+::: column
+**Left column content.** The `columns` container wraps two or more `column` sections. Column width is equal by default.
+:::
+::: column
+**Right column content.** Useful for sidebars, comparison text, or reference material. Works in all layout presets.
+:::
+::::
+
+## 5.2 Page and section breaks
+
+Insert explicit breaks for print control:
+
+```markdown
+<!-- page-break -->
+<!-- section-break -->
+<!-- column-break -->
+```
+
+These are invisible in screen preview but control Paged.js rendering during PDF export.
+
+## 5.3 Paged preview
+
+The **Page view** panel renders the document as paginated pages using Paged.js before PDF generation. Headers, footers, page numbers, margins, and breaks all appear exactly as they will in the exported PDF.
+
+<!-- page-break -->
+
+# 6 Collaboration and Sharing
+
+## 6.1 Sharing
+
+The share menu in the editor header provides:
+
+- **Permalink**: a shareable link to this exact document
+- **Copy Markdown**: the raw source to the clipboard
+- **Copy formatted text**: rendered text for pasting into Word or email
+- **Download Markdown / DOCX / PDF**: direct file downloads
+- **Export ZIP**: the entire folder or all local data including assets
+
+## 6.2 Real-time collaboration
+
+Click the share button and enable **Allow shared editing**. mdedit.io shows presence indicators for all active participants. Set a display name in settings. Optionally protect the session with a password.
+
+# 7 AI Assistant
+
+The AI panel opens beside the preview with `Alt+Space`. It has access to the current document and supports:
+
+- Drafting, rewriting, and summarizing sections
+- Answering questions about the document content
+- Generating Mermaid diagrams from a description
+- Explaining KaTeX expressions
+- Multiple parallel chat sessions per document
+- Undo: AI-applied changes can be reverted
+
+Configure models in **Settings → AI Models**. Multiple providers are supported simultaneously.
+
+# 8 Self-Hosting
+
+mdedit.io is open source (Apache 2.0) and designed to run on your own infrastructure.
+
+```yaml
+# docker-compose.yml (simplified)
+services:
+  mdedit:
+    image: ghcr.io/matthiashertel21/mdedit:latest
+    ports:
+      - "3000:3000"
+    environment:
+      BASE_URL: https://your-domain.example.com
+    volumes:
+      - ./data:/app/data
+```
+
+All data stays in your `./data` volume. No external services required. PDF export uses Puppeteer inside the container; DOCX export uses Pandoc.
 
 ---
 
-Der Text nach der Linie prüft den Abstand. Die Linie soll dezent sein.
+*This document is generated with mdedit.io and demonstrates all major features. Export it as PDF to see the result.*
 
-# 6 Code
+*Source: [docs/examples/quickread-reference.md](https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/quickread-reference.md) — Apache 2.0*
 
-## 6.1 Inline-Code
-
-Starte den Server mit `npm start` oder `node server.js --port 3210`. Konfigurationsdateien liegen unter `/etc/app/config.yml`.
-
-## 6.2 Codeblock
-
-```bash
-# Server starten
-node server.js
-
-# Umgebungsvariablen prüfen
-echo "PORT=$PORT"
-echo "NODE_ENV=$NODE_ENV"
-
-# Logs tail
-tail -f /var/log/app/access.log | grep ERROR
-```
-
-```json
-{
-  "name": "mdedit-io",
-  "version": "1.0.0",
-  "preset": "compact",
-  "footer": false
-}
-```
-
-<!-- page-break -->
-
-# 7 Seitenumbruch-Test
-
-Dieser Abschnitt ist nach einem expliziten `<!-- page-break -->` gesetzt. Beim Compact-Preset soll kein unnötiger Leerraum nach dem Umbruch entstehen — der neue Abschnitt soll sofort oben auf der Seite beginnen.
-
-## 7.1 Liste nach Seitenumbruch
-
-- Die Liste beginnt direkt nach dem Seitenumbruch.
-- Sie prüft, ob der Abstand zwischen Seitenanfang und erstem Listenpunkt stimmt.
-- `code`, **fett**, *kursiv* in derselben Liste.
-- Langes Wort: Konfigurationsmanagementsystem — prüft Silbentrennung in Listen.
-
-## 7.2 Tabelle nach Umbruch
-
-<!-- table:compact -->
-
-| Prüfpunkt | Wert | OK? |
-|---|---:|:---:|
-| Seitenumbruch vorhanden | — | ☐ |
-| Kein Leerraum nach Umbruch | — | ☐ |
-| Liste korrekt eingerückt | — | ☐ |
-| Tabelle kompakt gesetzt | — | ☐ |
-
-# 8 Schlusskontrolle
-
-| Prüffrage | OK? | Kommentar |
-|---|:---:|---|
-| Enge Zeilenabstände sichtbar | ☐ | |
-| Überschriften kompakt | ☐ | |
-| Compact-Tabelle mit Gitternetz | ☐ | |
-| Float-Bild Textumfluss korrekt | ☐ | |
-| Zentriertes Bild korrekt | ☐ | |
-| Bildunterschriften erkannt | ☐ | |
-| Admonitions drucktauglich | ☐ | |
-| Info-Box dezenter Hintergrund | ☐ | |
-| Warning-Box erkennbar | ☐ | |
-| Inline-Code lesbar | ☐ | |
-| Codeblock nicht überbreit | ☐ | |
-| Horizontale Linie dezent | ☐ | |
-| Seitenumbruch sauber | ☐ | |
-| Kein MDLAYOUT-Token sichtbar | ☐ | |
-
-## 8.1 Iterationsnotiz
-
-Alle Korrekturen gehören ins globale Compact-Preset. Dieses Dokument ist ein Stresstest — keine lokalen Workarounds.

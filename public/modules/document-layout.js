@@ -64,7 +64,7 @@ export class DocumentLayout {
         enabled: true,
         hideOnFirstPage: false,
         left: '',
-        center: '{page} / {pages}',
+        center: '{page}',
         right: '',
         fontSize: '9pt',
         color: '#999999',

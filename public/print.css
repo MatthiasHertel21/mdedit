@@ -21,18 +21,13 @@
   }
 }
 
-/* First page: suppress footer (title page) */
+/* First page: suppress footer */
 @page :first {
   margin-top: 2.1cm;
   @bottom-right { content: none; border: none; }
 }
 
-/* Named page for .title-page element: no footer */
-@page title-page {
-  @bottom-right { content: none; border: none; }
-}
-
-/* Left and right pages: Balanced margins, no automatic page numbers */
+/* Left and right pages: Balanced margins */
 @page :left {
   margin-left: 2.5cm;
   margin-right: 2.1cm;
@@ -46,15 +41,15 @@
 /* ===== TITLE PAGE ===== */
 
 /* Pandoc fenced_divs outputs <section class="title-page"> */
+/* IMPORTANT: Do NOT add `page: title-page` — Paged.js inserts a blank page
+   when switching named page contexts. Use break-after + data-break-before instead. */
 .print-content .title-page,
 .print-content section.title-page {
-  page: title-page;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 220mm;
+  min-height: 240mm;
   text-align: center;
-  break-before: avoid;
   break-after: page;
   page-break-after: always;
 }
@@ -342,30 +337,32 @@
   -webkit-print-color-adjust: exact;
 }
 
-/* Pandoc syntax-highlighted code: .sourceCode wraps the pre */
-.print-content .sourceCode pre,
-.print-content div.sourceCode pre {
-  margin: 0;
-  padding: 13pt 15pt;
-  background: #f8f9fa;
-  border: none;
-  border-radius: 0;
-  font-size: 9.2pt;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.print-content .sourceCode,
+/* Pandoc syntax-highlighted code: <div class="sourceCode"><pre class="sourceCode ..."> */
 .print-content div.sourceCode {
-  margin: 14pt 0 16pt;
-  background: #f8f9fa;
-  border: 0.5pt solid #d1d5db;
-  border-left: 5pt solid #7a8fa0;
-  border-radius: 3pt;
+  margin: 12pt 0;
+  background: #f3f4f6;
+  border: 0.75pt solid #c8cdd4;
+  border-left: 3pt solid #7a8fa0;
+  border-radius: 2pt;
   break-inside: avoid;
   page-break-inside: avoid;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
+}
+
+.print-content div.sourceCode pre {
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 9pt 12pt;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 8.8pt;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+  text-align-last: auto;
 }
 
 .print-content pre code {
@@ -428,28 +425,42 @@
 }
 
 /* Compact table variant — denser spacing, smaller font */
-.print-content table.table-layout-compact {
+/* Applied either via JS (.table-layout-compact class) or via Pandoc-generated
+   div wrapper (class="table{layout=compact}") using attribute contains selector */
+.print-content table.table-layout-compact,
+.print-content [class*="layout=compact"] table {
   font-size: 8.5pt;
   margin: 12pt 0;
 }
 
 .print-content table.table-layout-compact th,
-.print-content table.table-layout-compact td {
+.print-content table.table-layout-compact td,
+.print-content [class*="layout=compact"] th,
+.print-content [class*="layout=compact"] td {
   padding: 2.5pt 5pt;
 }
 
 /* Scientific table variant — slightly larger, more breathing room */
-.print-content table.table-layout-scientific {
+.print-content table.table-layout-scientific,
+.print-content [class*="layout=scientific"] table {
   font-size: 9.5pt;
   margin: 20pt 0;
 }
 
-.print-content table.table-layout-scientific th {
+.print-content table.table-layout-scientific th,
+.print-content [class*="layout=scientific"] th {
   padding: 5pt 8pt;
 }
 
-.print-content table.table-layout-scientific td {
+.print-content table.table-layout-scientific td,
+.print-content [class*="layout=scientific"] td {
   padding: 4pt 8pt;
+}
+
+/* TOC page break: TOC should always start on a fresh page */
+.print-content .table-of-contents {
+  break-before: page;
+  page-break-before: always;
 }
 
 /* ===== IMAGES & FIGURES ===== */

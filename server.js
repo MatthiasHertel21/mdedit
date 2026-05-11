@@ -488,6 +488,7 @@ const shouldAttachSessionToRequest = (req) => {
     pathname === "/stats" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
+    pathname === "/llms.txt" ||
     pathname === "/security.txt" ||
     pathname === "/.well-known/security.txt" ||
     pathname === "/favicon.ico"
@@ -1434,7 +1435,7 @@ const normalizeScientificRefsPlaceholder = (markdown, { referenceSectionTitle } 
 };
 
 const stripTableMarkersForPandoc = (markdown) => String(markdown || "").replace(
-  /^[ \t]*:::\s*table\{[^}]*\}\s*\n([\s\S]*?)\n^[ \t]*:::\s*$/gm,
+  /^[ \t]*:::\s*table\{[^}]*\}\s*\n([\s\S]*?)\n[ \t]*:::[ \t]*$/gm,
   '$1'
 );
 
@@ -2303,12 +2304,33 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       line-height: 1.5 !important;
       white-space: pre-wrap !important;
       overflow-wrap: anywhere !important;
+      text-align: left !important;
+      text-align-last: auto !important;
       print-color-adjust: exact !important;
       -webkit-print-color-adjust: exact !important;
       break-inside: avoid !important;
       page-break-inside: avoid !important;
       border-radius: 2pt !important;
       margin: 12pt 0 !important;
+    }
+    /* Pandoc wraps syntax-highlighted code in <div class="sourceCode">.
+       Give it the visible frame; the inner pre overrides background to avoid double shading. */
+    .print-content div.sourceCode {
+      margin: 12pt 0 !important;
+      background: #f3f4f6 !important;
+      border: 0.75pt solid #c8cdd4 !important;
+      border-left: 3pt solid #7a8fa0 !important;
+      border-radius: 2pt !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    .print-content div.sourceCode pre {
+      margin: 0 !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
     }
     .print-content code,
     .print-content .sourceCode code {
@@ -2941,6 +2963,7 @@ app.get("/favicon.svg", async (req, reply) => serveStatic(req, reply, "favicon.s
 app.get("/favicon.ico", async (req, reply) => serveStatic(req, reply, "brand/mdedit-icon.png"));
 app.get("/robots.txt", async (req, reply) => serveStatic(req, reply, "robots.txt"));
 app.get("/sitemap.xml", async (req, reply) => serveStatic(req, reply, "sitemap.xml"));
+app.get("/llms.txt", async (req, reply) => serveStatic(req, reply, "llms.txt"));
 app.get("/tips.json", async (req, reply) => serveStatic(req, reply, "tips.json"));
 app.get("/tips-en.json", async (req, reply) => serveStatic(req, reply, "tips-en.json"));
 

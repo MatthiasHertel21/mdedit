@@ -1292,6 +1292,7 @@ const applySettings = (nextSettings) => {
     if ('lineWrapping' in nextSettings) {
       editorView.setOption('lineWrapping', Boolean(nextSettings.lineWrapping));
     }
+    syncResponsiveEditorChrome();
   }
   if ('hideLayoutBlock' in nextSettings || 'allowDocumentLayouts' in nextSettings) {
     updateLayoutBlockVisibility();
@@ -1328,6 +1329,9 @@ const elements = {
   treeInline: document.getElementById("treeInline"),
   nodeContent: document.getElementById("nodeContent"),
   nodeStatsBtn: document.getElementById("nodeStatsBtn"),
+  notFoundModal: document.getElementById("notFoundModal"),
+  notFoundOverlay: document.getElementById("notFoundOverlay"),
+  notFoundClose: document.getElementById("notFoundClose"),
   permalinkBtn: document.getElementById("permalinkBtn"),
   copyMdBtn: document.getElementById("copyMdBtn"),
   downloadMdBtn: document.getElementById("downloadMdBtn"),
@@ -1355,15 +1359,37 @@ const elements = {
   previewRightResizer: document.querySelector(".preview-right-resizer"),
   treeResizer: document.querySelector(".tree-resizer"),
   sidebar: document.getElementById("sidebar"),
+  mobileTopbar: document.querySelector(".mobile-topbar"),
   mobileSidebarBackdrop: document.getElementById("mobileSidebarBackdrop"),
-  mobileSpacesBtn: document.getElementById("mobileSpacesBtn"),
-  mobileCurrentSpaceName: document.getElementById("mobileCurrentSpaceName"),
+  mobileSidebarToggle: document.getElementById("mobileSidebarToggle"),
+  mobileFoldersBtn: document.getElementById("mobileFoldersBtn"),
+  mobileCurrentFolderName: document.getElementById("mobileCurrentFolderName"),
+  mobileTopbarPrimaryHost: document.getElementById("mobileTopbarPrimaryHost"),
+  mobileSidebarMenuActions: document.getElementById("mobileSidebarMenuActions"),
+  mobileMenuPagedBtn: document.getElementById("mobileMenuPagedBtn"),
+  mobileMenuTipsBtn: document.getElementById("mobileMenuTipsBtn"),
+  mobileMenuSettingsBtn: document.getElementById("mobileMenuSettingsBtn"),
+  mobileMenuLayoutBtn: document.getElementById("mobileMenuLayoutBtn"),
+  mobileSidebarContextActions: document.getElementById("mobileSidebarContextActions"),
+  mobileEditScreenBtn: document.getElementById("mobileEditScreenBtn"),
+  mobileRenderScreenBtn: document.getElementById("mobileRenderScreenBtn"),
+  mobileTreeScreenBtn: document.getElementById("mobileTreeScreenBtn"),
+  mobileAiScreenBtn: document.getElementById("mobileAiScreenBtn"),
+  mobileTopbarSidebarActions: document.getElementById("mobileTopbarSidebarActions"),
+  mobileContextLabel: document.getElementById("mobileContextLabel"),
+  mobileContextActions: document.getElementById("mobileContextActions"),
   mobileOverflowToggle: document.getElementById("mobileOverflowToggle"),
   mobileOverflowPanel: document.getElementById("mobileOverflowPanel"),
   mobileMenuHistoryToggle: document.getElementById("mobileMenuHistoryToggle"),
+  mobileRenderViewBtn: document.getElementById("mobileRenderViewBtn"),
+  mobileTreeViewBtn: document.getElementById("mobileTreeViewBtn"),
+  mobileAiChatViewBtn: document.getElementById("mobileAiChatViewBtn"),
+  mobilePagedViewBtn: document.getElementById("mobilePagedViewBtn"),
+  mobileLayoutEditorMenuBtn: document.getElementById("mobileLayoutEditorMenuBtn"),
   mobileTipsBtn: document.getElementById("mobileTipsBtn"),
   mobileSettingsBtn: document.getElementById("mobileSettingsBtn"),
   mobileEditorToggle: document.getElementById("mobileEditorToggle"),
+  mobileSplitToggle: document.getElementById("mobileSplitToggle"),
   mobilePreviewToggle: document.getElementById("mobilePreviewToggle"),
   mobileStackedToggle: document.getElementById("mobileStackedToggle"),
   footerStats: document.getElementById("footerStats"),
@@ -1385,6 +1411,13 @@ const elements = {
   previewPresetItems: Array.from(document.querySelectorAll(".preview-preset-item")),
   previewPrintItem: document.getElementById("previewPrintItem"),
   sidebarBrandTrigger: document.getElementById("sidebarBrandTrigger"),
+  sidebarUtilityActions: document.getElementById("sidebarUtilityActions"),
+  editorHeaderPrimaryActions: document.getElementById("editorHeaderPrimaryActions"),
+  editorHeaderShareActions: document.getElementById("editorHeaderShareActions"),
+  editorHeaderActions: document.getElementById("editorHeaderActions"),
+  previewHeaderActions: document.getElementById("previewHeaderActions"),
+  treeHeaderActions: document.getElementById("treeHeaderActions"),
+  chatHeaderActions: document.getElementById("chatHeaderActions"),
   tipsModal: document.getElementById("tipsModal"),
   tipsOverlay: document.getElementById("tipsOverlay"),
   tipsClose: document.getElementById("tipsClose"),
@@ -1398,21 +1431,26 @@ const elements = {
   tipsDemoBtn: document.getElementById("tipsDemoBtn"),
   tipsStartBtn: document.getElementById("tipsStartBtn"),
   resetAllDataBtn: document.getElementById("resetAllDataBtn"),
-  workspaceSelect: document.getElementById("workspaceSelect"),
-  newWorkspaceBtn: document.getElementById("newWorkspaceBtn"),
-  renameWorkspaceBtn: document.getElementById("renameWorkspaceBtn"),
-  deleteWorkspaceBtn: document.getElementById("deleteWorkspaceBtn"),
-  workspaceInfo: document.getElementById("workspaceInfo"),
+  folderSelect: document.getElementById("folderSelect"),
+  newFolderBtn: document.getElementById("newFolderBtn"),
+  renameFolderBtn: document.getElementById("renameFolderBtn"),
+  deleteFolderBtn: document.getElementById("deleteFolderBtn"),
+  folderInfo: document.getElementById("folderInfo"),
   exportAllBtn: document.getElementById("exportAllBtn"),
   backupZipBtn: document.getElementById("backupZipBtn"),
   syncNowBtn: document.getElementById("syncNowBtn"),
   clearSyncBtn: document.getElementById("clearSyncBtn"),
   syncStatus: document.getElementById("syncStatus"),
-  currentSpaceName: document.getElementById("currentSpaceName"),
-  spacesModal: document.getElementById("spacesModal"),
-  spacesOverlay: document.getElementById("spacesOverlay"),
-  spacesClose: document.getElementById("spacesClose"),
-  spacesGrid: document.getElementById("spacesGrid"),
+  currentFolderName: document.getElementById("currentFolderName"),
+  foldersModal: document.getElementById("foldersModal"),
+  foldersOverlay: document.getElementById("foldersOverlay"),
+  foldersClose: document.getElementById("foldersClose"),
+  foldersCurrentInfo: document.getElementById("foldersCurrentInfo"),
+  foldersNewDocBtn: document.getElementById("foldersNewDocBtn"),
+  foldersDeleteDocBtn: document.getElementById("foldersDeleteDocBtn"),
+  foldersNewFolderBtn: document.getElementById("foldersNewFolderBtn"),
+  foldersDeleteCurrentBtn: document.getElementById("foldersDeleteCurrentBtn"),
+  foldersGrid: document.getElementById("foldersGrid"),
   togglePrintViewBtn: document.getElementById("togglePrintViewBtn"),
   printPreviewBody: document.getElementById("printPreviewBody"),
   printPreview: document.getElementById("printPreview"),
@@ -1464,12 +1502,15 @@ let currentView = "preview";
 const mobileWorkspaceViewKey = "mobileWorkspaceView";
 const mobileLayoutMedia = window.matchMedia("(max-width: 768px)");
 const normalizeMobileWorkspaceView = (view) => (
-  view === "editor" || view === "preview" || view === "stacked" ? view : "stacked"
+  view === "preview"
+    ? "preview"
+    : "editor"
 );
 let mobileSidebarOpen = false;
-let mobileWorkspaceView = normalizeMobileWorkspaceView(localStorage.getItem(mobileWorkspaceViewKey) || "stacked");
+let mobileWorkspaceView = normalizeMobileWorkspaceView(localStorage.getItem(mobileWorkspaceViewKey) || "editor");
 let mobileOverflowOpen = false;
 let printViewActive = false;
+let lastIsMobileLayout = mobileLayoutMedia.matches;
 let lastSavedMarkdown = "";
 let aiChat = null;
 let lastHeadings = [];
@@ -1506,6 +1547,90 @@ const sidebarCollapsedKey = "sidebarCollapsed";
 let sidebarPinMode = localStorage.getItem(sidebarPinModeKey) || "unpinned";
 let sidebarCollapsed = localStorage.getItem(sidebarCollapsedKey) !== "false";
 
+const mobileActionSources = {
+  sidebarUtilityActions: () => elements.sidebarUtilityActions,
+  editorHeaderShareActions: () => elements.editorHeaderShareActions,
+  editorHeaderActions: () => elements.editorHeaderActions,
+  previewHeaderActions: () => elements.previewHeaderActions,
+  treeHeaderActions: () => elements.treeHeaderActions,
+  chatHeaderActions: () => elements.chatHeaderActions
+};
+
+const isPreviewScreenActive = () => (
+  normalizeMobileWorkspaceView(mobileWorkspaceView) === "preview" && currentView === "preview"
+);
+
+const updateMobileTopbarShortcuts = () => {
+  const normalizedView = normalizeMobileWorkspaceView(mobileWorkspaceView);
+  const previewScreenActive = normalizedView === "preview";
+  const previewMenuVisible = isPreviewScreenActive();
+
+  elements.mobileEditScreenBtn?.classList.toggle("active", normalizedView === "editor");
+  elements.mobileRenderScreenBtn?.classList.toggle("active", previewScreenActive && currentView === "preview" && !printViewActive);
+  elements.mobileTreeScreenBtn?.classList.toggle("active", previewScreenActive && currentView === "tree");
+  elements.mobileAiScreenBtn?.classList.toggle("active", previewScreenActive && currentView === "chat");
+  elements.mobileMenuPagedBtn?.classList.toggle("active", printViewActive);
+  elements.mobileMenuPagedBtn?.setAttribute("aria-pressed", printViewActive ? "true" : "false");
+  elements.mobileMenuPagedBtn?.classList.toggle("hidden", !previewMenuVisible);
+  elements.mobileMenuLayoutBtn?.classList.toggle("hidden", !previewMenuVisible);
+  elements.mobileSidebarContextActions?.classList.toggle("hidden", getMobileSidebarActionKeys().length === 0);
+};
+
+const restoreMobileActionTarget = (target) => {
+  if (!target) return;
+  Array.from(target.children).forEach((child) => {
+    const sourceKey = child.dataset.mobileActionSource;
+    const source = sourceKey ? mobileActionSources[sourceKey]?.() : null;
+    if (source) {
+      source.appendChild(child);
+    }
+  });
+};
+
+const moveMobileActionChildren = (sourceKey, target) => {
+  const source = mobileActionSources[sourceKey]?.();
+  if (!source || !target) return;
+  Array.from(source.children).forEach((child) => {
+    child.dataset.mobileActionSource = sourceKey;
+    target.appendChild(child);
+  });
+};
+
+const getMobileSidebarActionKeys = () => {
+  if (currentView === "chat") {
+    return ["chatHeaderActions"];
+  }
+  if (isPreviewScreenActive()) {
+    return ["previewHeaderActions"];
+  }
+  return [];
+};
+
+const syncMobileTopbarContext = () => {
+  restoreMobileActionTarget(elements.mobileTopbarPrimaryHost);
+  restoreMobileActionTarget(elements.mobileSidebarContextActions);
+
+  if (!mobileLayoutMedia.matches) {
+    const app = elements.sidebar?.closest(".app");
+    app?.style.removeProperty("--mobile-topbar-height");
+    return;
+  }
+
+  moveMobileActionChildren("editorHeaderShareActions", elements.mobileTopbarPrimaryHost);
+  getMobileSidebarActionKeys().forEach((sourceKey) => moveMobileActionChildren(sourceKey, elements.mobileSidebarContextActions));
+  requestAnimationFrame(() => {
+    const app = elements.sidebar?.closest(".app");
+    const mobileTopbarHeight = Math.ceil(elements.mobileTopbar?.getBoundingClientRect().height || 0);
+    if (app && mobileTopbarHeight > 0) {
+      app.style.setProperty("--mobile-topbar-height", `${mobileTopbarHeight}px`);
+    }
+  });
+};
+
+const setMobileActivePane = (pane) => {
+  setMobileWorkspaceView(pane === "preview" ? "preview" : "editor");
+};
+
 const updateMobileWorkspaceView = () => {
   const app = elements.sidebar?.closest(".app");
   if (!app) return;
@@ -1513,15 +1638,13 @@ const updateMobileWorkspaceView = () => {
   mobileWorkspaceView = normalizedView;
   app.classList.toggle("mobile-view-editor", mobileLayoutMedia.matches && normalizedView === "editor");
   app.classList.toggle("mobile-view-preview", mobileLayoutMedia.matches && normalizedView === "preview");
-  app.classList.toggle("mobile-view-stacked", mobileLayoutMedia.matches && normalizedView === "stacked");
-  [
-    [elements.mobileEditorToggle, "editor"],
-    [elements.mobilePreviewToggle, "preview"],
-    [elements.mobileStackedToggle, "stacked"]
-  ].forEach(([button, view]) => {
-    button?.classList.toggle("active", normalizedView === view);
-    button?.setAttribute("aria-selected", normalizedView === view ? "true" : "false");
-  });
+  app.classList.remove("mobile-view-split");
+  app.classList.remove("mobile-view-stacked");
+  app.classList.remove("mobile-focus-editor");
+  app.classList.remove("mobile-focus-preview");
+  setGridColumns();
+  syncMobileTopbarContext();
+  updateMobileTopbarShortcuts();
 };
 
 const setMobileWorkspaceView = (view) => {
@@ -1541,6 +1664,10 @@ const updateMobileOverflowState = () => {
   elements.mobileOverflowPanel?.classList.toggle("hidden", !mobileOverflowOpen);
   elements.mobileOverflowToggle?.setAttribute("aria-expanded", mobileOverflowOpen ? "true" : "false");
   elements.mobileOverflowToggle?.classList.toggle("active", mobileOverflowOpen);
+  elements.mobileRenderViewBtn?.classList.toggle("active", currentView === "preview" && !printViewActive);
+  elements.mobileTreeViewBtn?.classList.toggle("active", currentView === "tree");
+  elements.mobileAiChatViewBtn?.classList.toggle("active", currentView === "chat");
+  elements.mobilePagedViewBtn?.classList.toggle("active", printViewActive);
 };
 
 const closeMobileOverflow = () => {
@@ -1560,14 +1687,27 @@ const toggleMobileSidebar = () => {
   updateSidebarState();
 };
 
+const applyMobileDefaultSurface = () => {
+  if (!mobileLayoutMedia.matches) return;
+  if (printViewActive) {
+    togglePrintView();
+  }
+  setMobileWorkspaceView("editor");
+};
+
 const syncResponsiveLayoutState = () => {
-  if (!mobileLayoutMedia.matches) {
+  const isMobileLayout = mobileLayoutMedia.matches;
+  if (!isMobileLayout) {
     mobileSidebarOpen = false;
     mobileOverflowOpen = false;
+  } else if (!lastIsMobileLayout) {
+    applyMobileDefaultSurface();
   }
+  lastIsMobileLayout = isMobileLayout;
   updateSidebarState();
   updateMobileOverflowState();
   updateMobileWorkspaceView();
+  syncResponsiveEditorChrome();
 };
 
 const updateSidebarState = () => {
@@ -1586,7 +1726,6 @@ const updateSidebarState = () => {
   if (elements.mobileSidebarBackdrop) {
     elements.mobileSidebarBackdrop.hidden = !(isMobileLayout && mobileSidebarOpen);
   }
-  elements.mobileMenuHistoryToggle?.classList.toggle("active", isMobileLayout && mobileSidebarOpen);
   elements.pinToggle?.classList.toggle("active", sidebarPinMode !== "unpinned");
   const label = elements.pinToggle?.querySelector(".icon-label");
   if (elements.pinToggle) {
@@ -3236,7 +3375,7 @@ const closeTipsModal = () => {
   saveSettings(activeSettings);
 };
 
-// Workspace Management
+// Folder UI management
 const getWorkspaces = () => {
   const workspaces = localStorage.getItem("workspaces");
   const parsed = workspaces
@@ -3249,9 +3388,9 @@ const saveWorkspaces = (workspaces) => {
   localStorage.setItem("workspaces", JSON.stringify(workspaces));
 };
 
-const loadWorkspaceSelect = () => {
+const loadFolderSelect = () => {
   const workspaces = getWorkspaces();
-  const select = elements.workspaceSelect;
+  const select = elements.folderSelect;
   if (!select) return;
   
   select.innerHTML = "";
@@ -3263,29 +3402,49 @@ const loadWorkspaceSelect = () => {
     select.appendChild(option);
   });
   
-  updateWorkspaceInfo();
+  updateFolderInfo();
 };
 
-const updateWorkspaceInfo = () => {
+const updateFolderInfo = () => {
   const workspaces = getWorkspaces();
   const workspace = workspaces[currentWorkspace];
-  if (!workspace || !elements.workspaceInfo) return;
+  if (!workspace || !elements.folderInfo) return;
   
   const count = workspace.pastes?.length || 0;
-  elements.workspaceInfo.textContent = t("workspaceInfo")
+  const folderInfoText = t("workspaceInfo")
     .replace("{name}", workspace.name)
     .replace("{count}", count);
+  elements.folderInfo.textContent = folderInfoText;
   
-  // Update current space name display
-  if (elements.currentSpaceName) {
-    elements.currentSpaceName.textContent = workspace.name;
+  // Update current folder name display
+  if (elements.currentFolderName) {
+    elements.currentFolderName.textContent = workspace.name;
   }
-  if (elements.mobileCurrentSpaceName) {
-    elements.mobileCurrentSpaceName.textContent = workspace.name;
+  if (elements.mobileCurrentFolderName) {
+    elements.mobileCurrentFolderName.textContent = workspace.name;
+  }
+  if (elements.mobileFoldersBtn) {
+    elements.mobileFoldersBtn.title = folderInfoText;
+    elements.mobileFoldersBtn.setAttribute("aria-label", folderInfoText);
+  }
+  if (elements.foldersCurrentInfo) {
+    elements.foldersCurrentInfo.textContent = folderInfoText;
+  }
+  const hasCurrentDocument = Boolean(currentPasteId);
+  if (elements.foldersDeleteDocBtn) {
+    elements.foldersDeleteDocBtn.disabled = !hasCurrentDocument;
+    elements.foldersDeleteDocBtn.title = hasCurrentDocument ? "Aktuelles Dokument löschen" : "Kein aktuelles Dokument";
+    elements.foldersDeleteDocBtn.setAttribute("aria-label", elements.foldersDeleteDocBtn.title);
+  }
+  const canDeleteCurrentFolder = currentWorkspace !== "default" && Object.keys(workspaces).length > 1;
+  if (elements.foldersDeleteCurrentBtn) {
+    elements.foldersDeleteCurrentBtn.disabled = !canDeleteCurrentFolder;
+    elements.foldersDeleteCurrentBtn.title = canDeleteCurrentFolder ? t("workspaceDelete") : t("workspaceDefaultNoDelete");
+    elements.foldersDeleteCurrentBtn.setAttribute("aria-label", elements.foldersDeleteCurrentBtn.title);
   }
 };
 
-const updateWorkspacePastes = () => {
+const updateFolderPastes = () => {
   // Sync current workspace with actual pastes from server
   const workspaces = getWorkspaces();
   const workspace = workspaces[currentWorkspace];
@@ -3293,13 +3452,13 @@ const updateWorkspacePastes = () => {
   
   workspace.pastes = historyCache.map(p => p.id);
   saveWorkspaces(workspaces);
-  updateWorkspaceInfo();
+  updateFolderInfo();
 };
 
-const switchWorkspace = (workspaceId) => {
+const switchFolder = (workspaceId) => {
   currentWorkspace = workspaceId;
   localStorage.setItem("currentWorkspace", workspaceId);
-  loadWorkspaceSelect();
+  loadFolderSelect();
   
   // Filter history to show only pastes from this workspace
   const workspaces = getWorkspaces();
@@ -3313,7 +3472,7 @@ const switchWorkspace = (workspaceId) => {
         historyCache = pastes.filter((p) => workspacePasteIds.has(normalizePasteId(p.id)));
         historyCache = workspace.pinned ? orderByWorkspace(workspace, historyCache) : applyHistoryOrder(historyCache);
         scheduleRenderHistory();
-        updateWorkspaceInfo();
+        updateFolderInfo();
         
         // Check if current paste belongs to this workspace
         if (currentPasteId && !workspacePasteIds.has(normalizePasteId(currentPasteId))) {
@@ -3343,7 +3502,7 @@ const switchWorkspace = (workspaceId) => {
   }
 };
 
-const createWorkspace = () => {
+const createFolder = () => {
   const name = prompt(t("workspaceNewPrompt"));
   if (!name || !name.trim()) return;
   
@@ -3352,11 +3511,11 @@ const createWorkspace = () => {
   workspaces[id] = { name: name.trim(), pastes: [], pinned: false };
   saveWorkspaces(workspaces);
   
-  switchWorkspace(id);
+  switchFolder(id);
   setStatus(t("workspaceCreated"), "success");
 };
 
-const renameWorkspace = () => {
+const renameFolder = () => {
   if (currentWorkspace === "default") {
     setStatus(t("workspaceDefaultNoRename"), "error");
     return;
@@ -3369,17 +3528,21 @@ const renameWorkspace = () => {
   
   workspace.name = newName.trim();
   saveWorkspaces(workspaces);
-  loadWorkspaceSelect();
+  loadFolderSelect();
   setStatus(t("workspaceRenamed"), "success");
 };
 
-const deleteWorkspace = () => {
+const deleteFolder = () => {
+  const workspaces = getWorkspaces();
+  if (Object.keys(workspaces).length <= 1) {
+    setStatus(t("workspaceDefaultNoDelete"), "error");
+    return;
+  }
   if (currentWorkspace === "default") {
     setStatus(t("workspaceDefaultNoDelete"), "error");
     return;
   }
-  
-  const workspaces = getWorkspaces();
+
   const workspace = workspaces[currentWorkspace];
   const count = workspace.pastes?.length || 0;
   
@@ -3392,20 +3555,27 @@ const deleteWorkspace = () => {
   delete workspaces[currentWorkspace];
   saveWorkspaces(workspaces);
   
-  switchWorkspace("default");
+  switchFolder("default");
   setStatus(t("workspaceDeleted"), "success");
 };
 
-// Spaces Overview
-const openSpacesOverview = async () => {
-  elements.spacesModal?.classList.remove("hidden");
-  elements.spacesOverlay?.classList.remove("hidden");
-  await renderSpacesGrid();
+// Folders overview
+const openFoldersOverview = async () => {
+  closeMobileSidebar();
+  elements.foldersModal?.classList.remove("hidden");
+  elements.foldersOverlay?.classList.remove("hidden");
+  updateFolderInfo();
+  await renderFoldersGrid();
 };
 
-const closeSpacesOverview = () => {
-  elements.spacesModal?.classList.add("hidden");
-  elements.spacesOverlay?.classList.add("hidden");
+const closeFoldersOverview = () => {
+  elements.foldersModal?.classList.add("hidden");
+  elements.foldersOverlay?.classList.add("hidden");
+};
+
+const closeNotFoundModal = () => {
+  elements.notFoundModal?.classList.add("hidden");
+  elements.notFoundOverlay?.classList.add("hidden");
 };
 
 const triggerBlobDownload = (blob, filename) => {
@@ -3453,7 +3623,7 @@ const addAssetsToZip = async (zip, assetUrls) => {
   }));
 };
 
-const downloadSpaceZip = async (workspaceId) => {
+const downloadFolderZip = async (workspaceId) => {
   const workspaces = getWorkspaces();
   const workspace = workspaces[workspaceId];
   if (!workspace) return;
@@ -3489,8 +3659,8 @@ const downloadSpaceZip = async (workspaceId) => {
     }));
 
     const blob = await zip.generateAsync({ type: "blob" });
-    const safeSpaceName = toSafeFilename(workspace.name, "space");
-    triggerBlobDownload(blob, `${safeSpaceName}.zip`);
+    const safeFolderName = toSafeFilename(workspace.name, "folder");
+    triggerBlobDownload(blob, `${safeFolderName}.zip`);
     return true;
   } catch (error) {
     console.error("Failed to load pastes for ZIP:", error);
@@ -3559,27 +3729,28 @@ const downloadBackupZip = async () => {
   }
 };
 
-const renderSpacesGrid = async () => {
-  if (!elements.spacesGrid) return;
+const renderFoldersGrid = async () => {
+  if (!elements.foldersGrid) return;
   
   const workspaces = getWorkspaces();
   const allPastes = await fetch("/api/pastes").then(r => r.json());
   
-  elements.spacesGrid.innerHTML = "";
+  elements.foldersGrid.innerHTML = "";
   
   // Render each workspace as a column
   Object.keys(workspaces).forEach(workspaceId => {
     const workspace = workspaces[workspaceId];
     const column = document.createElement("div");
-    column.className = "space-column";
+    column.className = "folder-column";
+    column.classList.toggle("is-current", workspaceId === currentWorkspace);
     column.dataset.workspaceId = workspaceId;
     
     // Header with editable name
     const header = document.createElement("div");
-    header.className = "space-header";
+    header.className = "folder-header";
     
     const nameInput = document.createElement("input");
-    nameInput.className = "space-name";
+    nameInput.className = "folder-name";
     nameInput.value = workspace.name;
     nameInput.readOnly = true;
     
@@ -3595,7 +3766,7 @@ const renderSpacesGrid = async () => {
       if (nameInput.value.trim() && nameInput.value !== workspace.name) {
         workspace.name = nameInput.value.trim();
         saveWorkspaces(workspaces);
-        updateWorkspaceInfo();
+        updateFolderInfo();
       } else {
         nameInput.value = workspace.name;
       }
@@ -3616,39 +3787,39 @@ const renderSpacesGrid = async () => {
     header.addEventListener("click", (e) => {
       if (e.target === nameInput && !nameInput.readOnly) return;
       if (currentWorkspace !== workspaceId) {
-        switchWorkspace(workspaceId);
-        closeSpacesOverview();
+        switchFolder(workspaceId);
+        closeFoldersOverview();
         setStatus(t("workspaceSwitched"), "success");
       }
     });
 
     const actions = document.createElement("div");
-    actions.className = "space-actions";
+    actions.className = "folder-actions";
 
     const pinBtn = document.createElement("button");
     pinBtn.type = "button";
-    pinBtn.className = `space-action-btn space-pin${workspace.pinned ? " active" : ""}`;
+    pinBtn.className = `folder-action-btn folder-pin${workspace.pinned ? " active" : ""}`;
     pinBtn.title = "Pin";
     pinBtn.innerHTML = '<i class="fa-solid fa-thumbtack"></i>';
     pinBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       workspace.pinned = !workspace.pinned;
       saveWorkspaces(workspaces);
-      renderSpacesGrid();
+      renderFoldersGrid();
       if (currentWorkspace === workspaceId) {
-        switchWorkspace(currentWorkspace);
+        switchFolder(currentWorkspace);
       }
     });
     actions.appendChild(pinBtn);
 
     const zipBtn = document.createElement("button");
     zipBtn.type = "button";
-    zipBtn.className = "space-action-btn space-zip";
+    zipBtn.className = "folder-action-btn folder-zip";
     zipBtn.title = "ZIP";
     zipBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i>';
     zipBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      downloadSpaceZip(workspaceId);
+      downloadFolderZip(workspaceId);
     });
     actions.appendChild(zipBtn);
     
@@ -3656,17 +3827,21 @@ const renderSpacesGrid = async () => {
     if (workspaceId !== "default") {
       const deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
-      deleteBtn.className = "space-delete";
+      deleteBtn.className = "folder-delete";
       deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
       deleteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        if (Object.keys(workspaces).length <= 1) {
+          setStatus(t("workspaceDefaultNoDelete"), "error");
+          return;
+        }
         if (confirm(t("workspaceDeleteConfirm").replace("{name}", workspace.name).replace("{count}", workspace.pastes?.length || 0))) {
           delete workspaces[workspaceId];
           saveWorkspaces(workspaces);
           if (currentWorkspace === workspaceId) {
-            switchWorkspace("default");
+            switchFolder("default");
           }
-          renderSpacesGrid();
+          renderFoldersGrid();
         }
       });
       actions.appendChild(deleteBtn);
@@ -3678,7 +3853,7 @@ const renderSpacesGrid = async () => {
     
     // Files container
     const filesContainer = document.createElement("div");
-    filesContainer.className = "space-files";
+    filesContainer.className = "folder-files";
     filesContainer.dataset.workspaceId = workspaceId;
     
     // Add pastes belonging to this workspace
@@ -3690,7 +3865,7 @@ const renderSpacesGrid = async () => {
       workspacePastes.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     }
     workspacePastes.forEach(paste => {
-      const card = createSpaceFileCard(paste, workspaceId);
+      const card = createFolderFileCard(paste, workspaceId);
       filesContainer.appendChild(card);
     });
     
@@ -3698,8 +3873,8 @@ const renderSpacesGrid = async () => {
     filesContainer.addEventListener("dragover", (e) => {
       e.preventDefault();
       filesContainer.classList.add("drag-over");
-      const targetCard = e.target.closest(".space-file-card");
-      const cards = filesContainer.querySelectorAll(".space-file-card");
+      const targetCard = e.target.closest(".folder-file-card");
+      const cards = filesContainer.querySelectorAll(".folder-file-card");
       cards.forEach((card) => card.classList.remove("drop-before", "drop-after"));
       if (targetCard && filesContainer.contains(targetCard)) {
         const rect = targetCard.getBoundingClientRect();
@@ -3712,20 +3887,20 @@ const renderSpacesGrid = async () => {
       if (e.target === filesContainer) {
         filesContainer.classList.remove("drag-over");
       }
-      const cards = filesContainer.querySelectorAll(".space-file-card");
+      const cards = filesContainer.querySelectorAll(".folder-file-card");
       cards.forEach((card) => card.classList.remove("drop-before", "drop-after"));
     });
     
     filesContainer.addEventListener("drop", async (e) => {
       e.preventDefault();
       filesContainer.classList.remove("drag-over");
-      const cards = filesContainer.querySelectorAll(".space-file-card");
+      const cards = filesContainer.querySelectorAll(".folder-file-card");
       cards.forEach((card) => card.classList.remove("drop-before", "drop-after"));
       
       const pasteIdRaw = e.dataTransfer.getData("text/plain");
       const pasteId = normalizePasteId(pasteIdRaw);
-      const sourceWorkspaceId = e.dataTransfer.getData("workspace");
-      const targetCard = e.target.closest(".space-file-card");
+      const sourceFolderId = e.dataTransfer.getData("folder");
+      const targetCard = e.target.closest(".folder-file-card");
       
       if (!pasteIdRaw) return;
       
@@ -3750,37 +3925,37 @@ const renderSpacesGrid = async () => {
       targetIds.splice(targetIndex, 0, pasteId);
       
       // Move paste to this workspace
-      if (sourceWorkspaceId !== workspaceId) {
+      if (sourceFolderId !== workspaceId) {
         // Remove from source workspace
-        if (sourceWorkspaceId && workspaces[sourceWorkspaceId]) {
-          workspaces[sourceWorkspaceId].pastes = workspaces[sourceWorkspaceId].pastes.filter(id => normalizePasteId(id) !== pasteId);
+        if (sourceFolderId && workspaces[sourceFolderId]) {
+          workspaces[sourceFolderId].pastes = workspaces[sourceFolderId].pastes.filter(id => normalizePasteId(id) !== pasteId);
         }
       }
 
       workspaces[workspaceId].pastes = targetIds;
-      if (sourceWorkspaceId === workspaceId || targetCard) {
+      if (sourceFolderId === workspaceId || targetCard) {
         workspaces[workspaceId].pinned = true;
       }
       
       saveWorkspaces(workspaces);
-      await renderSpacesGrid();
+      await renderFoldersGrid();
       
       // Refresh history when the current workspace is affected
-      if (sourceWorkspaceId === currentWorkspace || workspaceId === currentWorkspace) {
-        switchWorkspace(currentWorkspace);
+      if (sourceFolderId === currentWorkspace || workspaceId === currentWorkspace) {
+        switchFolder(currentWorkspace);
       }
     });
     
     column.appendChild(filesContainer);
-    elements.spacesGrid.appendChild(column);
+    elements.foldersGrid.appendChild(column);
   });
   
-  // Add "New Space" column
+  // Add "New Folder" column
   const newColumn = document.createElement("div");
-  newColumn.className = "space-column new-space";
+  newColumn.className = "folder-column new-folder";
   
   const addBtn = document.createElement("button");
-  addBtn.className = "add-space-btn";
+  addBtn.className = "add-folder-btn";
   addBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
   addBtn.title = t("workspaceNew");
   addBtn.addEventListener("click", () => {
@@ -3790,41 +3965,44 @@ const renderSpacesGrid = async () => {
       const id = `ws_${Date.now()}`;
       workspaces[id] = { name: name.trim(), pastes: [], pinned: false };
       saveWorkspaces(workspaces);
-      renderSpacesGrid();
+      renderFoldersGrid();
     }
   });
   
   newColumn.appendChild(addBtn);
-  elements.spacesGrid.appendChild(newColumn);
+  elements.foldersGrid.appendChild(newColumn);
 };
 
-const createSpaceFileCard = (paste, workspaceId) => {
+const createFolderFileCard = (paste, workspaceId) => {
   const card = document.createElement("div");
-  card.className = "space-file-card";
+  card.className = "folder-file-card";
   card.draggable = true;
   card.dataset.pasteId = paste.id;
+  const isCurrentPaste = normalizePasteId(paste.id) === normalizePasteId(currentPasteId);
+  card.classList.toggle("is-current", isCurrentPaste);
+  card.setAttribute("aria-current", isCurrentPaste ? "true" : "false");
   
   card.innerHTML = `
-    <div class="space-file-main">
-      <div class="space-file-title">${escapeHtml(paste.title)}</div>
-      <div class="space-file-meta">${new Date(paste.updated_at).toLocaleDateString()}</div>
+    <div class="folder-file-main">
+      <div class="folder-file-title">${escapeHtml(paste.title)}</div>
+      <div class="folder-file-meta">${new Date(paste.updated_at).toLocaleDateString()}</div>
     </div>
-    <button class="space-file-delete" type="button" title="${t("delete")}" aria-label="${t("delete")}">
+    <button class="folder-file-delete" type="button" title="${t("delete")}" aria-label="${t("delete")}">
       <i class="fa-solid fa-xmark"></i>
     </button>
   `;
 
-  const deleteBtn = card.querySelector(".space-file-delete");
+  const deleteBtn = card.querySelector(".folder-file-delete");
   deleteBtn?.addEventListener("click", async (e) => {
     e.stopPropagation();
     await deletePaste(paste.id);
-    await renderSpacesGrid();
+    await renderFoldersGrid();
   });
   
   card.addEventListener("dragstart", (e) => {
     card.classList.add("dragging");
     e.dataTransfer.setData("text/plain", paste.id);
-    e.dataTransfer.setData("workspace", workspaceId);
+    e.dataTransfer.setData("folder", workspaceId);
   });
   
   card.addEventListener("dragend", () => {
@@ -3832,9 +4010,9 @@ const createSpaceFileCard = (paste, workspaceId) => {
   });
   
   card.addEventListener("click", () => {
-    closeSpacesOverview();
+    closeFoldersOverview();
     if (currentWorkspace !== workspaceId) {
-      switchWorkspace(workspaceId);
+      switchFolder(workspaceId);
     }
     setTimeout(() => loadPaste(paste.id), 100);
   });
@@ -3854,7 +4032,7 @@ const rotateWorkspace = (direction) => {
     nextIndex = (currentIndex - 1 + keys.length) % keys.length;
   }
   
-  switchWorkspace(keys[nextIndex]);
+  switchFolder(keys[nextIndex]);
   setStatus(t("workspaceSwitched") + ": " + workspaces[keys[nextIndex]].name, "success");
 };
 
@@ -4127,6 +4305,9 @@ const togglePrintView = () => {
   elements.togglePrintViewBtn?.classList.toggle("active", printViewActive);
   elements.previewPrintItem?.classList.toggle("active", printViewActive);
   localStorage.setItem("printViewActive", printViewActive ? "true" : "false");
+  updateMobileOverflowState();
+  syncMobileTopbarContext();
+  updateMobileTopbarShortcuts();
 };
 
 const setView = (view) => {
@@ -4154,6 +4335,9 @@ const setView = (view) => {
     const viewName = btn.dataset.view;
     btn.classList.toggle("active", viewName === view);
   });
+  updateMobileOverflowState();
+  syncMobileTopbarContext();
+  updateMobileTopbarShortcuts();
   
   refreshHeadingData();
   
@@ -4571,7 +4755,7 @@ const loadHistory = async () => {
     historyCache = applyHistoryOrder(historyCache);
   }
   scheduleRenderHistory();
-  updateWorkspaceInfo();
+  updateFolderInfo();
 };
 
 const renderHistory = () => {
@@ -5409,6 +5593,21 @@ const remoteCursorBookmarks = new Map();
 const remoteCursorPositions = new Map();
 let remoteCursorGutterLines = new Set();
 
+function getResponsiveEditorGutters() {
+  return mobileLayoutMedia.matches
+    ? [COLLAB_GUTTER_ID]
+    : ["CodeMirror-linenumbers", COLLAB_GUTTER_ID, "CodeMirror-foldgutter"];
+}
+
+function syncResponsiveEditorChrome() {
+  if (!editorView) return;
+  const isMobileEditor = mobileLayoutMedia.matches;
+  editorView.setOption("lineNumbers", isMobileEditor ? false : Boolean(activeSettings.lineNumbers));
+  editorView.setOption("foldGutter", !isMobileEditor);
+  editorView.setOption("gutters", getResponsiveEditorGutters());
+  editorView.refresh();
+}
+
 const getCollabMemberMeta = (memberId) => {
   const collabManager = window.collabSupport?.getCollabManager?.();
   const member = collabManager?.getAllMembers?.().find((entry) => entry.id === memberId);
@@ -5638,10 +5837,27 @@ const scrollToHeadingWithRatio = (heading, nextHeading, ratio) => {
 const jumpToHeading = (node) => {
   const heading = headingMetrics.headings.find((h) => h.slug === node.slug);
   if (heading) {
-    scrollToHeading(heading);
-    if (elements.nodeContent) {
-      elements.nodeContent.scrollTop = 0;
+    const revealHeading = () => {
+      const line = Math.max(0, heading.line ?? 0);
+      scrollToHeading(heading);
+      if (editorView) {
+        editorView.setCursor({ line, ch: 0 });
+        editorView.scrollIntoView({ line, ch: 0 }, 120);
+        editorView.focus();
+      }
+      if (elements.nodeContent) {
+        elements.nodeContent.scrollTop = 0;
+      }
+      requestAnimationFrame(highlightTreeBranchForCursor);
+    };
+
+    if (mobileLayoutMedia.matches) {
+      setMobileWorkspaceView("editor");
+      requestAnimationFrame(revealHeading);
+      return;
     }
+
+    revealHeading();
   }
 };
 
@@ -5665,8 +5881,10 @@ window.addEventListener("resize", () => {
 const setGridColumns = () => {
   if (mobileLayoutMedia.matches) {
     elements.content.style.gridTemplateColumns = "";
+    elements.content.style.gridTemplateRows = "";
     return;
   }
+  elements.content.style.gridTemplateRows = "";
   if (splitRatio === null) {
     elements.content.style.gridTemplateColumns = "";
     return;
@@ -5679,6 +5897,7 @@ const initColumns = () => {
   if (!elements.content) return;
   if (mobileLayoutMedia.matches) {
     elements.content.style.gridTemplateColumns = "";
+    elements.content.style.gridTemplateRows = "";
     if (editorView && typeof editorView.setSize === "function") {
       editorView.setSize(null, "100%");
     }
@@ -5764,7 +5983,7 @@ const onMouseUp = (event) => {
 };
 
 const startDrag = (mode) => (event) => {
-  if ((mode === "editor-preview" || mode === "preview-right") && mobileLayoutMedia.matches) {
+  if (mobileLayoutMedia.matches) {
     return;
   }
   event.preventDefault();
@@ -6652,9 +6871,9 @@ const initEditor = () => {
   editorView = window.CodeMirror.fromTextArea(textarea, {
     mode: activeSettings.syntaxHighlight ? "markdown" : null,
     lineWrapping: Boolean(activeSettings.lineWrapping),
-    lineNumbers: activeSettings.lineNumbers,
-    foldGutter: true,
-    gutters: ["CodeMirror-linenumbers", COLLAB_GUTTER_ID, "CodeMirror-foldgutter"],
+    lineNumbers: !mobileLayoutMedia.matches && activeSettings.lineNumbers,
+    foldGutter: !mobileLayoutMedia.matches,
+    gutters: getResponsiveEditorGutters(),
     foldOptions: {
       rangeFinder: mermaidBlockFolder
     },
@@ -6689,6 +6908,7 @@ const initEditor = () => {
       }
     }
   });
+  syncResponsiveEditorChrome();
 
   editorView.setSize(null, "100%");
   updateLayoutBlockVisibility();
@@ -6800,18 +7020,25 @@ document.addEventListener("click", (event) => {
   elements.previewPresetMenu.classList.add("hidden");
 });
 
-elements.shareBtn?.addEventListener("click", () => {
-  elements.shareMenu?.classList.toggle("hidden");
+const setShareMenuOpen = (open) => {
+  elements.shareMenu?.classList.toggle("hidden", !open);
+  elements.shareBtn?.setAttribute("aria-expanded", open ? "true" : "false");
+};
+
+elements.shareBtn?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  const shouldOpen = elements.shareMenu?.classList.contains("hidden") ?? true;
+  setShareMenuOpen(shouldOpen);
 });
 elements.shareMenu?.addEventListener("click", (event) => {
   event.stopPropagation();
-  elements.shareMenu?.classList.add("hidden");
+  setShareMenuOpen(false);
 });
 document.addEventListener("click", (event) => {
   const target = event.target;
   if (!elements.shareMenu || !elements.shareBtn) return;
   if (elements.shareMenu.contains(target) || elements.shareBtn.contains(target)) return;
-  elements.shareMenu.classList.add("hidden");
+  setShareMenuOpen(false);
 });
 
 elements.permalinkBtn?.addEventListener("click", async () => {
@@ -6872,6 +7099,8 @@ elements.sidebarBrandTrigger?.addEventListener("click", (event) => {
   event.preventDefault();
   showTipsModal({ forceIntro: true });
 });
+elements.notFoundClose?.addEventListener("click", closeNotFoundModal);
+elements.notFoundOverlay?.addEventListener("click", closeNotFoundModal);
 elements.settingsClose?.addEventListener("click", closeSettings);
 elements.settingsOverlay?.addEventListener("click", closeSettings);
 elements.layoutEditorClose?.addEventListener("click", closeLayoutEditor);
@@ -7650,19 +7879,19 @@ elements.resetAllDataBtn?.addEventListener("click", async () => {
   }
 });
 
-// Workspace event listeners
-elements.workspaceSelect?.addEventListener("change", () => {
-  switchWorkspace(elements.workspaceSelect.value);
+// Folder event listeners
+elements.folderSelect?.addEventListener("change", () => {
+  switchFolder(elements.folderSelect.value);
 });
 
-elements.newWorkspaceBtn?.addEventListener("click", createWorkspace);
-elements.renameWorkspaceBtn?.addEventListener("click", renameWorkspace);
-elements.deleteWorkspaceBtn?.addEventListener("click", deleteWorkspace);
+elements.newFolderBtn?.addEventListener("click", createFolder);
+elements.renameFolderBtn?.addEventListener("click", renameFolder);
+elements.deleteFolderBtn?.addEventListener("click", deleteFolder);
 
 // Sync action event listeners
 elements.exportAllBtn?.addEventListener("click", async () => {
   setStatus(t("syncExporting"), "info");
-  const success = await downloadSpaceZip(currentWorkspace);
+  const success = await downloadFolderZip(currentWorkspace);
   if (success) {
     setStatus(t("syncExportSuccess"), "success");
   }
@@ -7699,14 +7928,18 @@ elements.tipsModal?.addEventListener("mouseenter", clearTipsStartupAutoClose);
 elements.tipsModal?.addEventListener("keydown", clearTipsStartupAutoClose);
 elements.nextTipBtn?.addEventListener("click", displayRandomTip);
 elements.tipsDemoBtn?.addEventListener("click", loadDemoDocument);
+document.getElementById("mobileMenuDemoBtn")?.addEventListener("click", () => {
+  closeMobileSidebar();
+  loadDemoDocument();
+});
 elements.tipsStartBtn?.addEventListener("click", closeTipsModal);
 elements.tipsImprintBtn?.addEventListener("click", () => {
   closeTipsModal();
   openSettingsTab("about");
 });
-elements.currentSpaceName?.addEventListener("click", openSpacesOverview);
-elements.spacesClose?.addEventListener("click", closeSpacesOverview);
-elements.spacesOverlay?.addEventListener("click", closeSpacesOverview);
+elements.currentFolderName?.addEventListener("click", openFoldersOverview);
+elements.foldersClose?.addEventListener("click", closeFoldersOverview);
+elements.foldersOverlay?.addEventListener("click", closeFoldersOverview);
 
 // Mermaid Editor Event Listeners
 elements.mermaidEditorClose?.addEventListener("click", () => closeMermaidEditor(true));
@@ -7848,34 +8081,100 @@ elements.pinToggle?.addEventListener("click", () => {
   }
 });
 elements.mobileSidebarBackdrop?.addEventListener("click", closeMobileSidebar);
-elements.mobileOverflowToggle?.addEventListener("click", (event) => {
+elements.mobileSidebarToggle?.addEventListener("click", (event) => {
   event.stopPropagation();
-  toggleMobileOverflow();
-});
-elements.mobileMenuHistoryToggle?.addEventListener("click", () => {
-  closeMobileOverflow();
   toggleMobileSidebar();
 });
-elements.mobileSpacesBtn?.addEventListener("click", () => {
+elements.mobileFoldersBtn?.addEventListener("click", () => {
   closeMobileSidebar();
-  closeMobileOverflow();
-  openSpacesOverview();
+  if (!elements.foldersModal?.classList.contains("hidden")) {
+    closeFoldersOverview();
+  } else {
+    openFoldersOverview();
+  }
 });
-elements.mobileTipsBtn?.addEventListener("click", () => {
+elements.mobileEditScreenBtn?.addEventListener("click", () => {
   closeMobileSidebar();
-  closeMobileOverflow();
+  if (printViewActive) {
+    togglePrintView();
+  }
+  setMobileWorkspaceView("editor");
+});
+elements.mobileRenderScreenBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  if (printViewActive) {
+    togglePrintView();
+  }
+  setMobileWorkspaceView("preview");
+  setView("preview");
+});
+elements.mobileTreeScreenBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  if (printViewActive) {
+    togglePrintView();
+  }
+  setMobileWorkspaceView("preview");
+  setView("tree");
+});
+elements.mobileAiScreenBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  if (printViewActive) {
+    togglePrintView();
+  }
+  setMobileWorkspaceView("preview");
+  setView("chat");
+});
+elements.mobileMenuPagedBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  togglePrintView();
+});
+elements.mobileMenuTipsBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
   showTipsModal();
 });
-elements.mobileSettingsBtn?.addEventListener("click", () => {
+elements.mobileMenuSettingsBtn?.addEventListener("click", () => {
   closeMobileSidebar();
-  closeMobileOverflow();
   openSettings();
 });
-elements.mobileEditorToggle?.addEventListener("click", () => setMobileWorkspaceView("editor"));
-elements.mobilePreviewToggle?.addEventListener("click", () => setMobileWorkspaceView("preview"));
-elements.mobileStackedToggle?.addEventListener("click", () => setMobileWorkspaceView("stacked"));
+elements.mobileMenuLayoutBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  openLayoutEditor(previewPreset || "scientific");
+});
+elements.foldersNewDocBtn?.addEventListener("click", () => {
+  closeFoldersOverview();
+  resetEditor();
+  if (mobileLayoutMedia.matches) {
+    setMobileWorkspaceView("editor");
+  }
+});
+elements.foldersDeleteDocBtn?.addEventListener("click", async () => {
+  if (!currentPasteId) return;
+  await deletePaste(currentPasteId);
+  updateFolderInfo();
+  await renderFoldersGrid();
+});
+elements.foldersNewFolderBtn?.addEventListener("click", async () => {
+  const beforeCount = Object.keys(getWorkspaces()).length;
+  createFolder();
+  updateFolderInfo();
+  if (Object.keys(getWorkspaces()).length !== beforeCount) {
+    await renderFoldersGrid();
+  }
+});
+elements.foldersDeleteCurrentBtn?.addEventListener("click", async () => {
+  const beforeKey = currentWorkspace;
+  const beforeCount = Object.keys(getWorkspaces()).length;
+  deleteFolder();
+  updateFolderInfo();
+  if (currentWorkspace !== beforeKey || Object.keys(getWorkspaces()).length !== beforeCount) {
+    await renderFoldersGrid();
+  }
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    closeNotFoundModal();
+    closeFoldersOverview();
+    closeLayoutEditor();
     closeSettings();
     closeMobileSidebar();
     closeMobileOverflow();
@@ -7891,7 +8190,7 @@ document.addEventListener("keydown", (event) => {
   if (event.ctrlKey && !event.shiftKey && !event.altKey) {
     if (event.key === "0") {
       event.preventDefault();
-      openSpacesOverview();
+      openFoldersOverview();
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
       rotateWorkspace(1);
@@ -8056,6 +8355,10 @@ if (savedPrintView === "true") {
   togglePrintView();
 }
 
+if (mobileLayoutMedia.matches) {
+  applyMobileDefaultSurface();
+}
+
 refreshHeadingData();
 renderPreview();
 renderTree();
@@ -8080,7 +8383,7 @@ if (urlPasteId && uuidPattern.test(urlPasteId)) {
   }
 
   loadHistory().then(() => {
-    loadWorkspaceSelect();
+    loadFolderSelect();
     
     // Try to restore last viewed document
     const lastPasteId = localStorage.getItem("lastPasteId");
@@ -8104,7 +8407,7 @@ if (urlPasteId && uuidPattern.test(urlPasteId)) {
     }
     
     // Show startup tips if enabled
-    if (activeSettings.showStartupTips) {
+    if (activeSettings.showStartupTips && !mobileLayoutMedia.matches) {
       showTipsModal({ autoClose: true });
     }
   });

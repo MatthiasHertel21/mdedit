@@ -16,16 +16,13 @@ link-bibliography: true
 
 ::: title-page
 
-# Markdown als Schreib- und Produktionsumgebung für wissenschaftliche Arbeiten
+# Markdown als Schreib- und Produktionsumgebung für wissenschaftliche Arbeiten {.no-toc}
 
-## Eine kriteriologische Bewertung von mdedit.io im Vergleich zu Word und LaTeX
+## Eine kriteriologische Bewertung von mdedit.io im Vergleich zu Word und LaTeX {.no-toc}
 
 **Max Beispiel**  
 Masterarbeit · Universität Beispiel · 2026-05-10
 
-:::
-
-::: page-break
 :::
 
 ## Abstract {.no-toc}
