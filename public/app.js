@@ -1899,6 +1899,26 @@ const formatCitationAuthors = (authors = []) => {
   return formatted.join("; ") || "-";
 };
 
+const getCitationItemTitle = (item) => item?.title || t("citationUntitled");
+
+const getCitationEditorTitle = () => t(citationEditorIndex === null ? "citationNewSource" : "citationEditSource");
+
+const syncCitationUiTranslations = () => {
+  if (elements.bibliographyModal && !elements.bibliographyModal.classList.contains("hidden")) {
+    renderBibliographyList();
+  }
+  if (elements.citationEditorTitle && elements.citationEditorModal && !elements.citationEditorModal.classList.contains("hidden")) {
+    elements.citationEditorTitle.textContent = getCitationEditorTitle();
+  }
+  document.querySelectorAll("#citationAuthorList .citation-author-row").forEach((row) => {
+    row.querySelector(".citation-author-family")?.setAttribute("placeholder", t("citationAuthorFamily"));
+    row.querySelector(".citation-author-given")?.setAttribute("placeholder", t("citationAuthorGiven"));
+    row.querySelector(".citation-author-remove")?.setAttribute("aria-label", t("citationAuthorRemove"));
+    row.querySelector(".citation-author-remove")?.setAttribute("title", t("citationAuthorRemove"));
+  });
+  updateBibliographyBlockVisibility();
+};
+
 const updateCitationIndicator = () => {
   const text = getMarkdown();
   const items = extractEmbeddedBibliographyItems(text);
@@ -1919,12 +1939,12 @@ const renderBibliographyList = () => {
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "bibliography-empty";
-    empty.textContent = "Keine Quellen vorhanden.";
+    empty.textContent = t("citationEmpty");
     list.appendChild(empty);
     return;
   }
 
-  items.forEach((item) => {
+  items.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "bibliography-row";
     const year = item?.issued?.["date-parts"]?.[0]?.[0] ?? "-";
@@ -1934,28 +1954,33 @@ const renderBibliographyList = () => {
           <code class="bibliography-key">${escapeHtml(item?.id || "")}</code>
           <span class="bibliography-type">${escapeHtml(item?.type || "")}</span>
         </div>
-        <div class="bibliography-title">${escapeHtml(item?.title || "Ohne Titel")}</div>
+        <div class="bibliography-title">${escapeHtml(getCitationItemTitle(item))}</div>
         <div class="bibliography-meta">${escapeHtml(formatCitationAuthors(item?.author || []))} · ${escapeHtml(String(year))}</div>
       </div>
       <div class="bibliography-actions">
-        <button class="header-icon bibliography-insert-btn" type="button" title="Zitat einfügen" aria-label="Zitat einfügen">
+        <button class="header-icon bibliography-insert-btn" type="button" title="${escapeHtml(t("citationInsert"))}" aria-label="${escapeHtml(t("citationInsert"))}">
           <i class="fa-solid fa-quote-right"></i>
         </button>
-        <button class="header-icon bibliography-edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten">
+        <button class="header-icon bibliography-edit-btn" type="button" title="${escapeHtml(t("edit"))}" aria-label="${escapeHtml(t("edit"))}">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button class="header-icon bibliography-delete-btn" type="button" title="Löschen" aria-label="Löschen">
+        <button class="header-icon bibliography-delete-btn" type="button" title="${escapeHtml(t("delete"))}" aria-label="${escapeHtml(t("delete"))}">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>`;
     row.querySelector(".bibliography-insert-btn")?.addEventListener("click", () => insertCitationKey(item?.id || ""));
-    row.querySelector(".bibliography-edit-btn")?.addEventListener("click", () => openCitationEditor(item, items.indexOf(item)));
+    row.querySelector(".bibliography-edit-btn")?.addEventListener("click", () => openCitationEditor(item, index));
     row.querySelector(".bibliography-delete-btn")?.addEventListener("click", () => {
+      const itemTitle = getCitationItemTitle(item);
+      if (!confirm(t("citationDeleteConfirm").replace("{title}", itemTitle))) {
+        return;
+      }
       const nextItems = readBibliographyItems();
-      nextItems.splice(items.indexOf(item), 1);
+      nextItems.splice(index, 1);
       writeBibliographyItems(nextItems);
       renderBibliographyList();
       updateCitationIndicator();
+      setStatus(t("citationDeleteSuccess").replace("{title}", itemTitle), "success");
     });
     list.appendChild(row);
   });
@@ -1998,9 +2023,9 @@ const renderAuthorList = (authors = [{ family: "", given: "" }]) => {
     const row = document.createElement("div");
     row.className = "citation-author-row";
     row.innerHTML = `
-      <input class="setting-input citation-author-family" type="text" placeholder="Nachname" value="${escapeHtml(author.family || "")}" />
-      <input class="setting-input citation-author-given" type="text" placeholder="Vorname" value="${escapeHtml(author.given || "")}" />
-      <button class="header-icon citation-author-remove" type="button" aria-label="Autor entfernen" title="Autor entfernen">
+      <input class="setting-input citation-author-family" type="text" placeholder="${escapeHtml(t("citationAuthorFamily"))}" value="${escapeHtml(author.family || "")}" />
+      <input class="setting-input citation-author-given" type="text" placeholder="${escapeHtml(t("citationAuthorGiven"))}" value="${escapeHtml(author.given || "")}" />
+      <button class="header-icon citation-author-remove" type="button" aria-label="${escapeHtml(t("citationAuthorRemove"))}" title="${escapeHtml(t("citationAuthorRemove"))}">
         <i class="fa-solid fa-xmark"></i>
       </button>`;
     row.querySelector(".citation-author-remove")?.addEventListener("click", () => {
@@ -2030,7 +2055,7 @@ const openCitationEditor = (item = null, index = null) => {
   document.getElementById("citationFieldUrl").value = item?.URL || "";
   document.getElementById("citationFieldNote").value = item?.note || "";
   renderAuthorList(item?.author || []);
-  elements.citationEditorTitle.textContent = index === null ? "Neue Quelle" : "Quelle bearbeiten";
+  elements.citationEditorTitle.textContent = getCitationEditorTitle();
   elements.citationEditorModal?.classList.remove("hidden");
   elements.citationEditorOverlay?.classList.remove("hidden");
 };
@@ -2043,13 +2068,13 @@ const closeCitationEditor = () => {
 const saveCitationEditor = () => {
   const key = document.getElementById("citationFieldKey")?.value.trim();
   if (!key) {
-    setStatus("Citation Key erforderlich.", "error");
+    setStatus(t("citationKeyRequired"), "error");
     return;
   }
 
   const items = readBibliographyItems();
   if (items.some((entry, index) => entry.id === key && index !== citationEditorIndex)) {
-    setStatus("Citation Key bereits vorhanden.", "error");
+    setStatus(t("citationKeyExists"), "error");
     return;
   }
 
@@ -2135,7 +2160,8 @@ const updateBibliographyBlockVisibility = () => {
   const placeholder = document.createElement("button");
   placeholder.type = "button";
   placeholder.className = "bibliography-block-placeholder";
-  placeholder.textContent = `{bibliography: ${extractEmbeddedBibliographyItems(text).length} items}`;
+  placeholder.textContent = t("citationBibliographyBlockPlaceholder")
+    .replace("{count}", extractEmbeddedBibliographyItems(text).length);
   placeholder.addEventListener("click", () => {
     bibliographyBlockMarker?.clear();
     bibliographyBlockMarker = null;
@@ -2525,6 +2551,7 @@ const applyTranslations = async () => {
     elements.previewPresetLabel.textContent = t(key);
   }
   updateHelpLinks();
+  syncCitationUiTranslations();
 };
 
 const applyTheme = (theme) => {
@@ -4426,7 +4453,7 @@ const renderCitationPreview = async () => {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      elements.preview.innerHTML = `<div class="preview-error">${escapeHtml(payload.error || "Citation-Rendering fehlgeschlagen")}</div>`;
+      elements.preview.innerHTML = `<div class="preview-error">${escapeHtml(payload.error || t("citationRenderFailed"))}</div>`;
       finalizePreviewRender();
       return true;
     }

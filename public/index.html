@@ -90,14 +90,11 @@
         <div id="collapsedOpenItems" class="collapsed-open-items"></div>
         <div class="sidebar-content">
           <div id="currentFolderName" class="current-folder-name">Standard</div>
+          <div id="mobileSidebarContextActions" class="mobile-sidebar-context-actions"></div>
           <div id="mobileSidebarMenuActions" class="mobile-sidebar-menu-actions">
             <button id="mobileMenuPagedBtn" class="icon" type="button" aria-label="Paged Mode" title="Paged Mode">
               <i class="fa-solid fa-file-lines"></i>
               <span class="icon-label">Paged Mode</span>
-            </button>
-            <button id="mobileMenuLayoutBtn" class="icon" type="button" aria-label="Layout-Einstellungen" title="Layout-Einstellungen">
-              <i class="fa-solid fa-swatchbook"></i>
-              <span class="icon-label">Layout-Einstellungen</span>
             </button>
             <button id="mobileTreeScreenBtn" class="icon" type="button" aria-label="Baum" title="Baum" data-i18n-aria="tree" data-i18n-title="tree">
               <i class="fa-solid fa-network-wired"></i>
@@ -121,7 +118,6 @@
               <span class="icon-label">Hilfe</span>
             </a>
           </div>
-          <div id="mobileSidebarContextActions" class="mobile-sidebar-context-actions"></div>
           <div id="historyList" class="history"></div>
         </div>
         <div class="sidebar-bottom">
@@ -177,7 +173,7 @@
                   <button id="newPasteBtn" class="header-icon" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
                     <i class="fa-solid fa-plus"></i>
                   </button>
-                  <button id="citationIndicatorBtn" class="header-icon hidden" type="button" title="Bibliografie" aria-label="Bibliografie">
+                  <button id="citationIndicatorBtn" class="header-icon hidden" type="button" title="Bibliografie" aria-label="Bibliografie" data-i18n-title="citationBibliography" data-i18n-aria="citationBibliography">
                     <i class="fa-solid fa-book-bookmark"></i>
                     <span id="citationIndicatorCount" class="header-icon-badge hidden"></span>
                   </button>
@@ -723,7 +719,7 @@
                   <span class="slider"></span>
                 </label>
                 <div class="setting-text">
-                  <div class="setting-title">Bibliografie-Block im Editor ausblenden</div>
+                  <div class="setting-title" data-i18n="settingHideBibliographyBlock">Bibliografie-Block im Editor ausblenden</div>
                 </div>
               </div>
               <div class="setting">
@@ -1112,11 +1108,11 @@
     <div id="bibliographyOverlay" class="modal-overlay hidden"></div>
     <div id="bibliographyModal" class="modal modal-large hidden" role="dialog" aria-modal="true" aria-labelledby="bibliographyTitle">
       <div class="modal-header">
-        <h2 id="bibliographyTitle">Bibliografie</h2>
+        <h2 id="bibliographyTitle" data-i18n="citationBibliography">Bibliografie</h2>
         <div class="modal-header-actions">
-          <button id="bibliographyNewBtn" class="btn-secondary" type="button">Neue Quelle</button>
+          <button id="bibliographyNewBtn" class="btn-secondary" type="button" data-i18n="citationNewSource">Neue Quelle</button>
         </div>
-        <button id="bibliographyClose" class="icon" type="button" aria-label="Schließen">
+        <button id="bibliographyClose" class="icon" type="button" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -1128,81 +1124,81 @@
     <div id="citationEditorOverlay" class="modal-overlay hidden"></div>
     <div id="citationEditorModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="citationEditorTitle">
       <div class="modal-header">
-        <h2 id="citationEditorTitle">Quelle</h2>
-        <button id="citationEditorClose" class="icon" type="button" aria-label="Schließen">
+        <h2 id="citationEditorTitle" data-i18n="citationSource">Quelle</h2>
+        <button id="citationEditorClose" class="icon" type="button" aria-label="Schließen" data-i18n-aria="close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="modal-body bibliography-editor-body">
         <div class="bibliography-form-grid">
           <label>
-            <span>Typ</span>
+            <span data-i18n="citationType">Typ</span>
             <select id="citationFieldType" class="setting-input">
-              <option value="article-journal">Zeitschriftenartikel</option>
-              <option value="book">Buch</option>
-              <option value="chapter">Buchkapitel</option>
-              <option value="thesis">Abschlussarbeit</option>
-              <option value="webpage">Webseite</option>
-              <option value="report">Bericht</option>
-              <option value="paper-conference">Konferenzbeitrag</option>
+              <option value="article-journal" data-i18n="citationTypeArticleJournal">Zeitschriftenartikel</option>
+              <option value="book" data-i18n="citationTypeBook">Buch</option>
+              <option value="chapter" data-i18n="citationTypeChapter">Buchkapitel</option>
+              <option value="thesis" data-i18n="citationTypeThesis">Abschlussarbeit</option>
+              <option value="webpage" data-i18n="citationTypeWebpage">Webseite</option>
+              <option value="report" data-i18n="citationTypeReport">Bericht</option>
+              <option value="paper-conference" data-i18n="citationTypeConferencePaper">Konferenzbeitrag</option>
             </select>
           </label>
           <label>
-            <span>Citation Key</span>
+            <span data-i18n="citationKey">Citation Key</span>
             <input id="citationFieldKey" class="setting-input" type="text" />
           </label>
           <label class="field-span-2">
-            <span>Titel</span>
+            <span data-i18n="citationTitle">Titel</span>
             <input id="citationFieldTitle" class="setting-input" type="text" />
           </label>
           <label>
-            <span>Jahr</span>
+            <span data-i18n="citationYear">Jahr</span>
             <input id="citationFieldYear" class="setting-input" type="number" min="1000" max="2099" />
           </label>
           <label>
-            <span>Typ / Werk</span>
+            <span data-i18n="citationContainerTitle">Typ / Werk</span>
             <input id="citationFieldContainer" class="setting-input" type="text" />
           </label>
           <label>
-            <span>Band</span>
+            <span data-i18n="citationVolume">Band</span>
             <input id="citationFieldVolume" class="setting-input" type="text" />
           </label>
           <label>
-            <span>Heft</span>
+            <span data-i18n="citationIssue">Heft</span>
             <input id="citationFieldIssue" class="setting-input" type="text" />
           </label>
           <label>
-            <span>Seiten</span>
+            <span data-i18n="citationPages">Seiten</span>
             <input id="citationFieldPages" class="setting-input" type="text" />
           </label>
           <label>
-            <span>Verlag</span>
+            <span data-i18n="citationPublisher">Verlag</span>
             <input id="citationFieldPublisher" class="setting-input" type="text" />
           </label>
           <label class="field-span-2">
-            <span>DOI</span>
+            <span data-i18n="citationDoi">DOI</span>
             <input id="citationFieldDoi" class="setting-input" type="text" />
           </label>
           <label class="field-span-2">
-            <span>URL</span>
+            <span data-i18n="citationUrl">URL</span>
             <input id="citationFieldUrl" class="setting-input" type="url" />
           </label>
           <label class="field-span-2">
-            <span>Notiz</span>
+            <span data-i18n="citationNote">Notiz</span>
             <textarea id="citationFieldNote" class="setting-input" rows="2"></textarea>
           </label>
         </div>
         <div class="citation-authors-panel">
           <div class="citation-authors-header">
-            <span>Autor:innen</span>
-            <button id="citationAddAuthor" class="btn-secondary" type="button">Autor hinzufügen</button>
+            <span data-i18n="citationAuthors">Autor:innen</span>
+            <button id="citationAddAuthor" class="btn-secondary" type="button" data-i18n="citationAddAuthor">Autor hinzufügen</button>
           </div>
           <div id="citationAuthorList" class="citation-author-list"></div>
         </div>
       </div>
       <div class="modal-footer bibliography-editor-footer">
-        <button id="citationEditorCancel" class="btn-secondary" type="button">Abbrechen</button>
-        <button id="citationEditorSave" class="btn-primary" type="button">Speichern</button>
+        <button id="citationEditorCancel" class="btn-secondary" type="button" data-i18n="cancel">Abbrechen</button>
+        <button id="citationEditorSave" class="btn-primary" type="button" data-i18n="save">Speichern</button>
       </div>
     </div>
 
