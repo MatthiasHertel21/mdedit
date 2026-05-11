@@ -2134,7 +2134,17 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
   if (!chromiumCmd) return { ok: false, reason: "chromium-not-found" };
 
   const pagedHtmlPath = path.join(tmpDir, "paged-chromium.html");
-  const { bodyHtml: rawBodyHtml, embeddedCss } = extractEmbeddedPagedStyles(html);
+  const { bodyHtml: rawBodyHtml, embeddedCss: rawEmbeddedCss } = extractEmbeddedPagedStyles(html);
+  // Strip @page rules from the captured embedded CSS.
+  // These rules served their purpose during Paged.js rendering (page size,
+  // footer suppression, etc.) but must NOT reach Chromium's PDF engine.
+  // Chromium interprets @page @bottom-center { content: counter(page) } and
+  // injects its own CSS-counter page number into the page-box margin area,
+  // which can overlay the Paged.js DOM layout (producing a stray "1" on
+  // the title page even when Paged.js correctly left that margin box empty).
+  // The final "@page { size: 210mm 297mm; margin: 0 !important; }" in
+  // wrappedHtml is the only @page rule Chromium should see.
+  const embeddedCss = stripAtPageRules(rawEmbeddedCss);
 
   // Paged.js sets column-width on .pagedjs_page_content inline styles for its own
   // pagination algorithm (overflowing to CSS column 2 detects when a page is full).
@@ -3034,9 +3044,9 @@ app.get("/", async (req, reply) => {
 // Update DEMO_PASTE_ID when a new demo paste is created.
 const DEMO_PASTE_ID = "10a407c9-fd33-4db3-9b24-b2f8a6894a78";
 
-app.get("/demo", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}`));
-app.get("/demo/raw", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}/raw`));
-app.get("/demo/pdf", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}/pdf`));
+app.get("/demo", async (req, reply) => reply.redirect(`/${DEMO_PASTE_ID}`, 302));
+app.get("/demo/raw", async (req, reply) => reply.redirect(`/${DEMO_PASTE_ID}/raw`, 302));
+app.get("/demo/pdf", async (req, reply) => reply.redirect(`/${DEMO_PASTE_ID}/pdf`, 302));
 
 // ── Shared paste direct-download routes ──────────────────────────────────────
 // These routes allow linking directly to the markdown source and
