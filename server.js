@@ -3029,6 +3029,15 @@ app.get("/", async (req, reply) => {
   return html;
 });
 
+// ── Demo document routes ──────────────────────────────────────────────────────
+// Stable vanity URLs pointing to the shared academic-paper demo paste.
+// Update DEMO_PASTE_ID when a new demo paste is created.
+const DEMO_PASTE_ID = "10a407c9-fd33-4db3-9b24-b2f8a6894a78";
+
+app.get("/demo", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}`));
+app.get("/demo/raw", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}/raw`));
+app.get("/demo/pdf", async (req, reply) => reply.redirect(302, `/${DEMO_PASTE_ID}/pdf`));
+
 // ── Shared paste direct-download routes ──────────────────────────────────────
 // These routes allow linking directly to the markdown source and
 // generated PDF/DOCX of any shared paste, useful for showcase and G2M links.
