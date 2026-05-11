@@ -116,6 +116,37 @@ export const buildPagedRenderContract = ({
                 height: 0;
                 margin: 0;
               }
+
+              /* Pandoc syntax-highlighted code blocks — guaranteed present in Paged.js
+               * styledHTML so the rules affect fragmentation (break-inside: avoid) and
+               * survive serialisation into the paged export HTML for the PDF path. */
+              div.sourceCode {
+                background: #f3f4f6 !important;
+                border: 0.75pt solid #c8cdd4 !important;
+                border-left: 3pt solid #7a8fa0 !important;
+                border-radius: 2pt !important;
+                margin: 12pt 0 !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              div.sourceCode pre {
+                margin: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                border-radius: 0 !important;
+                padding: 9pt 12pt !important;
+                font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+                font-size: 8.8pt !important;
+                line-height: 1.5 !important;
+                white-space: pre-wrap !important;
+                overflow-wrap: anywhere !important;
+              }
+              div.sourceCode code,
+              div.sourceCode span {
+                font-family: inherit !important;
+              }
             </style>
           </head>
           <body>

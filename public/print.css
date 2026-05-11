@@ -21,9 +21,11 @@
   }
 }
 
-/* First page: suppress footer */
+/* First page: suppress footer on all margin boxes */
 @page :first {
   margin-top: 2.1cm;
+  @bottom-left  { content: none; border: none; }
+  @bottom-center { content: none; border: none; }
   @bottom-right { content: none; border: none; }
 }
 
@@ -252,7 +254,7 @@
 
 .print-content ul,
 .print-content ol {
-  margin: 0.4em 0 0.9em 0;
+  margin: 0.45em 0 0.9em 0;
   padding-left: 1.8em;
   list-style-position: outside;
   break-inside: auto;
@@ -268,14 +270,14 @@
 }
 
 .print-content li {
-  margin-bottom: 0.35em;
+  margin-bottom: 0.28em;
   padding-left: 0.15em;
   text-align-last: auto;
 }
 
 .print-content li > p {
   margin-top: 0;
-  margin-bottom: 0.35em;
+  margin-bottom: 0.25em;
 }
 
 .print-content li ol,
@@ -1041,6 +1043,16 @@
 .print-content .footnotes li,
 .print-content .footnotes p {
   margin: 0;
+}
+
+.print-content .footnotes li {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .footnotes hr {
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .print-content .footnote-backref {

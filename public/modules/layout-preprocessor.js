@@ -300,6 +300,10 @@ export class LayoutPreprocessor {
     // Build figure/table lists from registered entries
     this.hydrateListsOfFiguresAndTables(doc);
 
+    // Ensure the first body section starts on a new page after all front-matter
+    // navigation elements (TOC, LoF, LoT).
+    this.applyFrontMatterPageBreaks(doc);
+
     this.applyChapterMarkers(doc);
     this.applyFlowGuards(doc);
 
@@ -1086,6 +1090,26 @@ export class LayoutPreprocessor {
         el.remove();
       }
     });
+  }
+
+  applyFrontMatterPageBreaks(doc) {
+    // Find the last front-matter navigation element (TOC, LoF, LoT).
+    // The first block-level element that follows it should start on a new page
+    // so that body chapters do not run onto the same page as the index pages.
+    const frontMatterNavs = Array.from(
+      doc.querySelectorAll('.table-of-contents, .list-of-figures, .list-of-tables')
+    );
+    if (!frontMatterNavs.length) return;
+
+    const last = frontMatterNavs[frontMatterNavs.length - 1];
+    let next = last.nextElementSibling;
+    // Skip whitespace-only or empty elements
+    while (next && !(next.textContent || '').trim()) {
+      next = next.nextElementSibling;
+    }
+    if (next && !next.dataset.breakBefore) {
+      next.dataset.breakBefore = 'page';
+    }
   }
 
   cleanupMarkers(doc) {
