@@ -3008,6 +3008,20 @@ app.get("/i18n/:filename", async (req, reply) =>
 app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
 app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.html"));
 
+// Sample PDF output — direct download link for demos and README
+app.get("/sample-output.pdf", async (req, reply) => {
+  const pdfPath = path.join(__dirname, "docs", "examples", "example-output.pdf");
+  try {
+    await fs.promises.access(pdfPath);
+  } catch {
+    reply.code(404);
+    return { error: "Sample PDF not found" };
+  }
+  reply.header("Content-Disposition", 'inline; filename="mdedit-sample-output.pdf"');
+  reply.type("application/pdf");
+  return reply.send(fs.createReadStream(pdfPath));
+});
+
 // Root path
 app.get("/", async (req, reply) => {
   const html = await readIndexHtml();

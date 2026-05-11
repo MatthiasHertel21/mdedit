@@ -30,5 +30,18 @@ deploy/*.private.yml
 deploy/*.override.yml
 deploy-prod.local.sh
 
-# Local test/dev scripts (not published)
+# Internal docs (not published)
+docs/concepts/
+docs/engineering/
+docs/planning/
+docs/strategy/
+docs/testing/
+
+# Test and QA scripts (not published)
 scripts/layout-unit-test.js
+scripts/citations-smoke.js
+scripts/paged-preview-parity.js
+scripts/reference-citations-smoke.js
+scripts/thesis-audit.js
+scripts/visual-smoke.js
+scripts/i18n-validate.js

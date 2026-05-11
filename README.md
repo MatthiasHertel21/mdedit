@@ -14,7 +14,6 @@ Write in Markdown, navigate long documents via outline, collaborate in the brows
 
 ### What the output looks like
 
-<!-- TODO: replace with screenshot of PDF output (title page or table page) -->
 ![mdedit.io PDF output screenshot](docs/assets/readme-pdf-output.png)
 
 **[→ Download sample PDF output](docs/examples/example-output.pdf)**
