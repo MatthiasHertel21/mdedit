@@ -5679,7 +5679,7 @@ const getPagedExportHtml = async ({ layoutCss, requirePagedOutput = false } = {}
     }
 
     const ppClone = printPreviewRoot.cloneNode(true);
-    ppClone.querySelectorAll("script, iframe, object, embed").forEach((el) => el.remove());
+    ppClone.querySelectorAll("script, iframe, object, embed, .footnotes a[href^='#fnref'], .footnotes a[role='doc-backlink'], .footnote-backref").forEach((el) => el.remove());
 
     const ppImgs = Array.from(ppClone.querySelectorAll("img"));
     for (const img of ppImgs) {

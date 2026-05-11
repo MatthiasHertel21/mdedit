@@ -473,6 +473,11 @@ export class LayoutPreprocessor {
     const nav = doc.createElement('nav');
     nav.className = 'table-of-contents';
 
+    const tocHeading = doc.createElement('h2');
+    tocHeading.className = 'toc-heading';
+    tocHeading.textContent = 'Inhaltsverzeichnis';
+    nav.appendChild(tocHeading);
+
     const rootList = doc.createElement('ul');
     nav.appendChild(rootList);
 

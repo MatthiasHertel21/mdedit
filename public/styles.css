@@ -1500,6 +1500,35 @@ section {
   font-size: 12px;
 }
 
+/* Pandoc syntax-highlighted code blocks in live preview */
+.preview-content div.sourceCode {
+  background: #f3f4f6;
+  border: 1px solid #c8cdd4;
+  border-left: 3px solid #7a8fa0;
+  border-radius: 3px;
+  margin: 12px 0;
+}
+
+.preview-content div.sourceCode pre {
+  margin: 0;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.preview-content div.sourceCode pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+  border-radius: 0;
+}
+
 .preview-content pre code {
   display: block;
   padding: 12px;
