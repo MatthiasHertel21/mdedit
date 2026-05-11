@@ -54,7 +54,7 @@ const defaultSettings = {
   autoSync: false,
   syncScroll: true,
   hideLayoutBlock: false,
-  hideBibliographyBlock: false,
+  hideBibliographyBlock: true,
   allowDocumentLayouts: true,
   documentLayoutDefaultPreset: "scientific",
   collabEnabled: true
@@ -1371,6 +1371,7 @@ const elements = {
   mobileTopbarPrimaryHost: document.getElementById("mobileTopbarPrimaryHost"),
   mobileSidebarMenuActions: document.getElementById("mobileSidebarMenuActions"),
   mobileMenuPagedBtn: document.getElementById("mobileMenuPagedBtn"),
+  mobileMenuCitationBtn: document.getElementById("mobileMenuCitationBtn"),
   mobileMenuTipsBtn: document.getElementById("mobileMenuTipsBtn"),
   mobileMenuSettingsBtn: document.getElementById("mobileMenuSettingsBtn"),
   mobileMenuLayoutBtn: document.getElementById("mobileMenuLayoutBtn"),
@@ -1924,6 +1925,7 @@ const updateCitationIndicator = () => {
   const items = extractEmbeddedBibliographyItems(text);
   const show = isCitationDocument(text);
   elements.citationIndicatorBtn?.classList.toggle("hidden", !show);
+  elements.mobileMenuCitationBtn?.classList.toggle("hidden", !show);
   if (elements.citationIndicatorCount) {
     elements.citationIndicatorCount.textContent = items.length > 0 ? String(items.length) : "";
     elements.citationIndicatorCount.classList.toggle("hidden", items.length === 0);
@@ -8520,6 +8522,10 @@ elements.mobileAiScreenBtn?.addEventListener("click", () => {
 elements.mobileMenuPagedBtn?.addEventListener("click", () => {
   closeMobileSidebar();
   togglePrintView();
+});
+elements.mobileMenuCitationBtn?.addEventListener("click", () => {
+  closeMobileSidebar();
+  openBibliographyPanel();
 });
 elements.mobileMenuTipsBtn?.addEventListener("click", () => {
   closeMobileSidebar();
