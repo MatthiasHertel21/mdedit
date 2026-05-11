@@ -62,7 +62,7 @@ export class DocumentLayout {
       
       footer: {
         enabled: true,
-        hideOnFirstPage: false,
+        hideOnFirstPage: true,
         left: '',
         center: '{page}',
         right: '',

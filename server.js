@@ -402,7 +402,13 @@ app.register(fastifyCookie, {
 app.register(fastifyStatic, {
   root: path.join(__dirname, "public"),
   prefix: "/static/",
-  decorateReply: true
+  decorateReply: true,
+  setHeaders(res, filePath) {
+    // Allow OG/Twitter crawlers to load brand images from external origins
+    if (filePath.includes('/brand/')) {
+      res.setHeader('cross-origin-resource-policy', 'cross-origin');
+    }
+  }
 });
 
 // Register WebSocket support
@@ -2342,6 +2348,30 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       padding: 0 !important;
       border: none !important;
       font-size: inherit !important;
+    }
+    /* Bare fallback selectors in case .print-content ancestor is absent in serialized HTML */
+    div.sourceCode {
+      background: #f3f4f6 !important;
+      border: 0.75pt solid #c8cdd4 !important;
+      border-left: 3pt solid #7a8fa0 !important;
+      border-radius: 2pt !important;
+      margin: 12pt 0 !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      print-color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+    div.sourceCode pre {
+      margin: 0 !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 9pt 12pt !important;
+      font-family: 'Courier New', Courier, ui-monospace, monospace !important;
+      font-size: 8.8pt !important;
+      line-height: 1.5 !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
     }
     /* TOC dot leaders and page numbers (injected client-side as .toc-page-num spans) */
     .print-content .table-of-contents a {
