@@ -601,6 +601,7 @@ section {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .node-content {
@@ -741,6 +742,13 @@ section {
   padding: 4px 8px;
   font-size: 12px;
   max-width: 200px;
+}
+
+.chat-actions-row,
+.layout-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .header-right-group {
@@ -1054,6 +1062,22 @@ section {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+.header-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .share-menu {
@@ -1899,6 +1923,170 @@ section {
   max-height: calc(100vh - 40px);
 }
 
+.bibliography-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bibliography-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bibliography-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.bibliography-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bibliography-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.bibliography-key {
+  font-size: 12px;
+}
+
+.bibliography-type,
+.bibliography-meta,
+.bibliography-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bibliography-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.bibliography-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.bibliography-editor-body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 20px;
+}
+
+.bibliography-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bibliography-form-grid label,
+.citation-authors-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bibliography-form-grid label span,
+.citation-authors-header span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field-span-2 {
+  grid-column: span 2;
+}
+
+.citation-authors-panel {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.citation-authors-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.citation-author-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.citation-author-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.bibliography-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.preview-citation-loading {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bibliography-block-placeholder {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .bibliography-editor-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 #layoutModal {
   display: flex;
   flex-direction: column;
@@ -1942,65 +2130,40 @@ section {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .folders-toolbar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
   padding: 0 12px;
-  flex-wrap: wrap;
-}
-
-.folders-current-card {
-  min-width: min(100%, 320px);
-  padding: 12px 14px;
-  border: 1px solid rgba(0, 137, 207, 0.16);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(0, 137, 207, 0.1), rgba(255, 255, 255, 0.96));
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-}
-
-.folders-current-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-strong);
-  margin-bottom: 4px;
 }
 
 .folders-current-info {
-  min-width: 0;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.45;
+  display: none;
 }
 
 .folders-toolbar-groups {
   display: flex;
-  align-items: stretch;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .folders-action-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
 }
 
 .folders-action-group-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--muted);
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 .folders-toolbar-actions {
@@ -2008,7 +2171,6 @@ section {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  flex-wrap: wrap;
 }
 
 .folders-toolbar-actions .icon-btn:disabled {
@@ -2018,16 +2180,14 @@ section {
 
 .folders-action-btn {
   width: auto;
-  min-width: 122px;
-  height: 40px;
-  padding: 0 12px;
-  justify-content: flex-start;
-  gap: 8px;
-  border-radius: 10px;
+  height: 34px;
+  padding: 0 10px;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .folders-action-btn .action-label {
@@ -2036,20 +2196,22 @@ section {
 
 .folders-grid {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 0 12px 12px;
   min-height: 100%;
-  align-items: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .folder-column {
-  flex: 0 0 240px;
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .folder-column.is-current .folder-header {
@@ -2069,11 +2231,11 @@ section {
 }
 
 .folder-column.new-folder {
-  flex: 0 0 240px;
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
-  align-items: center;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  align-items: flex-start;
   justify-content: flex-start;
 }
 
@@ -2248,28 +2410,6 @@ section {
   opacity: 1;
 }
 
-@media (max-width: 768px) {
-  .folders-current-card {
-    width: 100%;
-  }
-
-  .folders-toolbar-groups {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .folders-action-group {
-    width: 100%;
-  }
-
-  .folders-toolbar-actions {
-    width: 100%;
-  }
-
-  .folders-action-btn {
-    flex: 1 1 150px;
-  }
-}
 
 .folder-file-delete:hover {
   color: #dc2626;
@@ -2649,6 +2789,7 @@ section {
     height: 22px;
     object-fit: contain;
     display: block;
+    filter: brightness(0) invert(1);
   }
 
   .mobile-folder-button-label {
@@ -2740,6 +2881,32 @@ section {
     gap: 8px;
   }
 
+  .mobile-menu-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  .mobile-sidebar-menu-actions a.icon {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .mobile-sidebar-menu-actions a.icon:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
   .mobile-sidebar-menu-actions .icon.active {
     background: var(--accent-light);
     border-color: rgba(0, 137, 207, 0.2);
@@ -2761,7 +2928,31 @@ section {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  /* Chat session select grows to fill available space */
+  .mobile-sidebar-context-actions .ai-chat-session-select {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Chat row in burger: single inline row */
+  .mobile-sidebar-context-actions .chat-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .mobile-sidebar-context-actions .chat-actions-row .ai-chat-session-select {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 40px;
+  }
+  .mobile-sidebar-context-actions .chat-actions-row > button {
+    flex: 0 0 auto;
+    min-height: 40px;
   }
 
   .mobile-sidebar-context-actions .preview-preset-btn,
@@ -2772,15 +2963,41 @@ section {
     min-height: 40px;
   }
 
+  /* Keep action buttons fixed-width, don't grow */
+  .mobile-sidebar-context-actions #clearAiChatBtn,
+  .mobile-sidebar-context-actions #newChatBtn,
+  .mobile-sidebar-context-actions #undoAiChangeBtn {
+    flex: 0 0 auto;
+  }
+
   .mobile-sidebar-context-actions .header-divider,
   .mobile-sidebar-context-actions .view-toggle-btn {
     display: none;
   }
 
   .mobile-sidebar-context-actions #deleteCurrentPasteBtn,
-  .mobile-sidebar-context-actions #previewLayoutEditorBtn,
   .mobile-sidebar-context-actions #togglePrintViewBtn {
     display: none;
+  }
+
+  /* Layout row: preset selector + editor button side by side */
+  .mobile-sidebar-context-actions .layout-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .mobile-sidebar-context-actions .layout-actions-row .preview-presets {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .mobile-sidebar-context-actions .layout-actions-row .preview-preset-btn {
+    width: 100%;
+  }
+  .mobile-sidebar-context-actions .layout-actions-row #previewLayoutEditorBtn {
+    display: flex;
+    flex: 0 0 auto;
+    min-height: 40px;
   }
 
   .folders-toolbar {

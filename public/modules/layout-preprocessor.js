@@ -636,13 +636,18 @@ export class LayoutPreprocessor {
 
   applyTitlePageFixes(doc) {
     // Pandoc fenced_divs outputs <section class="title-page">.
-    // 1. Force Paged.js page-break after the section via dataset
-    //    (CSS break-after may be ignored when polisherStylesheets are passed).
+    // 1. Force Paged.js page-break after the section by setting breakBefore on
+    //    the *next sibling*. Paged.js v0.4.3 reads dataset.breakBefore (and
+    //    dataset.previousBreakAfter) to insert breaks, NOT dataset.breakAfter
+    //    on the element itself — so we must annotate the following element.
     // 2. Tag all headings inside as data-notoc and remove their id so
     //    buildTableOfContents skips them via every filter path.
     doc.querySelectorAll('section.title-page, div.title-page, .title-page').forEach((section) => {
-      // Paged.js reads data-break-after from the element dataset during fragmentation.
-      section.dataset.breakAfter = 'page';
+      // Find the next block-level sibling (the element that should start page 2).
+      const next = section.nextElementSibling;
+      if (next) {
+        next.dataset.breakBefore = 'page';
+      }
       section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
         h.dataset.notoc = '1';
         // Remove id so the heading also fails the !heading.id guard in buildTableOfContents.

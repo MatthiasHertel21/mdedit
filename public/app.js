@@ -54,6 +54,7 @@ const defaultSettings = {
   autoSync: false,
   syncScroll: true,
   hideLayoutBlock: false,
+  hideBibliographyBlock: false,
   allowDocumentLayouts: true,
   documentLayoutDefaultPreset: "scientific",
   collabEnabled: true
@@ -1297,6 +1298,9 @@ const applySettings = (nextSettings) => {
   if ('hideLayoutBlock' in nextSettings || 'allowDocumentLayouts' in nextSettings) {
     updateLayoutBlockVisibility();
   }
+  if ('hideBibliographyBlock' in nextSettings) {
+    updateBibliographyBlockVisibility();
+  }
 
   syncSettingsUI();
   applyPreviewPreset(previewPreset);
@@ -1396,9 +1400,23 @@ const elements = {
   previewTitle: document.getElementById("previewTitle"),
   settingsBtn: document.getElementById("settingsBtn"),
   tipsBtn: document.getElementById("tipsBtn"),
+  citationIndicatorBtn: document.getElementById("citationIndicatorBtn"),
+  citationIndicatorCount: document.getElementById("citationIndicatorCount"),
   settingsModal: document.getElementById("settingsModal"),
   settingsOverlay: document.getElementById("settingsOverlay"),
   settingsClose: document.getElementById("settingsClose"),
+  bibliographyModal: document.getElementById("bibliographyModal"),
+  bibliographyOverlay: document.getElementById("bibliographyOverlay"),
+  bibliographyClose: document.getElementById("bibliographyClose"),
+  bibliographyList: document.getElementById("bibliographyList"),
+  bibliographyNewBtn: document.getElementById("bibliographyNewBtn"),
+  citationEditorModal: document.getElementById("citationEditorModal"),
+  citationEditorOverlay: document.getElementById("citationEditorOverlay"),
+  citationEditorClose: document.getElementById("citationEditorClose"),
+  citationEditorTitle: document.getElementById("citationEditorTitle"),
+  citationEditorCancel: document.getElementById("citationEditorCancel"),
+  citationEditorSave: document.getElementById("citationEditorSave"),
+  previewCitationLoading: document.getElementById("previewCitationLoading"),
   themeSelect: document.getElementById("themeSelect"),
   languageSelect: document.getElementById("languageSelect"),
   customCssInput: document.getElementById("customCssInput"),
@@ -1540,6 +1558,7 @@ let suppressCollabBroadcast = false;
 const updateDocumentActionButtons = () => {
   const hasSavedDocument = Boolean(currentPasteId);
   elements.deleteCurrentPasteBtn?.classList.toggle("hidden", !hasSavedDocument);
+  updateCitationIndicator();
 };
 
 const sidebarPinModeKey = "sidebarPinMode";
@@ -1573,6 +1592,7 @@ const updateMobileTopbarShortcuts = () => {
   elements.mobileMenuPagedBtn?.setAttribute("aria-pressed", printViewActive ? "true" : "false");
   elements.mobileMenuPagedBtn?.classList.toggle("hidden", !previewMenuVisible);
   elements.mobileMenuLayoutBtn?.classList.toggle("hidden", !previewMenuVisible);
+  elements.mobileTreeScreenBtn?.classList.toggle("hidden", !previewScreenActive);
   elements.mobileSidebarContextActions?.classList.toggle("hidden", getMobileSidebarActionKeys().length === 0);
 };
 
@@ -1802,6 +1822,15 @@ const insertMarkdownAtCursor = (text) => {
   handleEditorChange();
 };
 
+const insertCitationKey = (key) => {
+  if (!key) return;
+  closeBibliographyPanel();
+  window.setTimeout(() => {
+    insertMarkdownAtCursor(`[@${key}]`);
+    editorView?.focus();
+  }, 50);
+};
+
 const layoutBlockRegex = /```layout\s*\n[\s\S]*?\n```/g;
 const documentFrontmatterRegex = /^---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/;
 const embeddedBibliographyBlockRegex = /(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n[\s\S]*?\n\2(?=\n|$)/i;
@@ -1827,10 +1856,237 @@ const hasCitationSyntax = (text) => {
     || /(^|\n)\s*#refs\s*(?=\n|$)/m.test(plain);
 };
 const isCitationDocument = (text) => hasCitationMetadata(text) || hasCitationSyntax(text);
+const extractEmbeddedBibliographyItems = (text) => {
+  const match = String(text || "").match(embeddedBibliographyBlockRegex);
+  if (!match) return [];
+  const block = match[0]
+    .replace(/(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n/i, "")
+    .replace(/\n(`{3,}|~{3,})\s*$/i, "");
+  try {
+    const raw = JSON.parse(block.trim());
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.items)) return raw.items;
+    return [];
+  } catch {
+    return [];
+  }
+};
 const buildCitationPreviewMarkdown = (text) => {
   const frontmatter = extractDocumentFrontmatterBlock(text);
   const body = layoutPreprocessor.process(stripDocumentFrontmatter(stripLayoutBlock(text)));
   return frontmatter ? `${frontmatter}\n\n${body}` : body;
+};
+
+const readBibliographyItems = () => extractEmbeddedBibliographyItems(getMarkdown());
+
+const writeBibliographyItems = (items) => {
+  const text = getMarkdown();
+  const nextBlock = "```mdedit-bibliography\n" + JSON.stringify(items, null, 2) + "\n```";
+  const updated = embeddedBibliographyBlockRegex.test(text)
+    ? text.replace(embeddedBibliographyBlockRegex, (match) => (match.startsWith("\n") ? `\n${nextBlock}` : nextBlock))
+    : `${text.trimEnd()}\n\n${nextBlock}`;
+  setMarkdown(updated.trimStart());
+  handleEditorChange();
+};
+
+let citationEditorIndex = null;
+let citationEditorOriginal = null;
+
+const formatCitationAuthors = (authors = []) => {
+  const formatted = authors
+    .map((author) => [author?.family, author?.given].filter(Boolean).join(", "))
+    .filter(Boolean);
+  return formatted.join("; ") || "-";
+};
+
+const updateCitationIndicator = () => {
+  const text = getMarkdown();
+  const items = extractEmbeddedBibliographyItems(text);
+  const show = isCitationDocument(text);
+  elements.citationIndicatorBtn?.classList.toggle("hidden", !show);
+  if (elements.citationIndicatorCount) {
+    elements.citationIndicatorCount.textContent = items.length > 0 ? String(items.length) : "";
+    elements.citationIndicatorCount.classList.toggle("hidden", items.length === 0);
+  }
+};
+
+const renderBibliographyList = () => {
+  const list = elements.bibliographyList;
+  if (!list) return;
+  const items = readBibliographyItems();
+  list.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "bibliography-empty";
+    empty.textContent = "Keine Quellen vorhanden.";
+    list.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "bibliography-row";
+    const year = item?.issued?.["date-parts"]?.[0]?.[0] ?? "-";
+    row.innerHTML = `
+      <div class="bibliography-main">
+        <div class="bibliography-title-row">
+          <code class="bibliography-key">${escapeHtml(item?.id || "")}</code>
+          <span class="bibliography-type">${escapeHtml(item?.type || "")}</span>
+        </div>
+        <div class="bibliography-title">${escapeHtml(item?.title || "Ohne Titel")}</div>
+        <div class="bibliography-meta">${escapeHtml(formatCitationAuthors(item?.author || []))} · ${escapeHtml(String(year))}</div>
+      </div>
+      <div class="bibliography-actions">
+        <button class="header-icon bibliography-insert-btn" type="button" title="Zitat einfügen" aria-label="Zitat einfügen">
+          <i class="fa-solid fa-quote-right"></i>
+        </button>
+        <button class="header-icon bibliography-edit-btn" type="button" title="Bearbeiten" aria-label="Bearbeiten">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="header-icon bibliography-delete-btn" type="button" title="Löschen" aria-label="Löschen">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>`;
+    row.querySelector(".bibliography-insert-btn")?.addEventListener("click", () => insertCitationKey(item?.id || ""));
+    row.querySelector(".bibliography-edit-btn")?.addEventListener("click", () => openCitationEditor(item, items.indexOf(item)));
+    row.querySelector(".bibliography-delete-btn")?.addEventListener("click", () => {
+      const nextItems = readBibliographyItems();
+      nextItems.splice(items.indexOf(item), 1);
+      writeBibliographyItems(nextItems);
+      renderBibliographyList();
+      updateCitationIndicator();
+    });
+    list.appendChild(row);
+  });
+};
+
+const openBibliographyPanel = () => {
+  renderBibliographyList();
+  elements.bibliographyModal?.classList.remove("hidden");
+  elements.bibliographyOverlay?.classList.remove("hidden");
+};
+
+const closeBibliographyPanel = () => {
+  elements.bibliographyModal?.classList.add("hidden");
+  elements.bibliographyOverlay?.classList.add("hidden");
+};
+
+const readAuthorList = () => Array.from(document.querySelectorAll("#citationAuthorList .citation-author-row")).map((row) => ({
+  family: row.querySelector(".citation-author-family")?.value.trim() || "",
+  given: row.querySelector(".citation-author-given")?.value.trim() || ""
+})).filter((author) => author.family || author.given);
+
+const generateCitationKey = (authors, year) => {
+  const family = String(authors?.[0]?.family || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return family ? `${family}${year || ""}`.slice(0, 24) : "";
+};
+
+const maybeAutofillCitationKey = () => {
+  const keyInput = document.getElementById("citationFieldKey");
+  if (!keyInput || keyInput.value.trim()) return;
+  const year = document.getElementById("citationFieldYear")?.value.trim() || "";
+  keyInput.value = generateCitationKey(readAuthorList(), year);
+};
+
+const renderAuthorList = (authors = [{ family: "", given: "" }]) => {
+  const list = document.getElementById("citationAuthorList");
+  if (!list) return;
+  list.innerHTML = "";
+  const nextAuthors = authors.length ? authors : [{ family: "", given: "" }];
+  nextAuthors.forEach((author, index) => {
+    const row = document.createElement("div");
+    row.className = "citation-author-row";
+    row.innerHTML = `
+      <input class="setting-input citation-author-family" type="text" placeholder="Nachname" value="${escapeHtml(author.family || "")}" />
+      <input class="setting-input citation-author-given" type="text" placeholder="Vorname" value="${escapeHtml(author.given || "")}" />
+      <button class="header-icon citation-author-remove" type="button" aria-label="Autor entfernen" title="Autor entfernen">
+        <i class="fa-solid fa-xmark"></i>
+      </button>`;
+    row.querySelector(".citation-author-remove")?.addEventListener("click", () => {
+      const current = readAuthorList();
+      current.splice(index, 1);
+      renderAuthorList(current);
+      maybeAutofillCitationKey();
+    });
+    row.querySelector(".citation-author-family")?.addEventListener("input", maybeAutofillCitationKey);
+    list.appendChild(row);
+  });
+};
+
+const openCitationEditor = (item = null, index = null) => {
+  citationEditorIndex = index;
+  citationEditorOriginal = item ? structuredClone(item) : null;
+  document.getElementById("citationFieldType").value = item?.type || "article-journal";
+  document.getElementById("citationFieldKey").value = item?.id || "";
+  document.getElementById("citationFieldTitle").value = item?.title || "";
+  document.getElementById("citationFieldYear").value = item?.issued?.["date-parts"]?.[0]?.[0] ?? "";
+  document.getElementById("citationFieldContainer").value = item?.["container-title"] || "";
+  document.getElementById("citationFieldVolume").value = item?.volume || "";
+  document.getElementById("citationFieldIssue").value = item?.issue || "";
+  document.getElementById("citationFieldPages").value = item?.page || "";
+  document.getElementById("citationFieldPublisher").value = item?.publisher || "";
+  document.getElementById("citationFieldDoi").value = item?.DOI || "";
+  document.getElementById("citationFieldUrl").value = item?.URL || "";
+  document.getElementById("citationFieldNote").value = item?.note || "";
+  renderAuthorList(item?.author || []);
+  elements.citationEditorTitle.textContent = index === null ? "Neue Quelle" : "Quelle bearbeiten";
+  elements.citationEditorModal?.classList.remove("hidden");
+  elements.citationEditorOverlay?.classList.remove("hidden");
+};
+
+const closeCitationEditor = () => {
+  elements.citationEditorModal?.classList.add("hidden");
+  elements.citationEditorOverlay?.classList.add("hidden");
+};
+
+const saveCitationEditor = () => {
+  const key = document.getElementById("citationFieldKey")?.value.trim();
+  if (!key) {
+    setStatus("Citation Key erforderlich.", "error");
+    return;
+  }
+
+  const items = readBibliographyItems();
+  if (items.some((entry, index) => entry.id === key && index !== citationEditorIndex)) {
+    setStatus("Citation Key bereits vorhanden.", "error");
+    return;
+  }
+
+  const yearValue = document.getElementById("citationFieldYear")?.value.trim();
+  const year = Number.parseInt(yearValue, 10);
+  const nextItem = {
+    ...(citationEditorOriginal || {}),
+    type: document.getElementById("citationFieldType")?.value || "article-journal",
+    id: key,
+    title: document.getElementById("citationFieldTitle")?.value.trim() || "",
+    author: readAuthorList(),
+    ...(Number.isFinite(year) ? { issued: { "date-parts": [[year]] } } : {}),
+    "container-title": document.getElementById("citationFieldContainer")?.value.trim() || undefined,
+    volume: document.getElementById("citationFieldVolume")?.value.trim() || undefined,
+    issue: document.getElementById("citationFieldIssue")?.value.trim() || undefined,
+    page: document.getElementById("citationFieldPages")?.value.trim() || undefined,
+    publisher: document.getElementById("citationFieldPublisher")?.value.trim() || undefined,
+    DOI: document.getElementById("citationFieldDoi")?.value.trim() || undefined,
+    URL: document.getElementById("citationFieldUrl")?.value.trim() || undefined,
+    note: document.getElementById("citationFieldNote")?.value.trim() || undefined
+  };
+
+  Object.keys(nextItem).forEach((field) => {
+    if (nextItem[field] === undefined) delete nextItem[field];
+  });
+  if (!Number.isFinite(year)) delete nextItem.issued;
+
+  if (citationEditorIndex === null) {
+    items.push(nextItem);
+  } else {
+    items[citationEditorIndex] = nextItem;
+  }
+
+  writeBibliographyItems(items);
+  closeCitationEditor();
+  renderBibliographyList();
+  updateCitationIndicator();
 };
 
 let layoutBlockMarker = null;
@@ -1859,12 +2115,44 @@ const updateLayoutBlockVisibility = () => {
   });
 };
 
+let bibliographyBlockMarker = null;
+const updateBibliographyBlockVisibility = () => {
+  if (!editorView) return;
+  if (bibliographyBlockMarker) {
+    bibliographyBlockMarker.clear();
+    bibliographyBlockMarker = null;
+  }
+  if (!activeSettings.hideBibliographyBlock) return;
+
+  const text = editorView.getValue();
+  const match = text.match(embeddedBibliographyBlockRegex);
+  if (!match || typeof match.index !== "number") return;
+
+  const start = match.index + (match[0].startsWith("\n") ? 1 : 0);
+  const end = match.index + match[0].length;
+  const from = editorView.posFromIndex(start);
+  const to = editorView.posFromIndex(end);
+  const placeholder = document.createElement("button");
+  placeholder.type = "button";
+  placeholder.className = "bibliography-block-placeholder";
+  placeholder.textContent = `{bibliography: ${extractEmbeddedBibliographyItems(text).length} items}`;
+  placeholder.addEventListener("click", () => {
+    bibliographyBlockMarker?.clear();
+    bibliographyBlockMarker = null;
+  });
+  bibliographyBlockMarker = editorView.getDoc().markText(from, to, {
+    replacedWith: placeholder,
+    clearOnEnter: false
+  });
+};
+
 const setMarkdown = (text) => {
   if (!editorView) return;
   const current = editorView.getValue();
   if (current === text) return;
   editorView.setValue(text);
   updateLayoutBlockVisibility();
+  updateBibliographyBlockVisibility();
 };
 
 const getEditorScrollTop = () => (editorView ? editorView.getScrollInfo().top : 0);
@@ -3796,22 +4084,6 @@ const renderFoldersGrid = async () => {
     const actions = document.createElement("div");
     actions.className = "folder-actions";
 
-    const pinBtn = document.createElement("button");
-    pinBtn.type = "button";
-    pinBtn.className = `folder-action-btn folder-pin${workspace.pinned ? " active" : ""}`;
-    pinBtn.title = "Pin";
-    pinBtn.innerHTML = '<i class="fa-solid fa-thumbtack"></i>';
-    pinBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      workspace.pinned = !workspace.pinned;
-      saveWorkspaces(workspaces);
-      renderFoldersGrid();
-      if (currentWorkspace === workspaceId) {
-        switchFolder(currentWorkspace);
-      }
-    });
-    actions.appendChild(pinBtn);
-
     const zipBtn = document.createElement("button");
     zipBtn.type = "button";
     zipBtn.className = "folder-action-btn folder-zip";
@@ -4036,6 +4308,19 @@ const rotateWorkspace = (direction) => {
   setStatus(t("workspaceSwitched") + ": " + workspaces[keys[nextIndex]].name, "success");
 };
 
+const finalizePreviewRender = () => {
+  updatePreviewTitle();
+  updateHeadingMetrics();
+  const mermaidPromise = renderMermaid();
+  if (mermaidPromise?.then) {
+    mermaidPromise.then(() => printPreview.refresh());
+  } else {
+    printPreview.refresh();
+  }
+  const cursor = editorView?.getCursor("from");
+  if (cursor) highlightPreviewForLine(cursor.line);
+};
+
 const renderPreview = () => {
   let text = getMarkdown();
   headingIdState.ids = lastHeadings.map((h) => h.slug);
@@ -4108,17 +4393,65 @@ const renderPreview = () => {
   } else if (suggestionEl) {
     suggestionEl.classList.add("hidden");
   }
-  
-  updatePreviewTitle();
-  updateHeadingMetrics();
-  const mermaidPromise = renderMermaid();
-  if (mermaidPromise?.then) {
-    mermaidPromise.then(() => printPreview.refresh());
-  } else {
-    printPreview.refresh();
+
+  finalizePreviewRender();
+};
+
+let citationPreviewAbort = null;
+
+const renderCitationPreview = async () => {
+  const text = getMarkdown();
+  if (!isCitationDocument(text)) return false;
+
+  if (citationPreviewAbort) {
+    citationPreviewAbort.abort();
   }
-  const cursor = editorView?.getCursor("from");
-  if (cursor) highlightPreviewForLine(cursor.line);
+  citationPreviewAbort = new AbortController();
+  elements.previewCitationLoading?.classList.remove("hidden");
+
+  try {
+    const response = await fetch("/api/preview/citations/html", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        markdown: text,
+        previewMarkdown: buildCitationPreviewMarkdown(text)
+      }),
+      signal: citationPreviewAbort.signal
+    });
+
+    if (response.status === 501) {
+      return false;
+    }
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      elements.preview.innerHTML = `<div class="preview-error">${escapeHtml(payload.error || "Citation-Rendering fehlgeschlagen")}</div>`;
+      finalizePreviewRender();
+      return true;
+    }
+
+    const payload = await response.json();
+    if (!payload?.isCitationDocument) {
+      return false;
+    }
+
+    elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(payload.html || ""));
+    finalizePreviewRender();
+    return true;
+  } catch (error) {
+    if (error?.name === "AbortError") return true;
+    return false;
+  } finally {
+    elements.previewCitationLoading?.classList.add("hidden");
+  }
+};
+
+const renderPreviewForCurrentDocument = async () => {
+  const renderedCitationPreview = await renderCitationPreview();
+  if (!renderedCitationPreview) {
+    renderPreview();
+  }
 };
 
 const slugify = (text) =>
@@ -4964,7 +5297,7 @@ const loadPaste = async (id) => {
   }
   
   refreshHeadingData();
-  renderPreview();
+  await renderPreviewForCurrentDocument();
   renderTree();
   renderHistory();
   setStatus(t("loaded"), "success");
@@ -4979,7 +5312,11 @@ const loadPaste = async (id) => {
             suppressCollabBroadcast = true;
             setMarkdown(markdown);
             suppressCollabBroadcast = false;
-            updateLive();
+            if (isCitationDocument(markdown)) {
+              updateLiveCitation();
+            } else {
+              updateLive();
+            }
           },
           setView,
           getCurrentView: () => currentView
@@ -5743,6 +6080,12 @@ const updateLive = debounce(() => {
   renderTree();
 }, 200);
 
+const updateLiveCitation = debounce(async () => {
+  refreshHeadingData();
+  await renderPreviewForCurrentDocument();
+  renderTree();
+}, 800);
+
 const autosave = debounce(() => {
   createOrUpdatePaste();
 }, 800);
@@ -5750,6 +6093,8 @@ const autosave = debounce(() => {
 const handleEditorChange = () => {
   const text = getMarkdown();
   updateLayoutBlockVisibility();
+  updateBibliographyBlockVisibility();
+  updateCitationIndicator();
   if (!text.trim()) {
     clearedForNew = true;
   } else if (clearedForNew && currentPasteId) {
@@ -5758,7 +6103,11 @@ const handleEditorChange = () => {
     clearedForNew = false;
     setStatus(t("newDoc"), "success");
   }
-  updateLive();
+  if (isCitationDocument(text)) {
+    updateLiveCitation();
+  } else {
+    updateLive();
+  }
   if (!suppressCollabBroadcast) {
     window.collabSupport?.getCollabManager?.()?.sendEdit(text);
   }
@@ -5773,9 +6122,9 @@ const getCurrentHeadingByEditorScroll = () => {
   headingMetrics.headings.forEach((heading) => {
     if (heading.line <= line) current = heading;
   });
+  const sectionStart = current?.line ?? 0;
   const currentIndex = headingMetrics.headings.findIndex((h) => h.slug === current?.slug);
   const next = headingMetrics.headings[currentIndex + 1] || null;
-  const sectionStart = current?.line ?? 0;
   const sectionEnd = next?.line ?? sectionStart + 10;
   const ratio = sectionEnd > sectionStart ? (line - sectionStart) / (sectionEnd - sectionStart) : 0;
   return { current, next, ratio };
@@ -7065,7 +7414,11 @@ elements.permalinkBtn?.addEventListener("click", async () => {
                 suppressCollabBroadcast = true;
                 setMarkdown(markdown);
                 suppressCollabBroadcast = false;
-                updateLive();
+                if (isCitationDocument(markdown)) {
+                  updateLiveCitation();
+                } else {
+                  updateLive();
+                }
               },
               setView,
               getCurrentView: () => currentView
@@ -7103,6 +7456,19 @@ elements.notFoundClose?.addEventListener("click", closeNotFoundModal);
 elements.notFoundOverlay?.addEventListener("click", closeNotFoundModal);
 elements.settingsClose?.addEventListener("click", closeSettings);
 elements.settingsOverlay?.addEventListener("click", closeSettings);
+elements.citationIndicatorBtn?.addEventListener("click", openBibliographyPanel);
+elements.bibliographyClose?.addEventListener("click", closeBibliographyPanel);
+elements.bibliographyOverlay?.addEventListener("click", closeBibliographyPanel);
+elements.bibliographyNewBtn?.addEventListener("click", () => openCitationEditor());
+elements.citationEditorClose?.addEventListener("click", closeCitationEditor);
+elements.citationEditorOverlay?.addEventListener("click", closeCitationEditor);
+elements.citationEditorCancel?.addEventListener("click", closeCitationEditor);
+elements.citationEditorSave?.addEventListener("click", saveCitationEditor);
+document.getElementById("citationAddAuthor")?.addEventListener("click", () => {
+  renderAuthorList([...readAuthorList(), { family: "", given: "" }]);
+  maybeAutofillCitationKey();
+});
+document.getElementById("citationFieldYear")?.addEventListener("blur", maybeAutofillCitationKey);
 elements.layoutEditorClose?.addEventListener("click", closeLayoutEditor);
 elements.layoutEditorCancel?.addEventListener("click", closeLayoutEditor);
 elements.layoutEditorOverlay?.addEventListener("click", closeLayoutEditor);

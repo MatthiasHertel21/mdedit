@@ -155,8 +155,18 @@ export class PrintPreview {
     if (!root || !root.isConnected) {
       return false;
     }
-
-    return root.getClientRects().length > 0;
+    if (root.getClientRects().length === 0) {
+      return false;
+    }
+    // On narrow viewports (mobile) paged.js would use the small container width
+    // to determine page dimensions, producing pages with far too little content.
+    // Force staging render so pages are laid out at full A4 width, then
+    // fitToWidth() scales them visually for display.
+    const scroll = this.elements.printPreviewScroll;
+    if (scroll && scroll.clientWidth < 700) {
+      return false;
+    }
+    return true;
   }
 
   createStagingRenderTarget() {

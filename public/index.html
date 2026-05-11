@@ -95,6 +95,15 @@
               <i class="fa-solid fa-file-lines"></i>
               <span class="icon-label">Paged Mode</span>
             </button>
+            <button id="mobileMenuLayoutBtn" class="icon" type="button" aria-label="Layout-Einstellungen" title="Layout-Einstellungen">
+              <i class="fa-solid fa-swatchbook"></i>
+              <span class="icon-label">Layout-Einstellungen</span>
+            </button>
+            <button id="mobileTreeScreenBtn" class="icon" type="button" aria-label="Baum" title="Baum" data-i18n-aria="tree" data-i18n-title="tree">
+              <i class="fa-solid fa-network-wired"></i>
+              <span class="icon-label">Baum</span>
+            </button>
+            <hr class="mobile-menu-divider" />
             <button id="mobileMenuTipsBtn" class="icon" type="button" aria-label="Tipps anzeigen" title="Tipps" data-i18n-title="tips" data-i18n-aria="tips">
               <i class="fa-solid fa-lightbulb"></i>
               <span class="icon-label" data-i18n="tips">Tipps</span>
@@ -103,18 +112,14 @@
               <i class="fa-solid fa-gear"></i>
               <span class="icon-label" data-i18n="settings">Einstellungen</span>
             </button>
-            <button id="mobileMenuLayoutBtn" class="icon" type="button" aria-label="Layout-Einstellungen" title="Layout-Einstellungen">
-              <i class="fa-solid fa-swatchbook"></i>
-              <span class="icon-label">Layout-Einstellungen</span>
+            <button id="mobileMenuDemoBtn" class="icon" type="button" aria-label="Demo-Dokument öffnen" title="Demo-Dokument">
+              <i class="fa-solid fa-rocket"></i>
+              <span class="icon-label">Demo-Dokument</span>
             </button>
             <a id="mobileMenuHelpLink" class="icon" href="/help-en.html" target="_blank" rel="noopener" aria-label="Hilfe &amp; Syntax-Referenz" title="Hilfe &amp; Syntax-Referenz">
               <i class="fa-solid fa-circle-question"></i>
               <span class="icon-label">Hilfe</span>
             </a>
-            <button id="mobileMenuDemoBtn" class="icon" type="button" aria-label="Demo-Dokument öffnen" title="Demo-Dokument">
-              <i class="fa-solid fa-rocket"></i>
-              <span class="icon-label">Demo-Dokument</span>
-            </button>
           </div>
           <div id="mobileSidebarContextActions" class="mobile-sidebar-context-actions"></div>
           <div id="historyList" class="history"></div>
@@ -155,9 +160,6 @@
               <button id="mobileRenderScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="Preview" title="Preview" data-i18n-aria="preview">
                 <i class="fa-solid fa-eye"></i>
               </button>
-              <button id="mobileTreeScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="Baum" title="Baum" data-i18n-aria="tree" data-i18n-title="tree">
-                <i class="fa-solid fa-network-wired"></i>
-              </button>
               <button id="mobileAiScreenBtn" class="header-icon mobile-screen-btn" type="button" aria-label="KI-Assistent" title="KI-Assistent" data-i18n-aria="aiChat" data-i18n-title="aiChat">
                 <i class="fa-solid fa-robot"></i>
               </button>
@@ -174,6 +176,10 @@
                 <div id="editorHeaderPrimaryActions" class="mobile-action-source header-icons">
                   <button id="newPasteBtn" class="header-icon" title="Neu" aria-label="Neu" data-i18n-title="new" data-i18n-aria="new">
                     <i class="fa-solid fa-plus"></i>
+                  </button>
+                  <button id="citationIndicatorBtn" class="header-icon hidden" type="button" title="Bibliografie" aria-label="Bibliografie">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span id="citationIndicatorCount" class="header-icon-badge hidden"></span>
                   </button>
                 </div>
                 <span data-i18n="markdown">Markdown</span>
@@ -236,21 +242,23 @@
                 <div class="section-header header-actions">
                   <span id="previewTitle" data-i18n="preview">Vorschau</span>
                   <div id="previewHeaderActions" class="header-right-group mobile-action-source">
-                    <div class="preview-presets" role="group" aria-label="Preview presets">
-                      <button id="previewPresetTrigger" class="preview-preset-btn" type="button">
-                        <span id="previewPresetLabel" data-i18n="presetScientific">Wissenschaftlich</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                      </button>
-                      <div id="previewPresetMenu" class="preview-preset-menu hidden" role="menu">
-                        <button class="preview-preset-item" data-preset="scientific" role="menuitem" data-i18n="presetScientific">Wissenschaftlich</button>
-                        <button class="preview-preset-item" data-preset="compact" role="menuitem" data-i18n="presetCompact">Kompakt</button>
-                        <button class="preview-preset-item" data-preset="literary" role="menuitem" data-i18n="presetLiterary">Literarisch</button>
-                        <button class="preview-preset-item" data-preset="document" data-document-layout-option="true" role="menuitem" data-i18n="presetDocument">Dokument</button>
+                    <div class="layout-actions-row">
+                      <div class="preview-presets" role="group" aria-label="Preview presets">
+                        <button id="previewPresetTrigger" class="preview-preset-btn" type="button">
+                          <span id="previewPresetLabel" data-i18n="presetScientific">Wissenschaftlich</span>
+                          <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div id="previewPresetMenu" class="preview-preset-menu hidden" role="menu">
+                          <button class="preview-preset-item" data-preset="scientific" role="menuitem" data-i18n="presetScientific">Wissenschaftlich</button>
+                          <button class="preview-preset-item" data-preset="compact" role="menuitem" data-i18n="presetCompact">Kompakt</button>
+                          <button class="preview-preset-item" data-preset="literary" role="menuitem" data-i18n="presetLiterary">Literarisch</button>
+                          <button class="preview-preset-item" data-preset="document" data-document-layout-option="true" role="menuitem" data-i18n="presetDocument">Dokument</button>
+                        </div>
                       </div>
+                      <button id="previewLayoutEditorBtn" class="header-icon" title="Layout-Editor" aria-label="Layout-Editor" data-i18n-title="layoutEditor" data-i18n-aria="layoutEditor">
+                        <i class="fa-solid fa-palette"></i>
+                      </button>
                     </div>
-                    <button id="previewLayoutEditorBtn" class="header-icon" title="Layout-Editor" aria-label="Layout-Editor" data-i18n-title="layoutEditor" data-i18n-aria="layoutEditor">
-                      <i class="fa-solid fa-palette"></i>
-                    </button>
                     <div class="header-icons">
                       <button id="togglePrintViewBtn" class="header-icon" title="Seitenansicht" aria-label="Seitenansicht" data-i18n-title="togglePagedView" data-i18n-aria="togglePagedView">
                         <i class="fa-solid fa-file-lines"></i>
@@ -327,13 +335,15 @@
                     <button id="undoAiChangeBtn" title="Rückgängig" aria-label="Letzte AI-Änderung rückgängig machen" data-i18n-title="undo" style="display: none;">
                       <i class="fa-solid fa-rotate-left"></i>
                     </button>
-                    <select id="aiChatSessionSelect" class="ai-chat-session-select hidden" aria-label="Chat auswählen"></select>
-                    <button id="clearAiChatBtn" class="header-icon" title="Chatverlauf leeren" aria-label="Aktuellen Chatverlauf leeren">
-                      <i class="fa-solid fa-trash"></i>
-                    </button>
-                    <button id="newChatBtn" class="header-icon" title="Neuer Chat" aria-label="Neuer Chat">
-                      <i class="fa-solid fa-plus"></i>
-                    </button>
+                    <div class="chat-actions-row">
+                      <select id="aiChatSessionSelect" class="ai-chat-session-select hidden" aria-label="Chat auswählen"></select>
+                      <button id="clearAiChatBtn" class="header-icon" title="Chatverlauf leeren" aria-label="Aktuellen Chatverlauf leeren">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                      <button id="newChatBtn" class="header-icon" title="Neuer Chat" aria-label="Neuer Chat">
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                    </div>
                     <span class="header-divider" aria-hidden="true"></span>
                     <button class="header-icon view-toggle-btn" data-view="preview" title="Rendering" aria-label="Rendering">
                       <i class="fa-solid fa-align-left"></i>
@@ -456,10 +466,7 @@
       </div>
       <div class="modal-body">
         <div class="folders-toolbar">
-          <div class="folders-current-card">
-            <div class="folders-current-label">Aktiver Bereich</div>
-            <div id="foldersCurrentInfo" class="folders-current-info">Ordner 'Standard' - 0 Dokumente lokal gespeichert</div>
-          </div>
+          <div id="foldersCurrentInfo" class="folders-current-info">Ordner 'Standard' - 0 Dokumente lokal gespeichert</div>
           <div class="folders-toolbar-groups">
             <div class="folders-action-group">
               <span class="folders-action-group-title">Dokumente</span>
@@ -708,6 +715,15 @@
                 </label>
                 <div class="setting-text">
                   <div class="setting-title" data-i18n="settingHideLayoutBlock">Layout-Block im Editor ausblenden</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="hideBibliographyBlock" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title">Bibliografie-Block im Editor ausblenden</div>
                 </div>
               </div>
               <div class="setting">
@@ -1090,6 +1106,103 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="bibliographyOverlay" class="modal-overlay hidden"></div>
+    <div id="bibliographyModal" class="modal modal-large hidden" role="dialog" aria-modal="true" aria-labelledby="bibliographyTitle">
+      <div class="modal-header">
+        <h2 id="bibliographyTitle">Bibliografie</h2>
+        <div class="modal-header-actions">
+          <button id="bibliographyNewBtn" class="btn-secondary" type="button">Neue Quelle</button>
+        </div>
+        <button id="bibliographyClose" class="icon" type="button" aria-label="Schließen">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body bibliography-modal-body">
+        <div id="bibliographyList" class="bibliography-list"></div>
+      </div>
+    </div>
+
+    <div id="citationEditorOverlay" class="modal-overlay hidden"></div>
+    <div id="citationEditorModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="citationEditorTitle">
+      <div class="modal-header">
+        <h2 id="citationEditorTitle">Quelle</h2>
+        <button id="citationEditorClose" class="icon" type="button" aria-label="Schließen">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body bibliography-editor-body">
+        <div class="bibliography-form-grid">
+          <label>
+            <span>Typ</span>
+            <select id="citationFieldType" class="setting-input">
+              <option value="article-journal">Zeitschriftenartikel</option>
+              <option value="book">Buch</option>
+              <option value="chapter">Buchkapitel</option>
+              <option value="thesis">Abschlussarbeit</option>
+              <option value="webpage">Webseite</option>
+              <option value="report">Bericht</option>
+              <option value="paper-conference">Konferenzbeitrag</option>
+            </select>
+          </label>
+          <label>
+            <span>Citation Key</span>
+            <input id="citationFieldKey" class="setting-input" type="text" />
+          </label>
+          <label class="field-span-2">
+            <span>Titel</span>
+            <input id="citationFieldTitle" class="setting-input" type="text" />
+          </label>
+          <label>
+            <span>Jahr</span>
+            <input id="citationFieldYear" class="setting-input" type="number" min="1000" max="2099" />
+          </label>
+          <label>
+            <span>Typ / Werk</span>
+            <input id="citationFieldContainer" class="setting-input" type="text" />
+          </label>
+          <label>
+            <span>Band</span>
+            <input id="citationFieldVolume" class="setting-input" type="text" />
+          </label>
+          <label>
+            <span>Heft</span>
+            <input id="citationFieldIssue" class="setting-input" type="text" />
+          </label>
+          <label>
+            <span>Seiten</span>
+            <input id="citationFieldPages" class="setting-input" type="text" />
+          </label>
+          <label>
+            <span>Verlag</span>
+            <input id="citationFieldPublisher" class="setting-input" type="text" />
+          </label>
+          <label class="field-span-2">
+            <span>DOI</span>
+            <input id="citationFieldDoi" class="setting-input" type="text" />
+          </label>
+          <label class="field-span-2">
+            <span>URL</span>
+            <input id="citationFieldUrl" class="setting-input" type="url" />
+          </label>
+          <label class="field-span-2">
+            <span>Notiz</span>
+            <textarea id="citationFieldNote" class="setting-input" rows="2"></textarea>
+          </label>
+        </div>
+        <div class="citation-authors-panel">
+          <div class="citation-authors-header">
+            <span>Autor:innen</span>
+            <button id="citationAddAuthor" class="btn-secondary" type="button">Autor hinzufügen</button>
+          </div>
+          <div id="citationAuthorList" class="citation-author-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer bibliography-editor-footer">
+        <button id="citationEditorCancel" class="btn-secondary" type="button">Abbrechen</button>
+        <button id="citationEditorSave" class="btn-primary" type="button">Speichern</button>
       </div>
     </div>
 
