@@ -5,29 +5,28 @@
  * Pulls query-level data from Google Search Console and writes it into
  * data/marketing-stats.json (same format used by the /stats page).
  *
- * Authentication: Google Service Account (no OAuth flow needed)
+ * Authentication (two modes, first found wins):
+ *   A) OAuth2 Refresh Token (recommended – works with your personal GSC account)
+ *      1. node scripts/gsc-auth-setup.js   → follow browser flow once
+ *      2. npm run stats:search-console-sync
  *
- * One-time setup:
- *   1. https://console.cloud.google.com → IAM & Admin → Service Accounts
- *      → Create service account → Keys → Add key → JSON → download
- *   2. Google Search Console → Settings → Users and permissions
- *      → Add user: <service-account-email> with "Restricted" role
- *   3. Copy config/gsc-queries.example.json → config/gsc-queries.json
- *      and edit the query list you want to track.
- *   4. Set env vars (see .env.example) and run:
- *        GSC_KEY_FILE=/path/to/sa-key.json npm run stats:search-console-sync
+ *   B) Service Account (requires SC property owner to add SA email as user)
+ *      GSC_KEY_FILE=/path/to/sa-key.json npm run stats:search-console-sync
  *
  * Env vars:
- *   GSC_KEY_FILE          Path to service account JSON key file  (required)
- *   GSC_SITE_URL          SC property, e.g. sc-domain:mdedit.io  (required)
- *   GSC_QUERIES_FILE      JSON array of queries to track          (optional, default: config/gsc-queries.json)
- *   GSC_DAYS              Look-back window in days                (optional, default: 28)
- *   GSC_TOP_N             Max queries to store in topQueries      (optional, default: 25)
- *   MARKETING_STATS_FILE  Output file path                        (optional, default: data/marketing-stats.json)
+ *   GSC_OAUTH_TOKENS      Path to OAuth2 tokens JSON (from gsc-auth-setup.js)
+ *                         Default: ~/gsc-oauth-tokens.json
+ *   GSC_KEY_FILE          Path to service account JSON (fallback if no tokens)
+ *   GSC_SITE_URL          SC property, e.g. sc-domain:mdedit.io  (default)
+ *   GSC_QUERIES_FILE      JSON array of queries to track
+ *   GSC_DAYS              Look-back window in days                (default: 28)
+ *   GSC_TOP_N             Max queries in topQueries               (default: 25)
+ *   MARKETING_STATS_FILE  Output file path
  */
 
 import { createSign } from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,6 +36,8 @@ const ROOT = path.join(__dirname, '..');
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
+const OAUTH_TOKENS_FILE = process.env.GSC_OAUTH_TOKENS
+  || path.join(os.homedir(), 'gsc-oauth-tokens.json');
 const KEY_FILE = process.env.GSC_KEY_FILE;
 const SITE_URL = process.env.GSC_SITE_URL || 'sc-domain:mdedit.io';
 const QUERIES_FILE = process.env.GSC_QUERIES_FILE
@@ -46,23 +47,46 @@ const DAYS = Math.max(1, parseInt(process.env.GSC_DAYS || '28', 10));
 const TOP_N = Math.max(1, parseInt(process.env.GSC_TOP_N || '25', 10));
 const OUT_FILE = process.env.MARKETING_STATS_FILE
   ? path.resolve(process.env.MARKETING_STATS_FILE)
-  : path.join(ROOT, 'data', 'marketing-stats.json');
+  : process.env.DATA_DIR
+    ? path.join(path.resolve(process.env.DATA_DIR), 'marketing-stats.json')
+    : path.join(ROOT, 'data', 'marketing-stats.json');
 
 // ---------------------------------------------------------------------------
-// JWT / token helpers
+// Token helpers
 // ---------------------------------------------------------------------------
+
+/** OAuth2 refresh token → access token */
+async function getAccessTokenOAuth(tokensData) {
+  const res = await fetch(tokensData.token_uri || 'https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: tokensData.client_id,
+      client_secret: tokensData.client_secret,
+      refresh_token: tokensData.refresh_token,
+      grant_type: 'refresh_token',
+    }).toString(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OAuth token refresh failed (${res.status}): ${text}`);
+  }
+  const json = await res.json();
+  if (json.error) throw new Error(`OAuth error: ${json.error} – ${json.error_description}`);
+  return json.access_token;
+}
 
 /**
  * Build a signed JWT and exchange it for a Google OAuth2 access token.
  * Uses the service account private key (RS256) – no extra npm package needed.
  */
-async function getAccessToken(keyData) {
+async function getAccessTokenServiceAccount(keyData) {
   const now = Math.floor(Date.now() / 1000);
 
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const payload = b64url(JSON.stringify({
     iss: keyData.client_email,
-    scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+    scope: 'https://www.googleapis.com/auth/webmasters',
     aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600,
@@ -158,30 +182,40 @@ function round1(n) {
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
-  // Validate required config
-  if (!KEY_FILE) {
-    console.error('Error: GSC_KEY_FILE is not set.\n');
-    console.error('Setup instructions:');
-    console.error('  1. https://console.cloud.google.com → IAM & Admin → Service Accounts');
-    console.error('     → Create → Keys → Add key → JSON → download the file');
-    console.error('  2. Google Search Console → Settings → Users and permissions');
-    console.error('     → Add user: <service-account-email>  (role: Restricted)');
-    console.error('  3. Set GSC_KEY_FILE=/path/to/key.json  (add to .env or pass inline)');
-    console.error('  4. npm run stats:search-console-sync');
-    process.exit(1);
-  }
+  // --- Auth: OAuth2 tokens (preferred) or Service Account (fallback) ---
+  let accessToken;
 
-  // Read service account key
-  let keyData;
-  try {
-    keyData = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
-  } catch (err) {
-    console.error(`Cannot read key file ${KEY_FILE}: ${err.message}`);
-    process.exit(1);
-  }
-
-  if (keyData.type !== 'service_account') {
-    console.error('GSC_KEY_FILE does not look like a service account JSON (missing type: service_account).');
+  if (fs.existsSync(OAUTH_TOKENS_FILE)) {
+    // OAuth2 refresh token flow
+    let tokensData;
+    try {
+      tokensData = JSON.parse(fs.readFileSync(OAUTH_TOKENS_FILE, 'utf8'));
+    } catch (err) {
+      console.error(`Cannot read tokens file ${OAUTH_TOKENS_FILE}: ${err.message}`);
+      process.exit(1);
+    }
+    console.log(`Authenticating via OAuth2 (${OAUTH_TOKENS_FILE})…`);
+    accessToken = await getAccessTokenOAuth(tokensData);
+  } else if (KEY_FILE) {
+    // Service account flow
+    let keyData;
+    try {
+      keyData = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
+    } catch (err) {
+      console.error(`Cannot read key file ${KEY_FILE}: ${err.message}`);
+      process.exit(1);
+    }
+    if (keyData.type !== 'service_account') {
+      console.error('GSC_KEY_FILE does not look like a service account JSON.');
+      process.exit(1);
+    }
+    console.log(`Authenticating as ${keyData.client_email}…`);
+    accessToken = await getAccessTokenServiceAccount(keyData);
+  } else {
+    console.error('No credentials found.\n');
+    console.error('Option A (recommended): Run the one-time auth setup first:');
+    console.error('  node scripts/gsc-auth-setup.js');
+    console.error('\nOption B (service account): Set GSC_KEY_FILE=/path/to/sa-key.json');
     process.exit(1);
   }
 
@@ -205,9 +239,6 @@ async function main() {
   const LAG = 3;
   const endDate = isoDate(LAG);
   const startDate = isoDate(DAYS + LAG);
-
-  console.log(`Authenticating as ${keyData.client_email}…`);
-  const accessToken = await getAccessToken(keyData);
 
   console.log(`Fetching ${SITE_URL}  (${startDate} → ${endDate})…`);
   let rows = await fetchSearchAnalytics(accessToken, SITE_URL, startDate, endDate);
