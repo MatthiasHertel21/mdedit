@@ -483,3 +483,19 @@ requiredSections:
 
 Zusätzlich dient eine lange URL als Umbruchprobe im Lauftext:
 https://example.org/ein/sehr/langer/pfad/mit/vielen/segmenten/und-parametern?alpha=123&beta=456&gamma=789
+
+### A.7 Abbildungs- und Tabellen-Querverweise (SPR-04)
+
+Dieser Abschnitt prüft die neuen semantischen Objekt-IDs und Querverweise auf Abbildungen und Tabellen. Die Architekturübersicht in [@fig:architektur] zeigt den Exportpfad; die Werkzeuggegenüberstellung ist in [@tbl:werkzeuge] dokumentiert.
+
+<!-- img: #fig:architektur align=center width=80% frame -->
+![Exportpfad von Markdown zu PDF und DOCX über den mdedit-Konverter](/static/brand/mdedit-logo.png)
+
+<!-- tbl: #tbl:werkzeuge -->
+Tabelle 7: Werkzeuggegenüberstellung für den wissenschaftlichen Exportpfad (Querverweistest).
+
+| Werkzeug | Pfad | Funktion |
+| --- | --- | --- |
+| Pandoc | Markdown → DOCX | Dokumentstruktur und Zitation |
+| Chromium | Paged HTML → PDF | Drucknahe Seitengeometrie |
+| citeproc | BibTeX → Bibliografie | Quellenauflösung nach CSL |

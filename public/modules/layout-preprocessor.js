@@ -87,6 +87,7 @@ export class LayoutPreprocessor {
     processed = this.processChapters(processed);
     processed = this.processSections(processed);
     processed = this.processTableMarkers(processed);
+    processed = this.normalizeImageIdAttributes(processed);
     processed = this.processImageMarkers(processed);
     processed = this.processListOfFigures(processed);
     processed = this.processListOfTables(processed);
@@ -566,6 +567,7 @@ export class LayoutPreprocessor {
         break;
       case 'img':
         marker.className = 'image-layout-marker';
+        if (token.attrs.id) marker.dataset.id = token.attrs.id;
         if (token.attrs.align) marker.dataset.align = token.attrs.align;
         if (token.attrs.width) marker.dataset.width = token.attrs.width;
         if (token.attrs.frame === 'true') marker.dataset.frame = 'true';
@@ -822,6 +824,36 @@ export class LayoutPreprocessor {
   }
 
   /**
+   * Normalize image ID attributes into the existing img-marker pipeline.
+   * Supports: ![Caption](img.png){#fig:id}
+   */
+  normalizeImageIdAttributes(markdown) {
+    const hasSemanticImageId = (optStr) => /(^|\s)(?:#fig:[^\s>]+|id=(?:"fig:[^"]+"|'fig:[^']+'|fig:[^\s>]+))/i.test(optStr || '');
+
+    let normalized = markdown.replace(
+      /(<!--\s*img:\s*([^>]*?)-->[ \t]*(?:\r?\n)+)!\[([^\]]*)\]\(([^)\n]+)\)\{#(fig:[^\s}]+)\}/gi,
+      (match, prefix, optStr, alt, target, figId) => {
+        if (hasSemanticImageId(optStr)) {
+          return `${prefix}![${alt}](${target})`;
+        }
+
+        const mergedPrefix = prefix.replace(
+          /<!--\s*img:\s*([^>]*?)-->/i,
+          (markerMatch, markerOptStr) => `<!-- img: ${(markerOptStr || '').trim() ? `${(markerOptStr || '').trim()} id=${figId}` : `id=${figId}`} -->`
+        );
+        return `${mergedPrefix}![${alt}](${target})`;
+      }
+    );
+
+    normalized = normalized.replace(
+      /!\[([^\]]*)\]\(([^)\n]+)\)\{#(fig:[^\s}]+)\}/gi,
+      (match, alt, target, figId) => `<!-- img: id=${figId} -->\n\n![${alt}](${target})`
+    );
+
+    return normalized;
+  }
+
+  /**
    * Image layout markers
    * Supports: <!-- img: align=right width=40% frame shadow filter=grayscale -->
    */
@@ -830,9 +862,14 @@ export class LayoutPreprocessor {
       /<!--\s*img:\s*([^>]*?)-->/gi,
       (match, optStr) => {
         const attrs = {};
-        optStr.trim().replace(/(\w+)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g, (m, key, dq, sq, bare) => {
+        const semanticIdMatch = optStr.match(/(^|\s)#(fig:[^\s>]+)/i);
+        const plainOpts = optStr.replace(/(^|\s)#fig:[^\s>]+/ig, ' ').trim();
+        plainOpts.replace(/(\w+)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g, (m, key, dq, sq, bare) => {
           attrs[key] = dq !== undefined ? dq : (sq !== undefined ? sq : (bare !== undefined ? bare : 'true'));
         });
+        if (!attrs.id && semanticIdMatch) {
+          attrs.id = semanticIdMatch[2];
+        }
         return createLayoutToken('img', attrs);
       }
     );
@@ -881,7 +918,8 @@ export class LayoutPreprocessor {
       processed.add(img);
 
       figureNum++;
-      const figureId = `figure-${figureNum}`;
+      const semanticId = /^fig:/.test(figure.id || '') ? figure.id : '';
+      const figureId = semanticId || `figure-${figureNum}`;
       figure.id = figureId;
       figure.classList.add('md-figure', 'md-figure--center');
 
@@ -925,6 +963,8 @@ export class LayoutPreprocessor {
 
       const mdata = markerMap.get(img);
       const altText = img.getAttribute('alt') || '';
+      const semanticId = /^fig:/.test(mdata?.marker?.dataset?.id || '') ? mdata.marker.dataset.id : '';
+      const rawCaption = altText.trim().replace(/\s+/g, ' ');
 
       // Extract caption from alt text: "Abbildung N: description" or "Figure N: description"
       const altMatch = altText.match(/^(?:Abbildung|Abb\.|Figure|Fig\.)\s*\d*\s*:?\s*(.+)/i);
@@ -934,8 +974,8 @@ export class LayoutPreprocessor {
       if (!mdata && !altCaption) return;
 
       figureNum++;
-      const figureId = `figure-${figureNum}`;
-      const caption = altCaption || '';
+      const figureId = semanticId || `figure-${figureNum}`;
+      const caption = altCaption || (semanticId ? rawCaption : '');
       this.figureRegistry.push({ id: figureId, num: figureNum, caption });
 
       // Build <figure> wrapper

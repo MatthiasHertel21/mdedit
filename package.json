@@ -10,8 +10,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
+    "dev": "node --env-file=.env server.js",
+    "start": "node --env-file=.env server.js",
     "i18n:pretranslate": "node scripts/i18n-pretranslate.js",
     "i18n:sync": "node scripts/i18n-sync.js",
     "i18n:validate": "node scripts/i18n-validate.js",
