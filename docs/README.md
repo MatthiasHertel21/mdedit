@@ -9,27 +9,12 @@
 
 - [AI API](operations/AI-API.md)
 - [Docker Setup](operations/DOCKER.md)
-- [Stage Uebersicht](operations/STAGES.md)
-- [Security Status](operations/SECURITY.md)
+- [Deployment Stages](operations/STAGES.md)
+- [Security Notes](operations/SECURITY.md)
 
-## Engineering
+## Examples
 
-- [Refactoring Notes](engineering/REFACTORING.md)
-- [Scalability Notes](engineering/SCALABILITY.md)
-
-## Concepts
-
-- [Collaboration Concept](concepts/collab-concept.md)
-- [Citations Concept](concepts/citations-concept.md)
-- [Citations Implementation Plan](concepts/citations-implementation-plan.md)
-- [Citations UX Concept](concepts/citations-ux-concept.md)
-- [Lean Mobile Authoring UX Concept](concepts/mobile-authoring-ux-concept.md)
-
-## Planning
-
-- [Scientific Documents Plan](planning/scientific-documents-plan.md)
-
-## Examples and Testing
-
-- [Example Document](examples/example.md)
-- [Test Outline](testing/test-outline.md)
+- [Master Thesis (scientific layout)](examples/masterthesis-reference.md)
+- [Book reference (literature layout)](examples/book-reference.md)
+- [Quickread (compact layout)](examples/quickread-reference.md)
+- [Sample PDF output](examples/example-output.pdf)

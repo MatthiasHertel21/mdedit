@@ -48,6 +48,10 @@ Or run it locally after startup at `http://localhost:3210`.
 
 ## Getting Started
 
+**No installation needed** — try the live app at **[mdedit.io](https://mdedit.io)** directly in your browser.
+
+To run it locally:
+
 ### Prerequisites
 
 - Node.js 20 or newer for local development and `deploy-prod.sh`
@@ -127,12 +131,10 @@ For security posture and remaining hardening work, see [docs/operations/SECURITY
 
 ## Documentation
 
-- Operations and deployment: `docs/operations/`
-- Architecture and engineering notes: `docs/engineering/`
-- Product and feature concepts: `docs/concepts/`
-- Examples: `docs/examples/`
-
-Overview: [docs/README.md](docs/README.md)
+- [Docker Setup](docs/operations/DOCKER.md)
+- [AI API Configuration](docs/operations/AI-API.md)
+- [Security Notes](docs/operations/SECURITY.md)
+- [Example documents](docs/examples/)
 
 ## Nginx Reverse Proxy (example)
 
