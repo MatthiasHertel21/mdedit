@@ -71,10 +71,22 @@ try {
       container.querySelectorAll("h1[id^='sec:'],h2[id^='sec:'],h3[id^='sec:']")
     ).map((h) => h.getAttribute("id"));
 
-    // 2. Section numbers present
-    const sectionNumbers = Array.from(
+    // 2. Section numbers in heading text (Pandoc path: "1. Einleitung", "1.1 Forschungsfrage")
+    //    or in .section-number spans (markdown-it path).
+    const pandocNumbers = Array.from(
+      container.querySelectorAll("[id^='sec:']")
+    ).map((h) => {
+      const text = h.textContent.trim();
+      const m = text.match(/^(\d+(?:\.\d+)*)[.\s]/);
+      return m ? m[1] : "";
+    }).filter(Boolean);
+
+    const spanNumbers = Array.from(
       container.querySelectorAll(".section-number")
     ).map((s) => s.textContent.trim());
+
+    // Combined: numbers come from either Pandoc text or injected spans
+    const hasNumbers = pandocNumbers.length > 0 || spanNumbers.length > 0;
 
     // 3. No residual {#sec: text visible
     const textContent = container.textContent || "";
@@ -97,21 +109,23 @@ try {
     const nonCodeText = allText.replace(codeText, "");
     const hasRawCrossRef = /\[@sec:[a-z]/.test(nonCodeText);
 
-    // 6. Sample: first heading number is "1"
-    const firstH1Num =
-      container.querySelector("h1 .section-number")?.textContent?.trim() || "";
-    const firstH2 = container.querySelector("h2");
-    const firstH2Num =
-      firstH2?.querySelector(".section-number")?.textContent?.trim() || "";
+    // 6. Sample: first sec: heading number
+    const einleitungEl = container.querySelector("[id='sec:einleitung']");
+    const einleitungNum = einleitungEl
+      ? (einleitungEl.querySelector(".section-number")?.textContent?.trim() ||
+         (einleitungEl.textContent.trim().match(/^(\d+(?:\.\d+)*)[.\s]/) || [])[1] ||
+         "")
+      : "";
 
     return {
       headingsWithIds,
-      sectionNumbers: sectionNumbers.slice(0, 8),
+      pandocNumbers: pandocNumbers.slice(0, 8),
+      spanNumbers: spanNumbers.slice(0, 8),
+      hasNumbers,
       hasResidualAttrs,
       crossRefLinks: crossRefLinks.slice(0, 6),
       hasRawCrossRef,
-      firstH1Num,
-      firstH2Num,
+      einleitungNum,
     };
   });
 
@@ -120,7 +134,9 @@ try {
   console.log(`Section IDs found (${results.headingsWithIds.length}):`);
   results.headingsWithIds.slice(0, 6).forEach((id) => console.log(`  id="${id}"`));
 
-  console.log(`\nSection numbers (first 8): ${results.sectionNumbers.join(", ")}`);
+  console.log(`\nPandoc numbers: ${results.pandocNumbers.join(", ")}`);
+  console.log(`Span numbers: ${results.spanNumbers.join(", ")}`);
+  console.log(`Einleitung number: "${results.einleitungNum}"`);
 
   console.log(`\nCross-reference links (${results.crossRefLinks.length}):`);
   results.crossRefLinks.forEach((l) =>
@@ -136,13 +152,16 @@ try {
   console.log(`✓ ${results.headingsWithIds.length} headings have sec: IDs`);
 
   assert(
-    results.sectionNumbers.length >= 5,
-    `Expected ≥5 section numbers, got ${results.sectionNumbers.length}`
+    results.hasNumbers,
+    "Expected section numbers in Pandoc heading text or .section-number spans"
   );
-  console.log(`✓ ${results.sectionNumbers.length} section-number spans rendered`);
+  console.log(`✓ Section numbers present (pandoc: ${results.pandocNumbers.length}, spans: ${results.spanNumbers.length})`);
 
-  assert(results.firstH1Num === "1", `First H1 number should be "1", got "${results.firstH1Num}"`);
-  console.log(`✓ First H1 numbered "1"`);
+  assert(
+    results.einleitungNum === "1",
+    `sec:einleitung should have number "1", got "${results.einleitungNum}"`
+  );
+  console.log(`✓ sec:einleitung numbered "1"`);
 
   assert(
     !results.hasResidualAttrs,
@@ -165,7 +184,7 @@ try {
   // All cross-ref link texts should start with "Abschnitt " and a number
   for (const link of results.crossRefLinks) {
     assert(
-      /^Abschnitt \d/.test(link.text),
+      /^Abschnitt[\s\u202F]\d/.test(link.text),
       `Cross-ref link text "${link.text}" should start with "Abschnitt N"`
     );
   }

@@ -4511,13 +4511,11 @@ const renderCitationPreview = async () => {
 
     elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(payload.html || ""));
 
-    // SCI-011/012/013: Heading numbering and section cross-reference resolution
-    if (parseFrontmatterBoolean(text, "number-sections")) {
-      applyHeadingNumbers(elements.preview);
-    } else {
-      buildSectionRegistryFromDOM(elements.preview);
-    }
-    applySectionCrossRefs(elements.preview);
+    // SCI-011/012/013: Pandoc already applies number-sections natively; headings carry
+    // numbers in their text ("1. Einleitung"). Build registry from them and resolve
+    // [@sec:] cross-refs that citeproc rendered as <span class="citation" data-cites="sec:...">.
+    buildSectionRegistryFromPandocHTML(elements.preview);
+    replacePandocSectionRefs(elements.preview);
 
     finalizePreviewRender();
     return true;
@@ -4605,13 +4603,52 @@ const applySectionCrossRefs = (container) => {
   walk(container);
 };
 
+// SCI-011 Pandoc path: Build sectionRegistry from Pandoc-rendered headings that already
+// carry section numbers in their text (e.g. "1. Einleitung", "1.1 Forschungsfrage").
+const buildSectionRegistryFromPandocHTML = (container) => {
+  sectionRegistry.clear();
+  container.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((el) => {
+    if (!el.id) return;
+    const text = el.textContent.trim();
+    // Match leading decimal number (1, 1.1, A.1, etc.) produced by Pandoc number-sections
+    const m = text.match(/^(\d+(?:\.\d+)*|[A-Z](?:\.\d+)*)[.\s]\s*(.+)/);
+    if (m) {
+      sectionRegistry.set(el.id, { number: m[1], displayTitle: m[2].trim() });
+    } else {
+      sectionRegistry.set(el.id, { number: "", displayTitle: text });
+    }
+  });
+};
+
+// SCI-012 Pandoc path: Replace <span class="citation" data-cites="sec:xxx"> produced
+// by Pandoc citeproc with resolved section cross-reference links.
+const replacePandocSectionRefs = (container) => {
+  if (!sectionRegistry.size) return;
+  container.querySelectorAll("span.citation[data-cites]").forEach((span) => {
+    const cites = span.getAttribute("data-cites") || "";
+    // Only handle sec: prefixed refs; ignore normal literature citations
+    if (!cites.startsWith("sec:")) return;
+    const entry = sectionRegistry.get(cites);
+    if (!entry) return;
+    const label = entry.number
+      ? `Abschnitt\u202F${entry.number}`
+      : entry.displayTitle;
+    const a = document.createElement("a");
+    a.href = `#${cites}`;
+    a.className = "section-ref";
+    a.textContent = label;
+    span.parentNode.replaceChild(a, span);
+  });
+};
+
 // SCI-011: Apply automatic heading numbers to rendered preview and populate sectionRegistry.
 const applyHeadingNumbers = (container) => {
   sectionRegistry.clear();
   const counters = [0, 0, 0, 0, 0, 0];
   container.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((el) => {
-    // Skip headings inside title-page or TOC containers
+    // Skip headings inside title-page / TOC containers, or marked no-toc / toc-heading
     if (el.closest(".title-page, .toc, .md-toc")) return;
+    if (el.classList.contains("no-toc") || el.classList.contains("toc-heading")) return;
     const lvl = parseInt(el.tagName[1], 10) - 1;
     counters[lvl]++;
     for (let i = lvl + 1; i < 6; i++) counters[i] = 0;
