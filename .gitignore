@@ -25,6 +25,10 @@ npm-debug.log*
 .DS_Store
 .vscode/
 
+# Google Search Console service account key – never commit
+config/*-key.json
+config/gsc-queries.json
+
 # Local deployment/runtime files kept out of the public repository
 deploy/*.local.yml
 deploy/*.private.yml

@@ -16,6 +16,7 @@
     "i18n:sync": "node scripts/i18n-sync.js",
     "i18n:validate": "node scripts/i18n-validate.js",
     "stats:marketing-snapshot": "node scripts/marketing-stats-sync.js",
+    "stats:search-console-sync": "node scripts/search-console-sync.js",
     "smoke:citations": "node scripts/citations-smoke.js",
     "smoke:reference-citations": "node scripts/reference-citations-smoke.js",
     "smoke:paged-parity": "node scripts/paged-preview-parity.js",
