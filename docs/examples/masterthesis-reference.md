@@ -4,6 +4,7 @@ author:
   - Max Beispiel
 date: 2026-05-10
 lang: de-DE
+number-sections: true
 citation-source: embedded
 reference-section-title: Literaturverzeichnis
 link-citations: true
@@ -29,7 +30,7 @@ Masterarbeit · Universität Beispiel · 2026-05-10
 
 Die Erstellung wissenschaftlicher Arbeiten bewegt sich heute zwischen drei dominanten Logiken: der textverarbeitungsorientierten Logik von Microsoft Word, der satzorientierten Logik von LaTeX und der strukturorientierten Logik markdown-basierter Workflows. Diese Arbeit untersucht, unter welchen Bedingungen ein browserbasierter Markdown-Editor am Beispiel von mdedit.io als primäre Produktionsumgebung für wissenschaftliche Abschlussarbeiten dienen kann. Ausgangspunkt ist die Beobachtung, dass die Eignung von Schreibwerkzeugen in der akademischen Praxis häufig über Gewohnheiten, Fachkulturen oder Tool-Mythen beurteilt wird, während ein explizites Bewertungsmodell für Strukturtransparenz, Quellenarbeit, Exportstabilität und Betreuungskompatibilität oft fehlt.
 
-Methodisch folgt die Arbeit einer kriteriengeleiteten Artefaktanalyse mit designorientierter Bewertungslogik. Auf Basis der Literatur zum wissenschaftlichen Arbeiten, zu Markdown und Pandoc sowie zu designwissenschaftlichen Bewertungsansätzen werden fünf Bewertungsdimensionen abgeleitet: Strukturtransparenz, Quellen- und Zitationssicherheit, Layout- und Exportstabilität, Review- und Betreuungskompatibilität sowie Governance und Betriebsfähigkeit [@booth2016craft; @swalesfeak2012; @hevner2004design; @wieringa2014design]. Diese Dimensionen werden zunächst auf Word, LaTeX und markdown-basierte Workflows bezogen und anschließend für mdedit.io anhand offizieller Dokumentation, institutioneller Vorgaben und eines reproduzierbaren Referenzartefakts bewertet.
+Methodisch folgt die Arbeit einer kriteriengeleiteten Artefaktanalyse mit designorientierter Bewertungslogik. Auf Basis der Literatur zum wissenschaftlichen Arbeiten, zu Markdown und Pandoc sowie zu designwissenschaftlichen Bewertungsansätzen werden fünf Bewertungsdimensionen abgeleitet: Strukturtransparenz, Quellen- und Zitationssicherheit, Layout- und Exportstabilität, Review- und Betreuungskompatibilität sowie Governance und Betriebsfähigkeit [@booth2016craft; @swalesfeak2012; @hevner2004design; @wieringa2014design]. Diese Dimensionen werden zunächst auf Word, LaTeX und markdown-basierte Workflows bezogen ([@sec:vergleich]) und anschließend für mdedit.io anhand offizieller Dokumentation, institutioneller Vorgaben und eines reproduzierbaren Referenzartefakts bewertet ([@sec:bewertung]).
 
 Die Ergebnisse zeigen, dass Markdown in Verbindung mit Spezifikation, Metadaten und Konvertern ein belastbares Zwischenformat für wissenschaftliche Langtexte sein kann [@gruber2004markdown; @commonmark2026; @pandoc2025]. Zugleich gewinnt Markdown im Kontext generativer KI eine besondere Rolle als strukturstabiles Arbeits- und Austauschformat: Überschriften, Listen, Tabellen, Codeblöcke und Zitationsmarker bleiben für Menschen lesbar und für Modelle gezielt bearbeitbar. Für mdedit.io ergibt sich dadurch eine starke Eignung in der Struktur- und Schreibphase, in der Navigation großer Dokumente über Outline und Tree View, in der KI-gestützten Dokumentarbeit, in der frühen Layoutkontrolle sowie in kontrollierten PDF- und DOCX-Exportpfaden [@mdeditreadme2026; @mdedithelp2026]. Zusätzlich ist relevant, dass der wissenschaftliche Exportpfad aktuelle mdedit-Erweiterungen für Bibliografie, Citeproc und Referenzsektionen integriert [@mdeditserver2026]. Grenzen bleiben bei note-style-Fußnoten, stark normierten Sondervorlagen und semantisch reichen Referenzsystemen. Die Arbeit leistet damit keinen empirischen Nutzernachweis, wohl aber ein kriteriologisches Entscheidungsmodell und ein prüfbares Referenzartefakt für die Bewertung thesis-tauglicher Markdown-Workflows.
 
@@ -47,7 +48,7 @@ Markdown, wissenschaftliche Abschlussarbeit, mdedit.io, Design Science, LaTeX, M
 
 <!-- list-of-tables -->
 
-## 1. Einleitung
+## 1. Einleitung {#sec:einleitung}
 
 Wissenschaftliche Arbeiten sind heute nicht mehr nur Textprodukte, sondern organisierte Schreib- und Überarbeitungsprozesse. Eine Masterthesis entsteht über Wochen oder Monate hinweg in einem Wechselspiel aus Materialsammlung, Strukturierung, Rohfassung, Rückmeldung, sprachlicher Revision, formaler Kontrolle und finalem Export. Die Qualität des eingesetzten Werkzeugs entscheidet dabei nicht über die wissenschaftliche Güte der Argumentation, wohl aber über Reibungsverluste, Sichtbarkeit der Struktur und die Stabilität des Produktionsprozesses. Genau deshalb ist die Frage nach geeigneten Schreibumgebungen kein Nebenaspekt, sondern Teil akademischer Arbeitsorganisation.
 
@@ -57,7 +58,7 @@ Zusätzlich verändert der Aufstieg generativer KI die Bewertung von Markdown no
 
 Vor diesem Hintergrund untersucht die vorliegende Arbeit, welche Rolle Markdown und speziell mdedit.io für wissenschaftliche Arbeiten spielen können. Im Zentrum steht nicht die Behauptung, ein einzelnes Werkzeug könne alle konkurrierenden Produktionslogiken ersetzen. Gefragt wird vielmehr, für welche Anforderungsprofile wissenschaftlicher Abschlussarbeiten ein browserbasierter Markdown-Workflow methodisch vertretbar, technisch stabil und institutionell anschlussfähig ist. Zusätzlich führt die Arbeit ein reproduzierbares Referenzartefakt mit, das die für wissenschaftliche Langtexte relevanten Satz- und Exportelemente praktisch prüfbar macht.
 
-### 1.1 Forschungsfrage
+### 1.1 Forschungsfrage {#sec:forschungsfrage}
 
 Die leitende Forschungsfrage lautet: Unter welchen Bedingungen kann ein browserbasierter Markdown-Editor am Beispiel von mdedit.io als primäre Produktionsumgebung für wissenschaftliche Abschlussarbeiten dienen, und unter welchen formalen Randbedingungen bleiben Word oder LaTeX vorzugswürdig?
 
@@ -67,7 +68,7 @@ Zur Beantwortung werden drei Teilfragen verfolgt:
 2. Welche Produktionslogiken unterscheiden Word, LaTeX und markdown-basierte Workflows in Bezug auf diese Anforderungen?
 3. An welcher Stelle erweist sich mdedit.io als tragfähiger Primärworkflow, und wo beginnen Ausschlusskriterien oder institutionelle Sonderfälle?
 
-### 1.2 Arbeitsthesen
+### 1.2 Arbeitsthesen {#sec:arbeitsthesen}
 
 Die Arbeit basiert auf vier Arbeitsthesen:
 
@@ -76,7 +77,7 @@ Die Arbeit basiert auf vier Arbeitsthesen:
 3. mdedit.io ist besonders dort stark, wo Longform-Struktur, frühe Layoutkontrolle, kontrollierter Multi-Export, dokumentnahe KI-Unterstützung und browserbasierte Zusammenarbeit im Vordergrund stehen [@mdeditreadme2026].
 4. mdedit.io bleibt dort begrenzt, wo semantisch reiche Referenzsysteme, note-style-Fußnoten oder starre Hochschulvorlagen produktiv zwingend sind [@mdeditcitations2026; @mdeditplan2026].
 
-### 1.3 Methodisches Vorgehen
+### 1.3 Methodisches Vorgehen {#sec:methodik}
 
 Methodisch folgt die Arbeit einer kriteriengeleiteten Artefaktanalyse im Sinne designorientierter Forschung [@hevner2004design; @wieringa2014design]. Im ersten Schritt wird aus der Literatur zum wissenschaftlichen Arbeiten und aus institutionellen Zitiervorgaben ein Anforderungskatalog für wissenschaftliche Abschlussarbeiten rekonstruiert [@booth2016craft; @swalesfeak2012; @readingstyles2026]. Im zweiten Schritt werden die drei dominanten Werkzeuglogiken Word, LaTeX und Markdown vergleichend auf diese Anforderungen bezogen. Im dritten Schritt erfolgt für mdedit.io eine vertiefte Fallanalyse anhand offizieller Produktdokumentation, wissenschaftsnaher Projektkonzepte und des in dieser Arbeit mitgeführten Referenzartefakts [@mdeditreadme2026; @mdeditcitations2026; @mdeditplan2026].
 
@@ -128,7 +129,7 @@ Gerade im wissenschaftlichen Kontext ist dieser Unterschied relevant. Wer mit KI
 
 ## 3. Optionen für die Erstellung wissenschaftlicher Arbeiten
 
-### 3.1 Besondere Anforderungen wissenschaftlicher Dokumente
+### 3.1 Besondere Anforderungen wissenschaftlicher Dokumente {#sec:anforderungen}
 
 Wissenschaftliche Arbeiten unterscheiden sich von Alltagsdokumenten durch eine Reihe spezifischer Anforderungen. Dazu gehören mindestens eine stabile Kapitelhierarchie, konsistente Zitation, sauber geführte Literaturverzeichnisse, reproduzierbare Tabellen- und Abbildungsintegration, kontrollierbare Exportpfade, Rückmeldeschleifen mit Betreuenden und formale Anschlussfähigkeit an Hochschulvorgaben. Hinzu kommen praktische Anforderungen wie Versionssicherheit, Reviewfähigkeit, Datensparsamkeit und langfristige Lesbarkeit. In der einschlägigen Literatur zum wissenschaftlichen Arbeiten wird diese Verbindung aus Erkenntnislogik, Strukturierung, Zitierdisziplin und redaktioneller Konsistenz seit langem als Kern wissenschaftlicher Textproduktion beschrieben [@booth2016craft; @swalesfeak2012].
 
@@ -154,7 +155,7 @@ Markdown-basierte Workflows besetzen die Zwischenzone zwischen Word und LaTeX. S
 
 Markdown ist damit kein Ersatz für jede Fachkultur und jede Hochschulvorgabe. Seine besondere Stärke liegt dort, wo das Schreiben selbst, die Sicht auf Struktur und ein kontrollierter Multi-Export wichtiger sind als pixelgenaue Formatarbeit während der Rohfassung. Im Kontext KI-gestützter Schreibarbeit kommt hinzu, dass Markdown seine Struktur explizit mitführt und dadurch besser für Transformation, Revision und Weiterverarbeitung geeignet ist als rein visuell orientierte Formate.
 
-### 3.5 Vergleich von Word, LaTeX und Markdown
+### 3.5 Vergleich von Word, LaTeX und Markdown {#sec:vergleich}
 
 Die Werkzeugklassen unterscheiden sich weniger entlang einer simplen Rangordnung als entlang ihrer Produktionslogik. Word ist review- und institutionenfreundlich, LaTeX ist satz- und formalstark, Markdown ist struktur- und portabilitätsorientiert.
 
@@ -173,7 +174,7 @@ Tabelle 1: Vergleich zentraler Werkzeuglogiken für wissenschaftliche Arbeiten.
 | Eignung für spontane Überarbeitung | Hoch | Mittel | Hoch |
 :::
 
-Aus dieser Gegenüberstellung folgt kein pauschaler Sieger. Vielmehr hängt die Eignung vom Profil der Arbeit ab. Wo eine Hochschule starre Word-Vorlagen erzwingt, bleibt Word faktisch dominant. Wo mathematische Satzqualität und komplexe Referenzsysteme im Zentrum stehen, bleibt LaTeX stark. Wo jedoch Strukturtransparenz, editorische Leichtigkeit, Portabilität, Web-Review und frühe Exportkontrolle im Vordergrund stehen, gewinnt Markdown erheblich an Attraktivität.
+Aus dieser Gegenüberstellung folgt kein pauschaler Sieger. Vielmehr hängt die Eignung vom Profil der Arbeit ab. Die Anforderungen an wissenschaftliche Dokumente wurden in [@sec:anforderungen] hergeleitet; die Konsequenzen für mdedit.io werden in [@sec:bewertung] im Detail durchgeführt. Wo eine Hochschule starre Word-Vorlagen erzwingt, bleibt Word faktisch dominant. Wo mathematische Satzqualität und komplexe Referenzsysteme im Zentrum stehen, bleibt LaTeX stark. Wo jedoch Strukturtransparenz, editorische Leichtigkeit, Portabilität, Web-Review und frühe Exportkontrolle im Vordergrund stehen, gewinnt Markdown erheblich an Attraktivität.
 
 ## 4. mdedit.io als Untersuchungsfall
 
@@ -195,15 +196,15 @@ Aus theoretischer Sicht ist mdedit.io vor allem dort relevant, wo wissenschaftli
 
 Damit positioniert sich mdedit.io zwischen der review- und institutionsnahen Logik von Word und der satz- und formalstärkeren Logik von LaTeX. Diese Zwischenposition ist gerade für Abschlussarbeiten interessant, weil viele Projekte weder reine Office-Routine noch voll entwickelte TeX-Workflows voraussetzen, wohl aber eine stabile, nachvollziehbare Produktionsumgebung benötigen.
 
-### 4.4 Absehbare Grenzen des Untersuchungsfalls
+### 4.4 Absehbare Grenzen des Untersuchungsfalls {#sec:grenzen}
 
 Die eigene wissenschaftliche Konzeptdokumentation von mdedit.io benennt zugleich klare Grenzen. Der Hauptengpass liegt weniger im Seitenlayout als in semantischen Dokumentfunktionen wie YAML-Frontmatter, Labels, Nummerierung, Cross-References und belastbaren Zitationspfaden [@mdeditcitations2026]. Ebenfalls werden echte seitengebundene Fußnoten für note-style-Zitierstile nicht als gesichert im aktuellen HTML- und Paged-Stack versprochen [@mdeditcitations2026].
 
-Die sachliche Schlussfolgerung lautet daher: mdedit.io ist für wissenschaftliche Langtexte ein ernstzunehmender Untersuchungsfall, aber kein universell vollständiges System. Seine Eignung steigt dort, wo Autorinnen und Autoren bewusst mit Struktur, Frontmatter, Citeproc-Export und Layoutregeln arbeiten. Sie sinkt dort, wo absolute Kompatibilität mit sehr spezifischen Vorlagensystemen oder LaTeX-zentrierten Fußnotenstilen gefordert ist.
+Die sachliche Schlussfolgerung lautet daher: mdedit.io ist für wissenschaftliche Langtexte ein ernstzunehmender Untersuchungsfall, aber kein universell vollständiges System. Seine Eignung steigt dort, wo Autorinnen und Autoren bewusst mit Struktur, Frontmatter, Citeproc-Export und Layoutregeln arbeiten. Die konkreten Grenzfälle werden in [@sec:ausschluss] und [@sec:grenzen] benannt. Sie sinkt dort, wo absolute Kompatibilität mit sehr spezifischen Vorlagensystemen oder LaTeX-zentrierten Fußnotenstilen gefordert ist.
 
-## 5. Kriteriengeleitete Bewertung von mdedit.io
+## 5. Kriteriengeleitete Bewertung von mdedit.io {#sec:bewertung}
 
-### 5.1 Bewertungslogik und Untersuchungsartefakt
+### 5.1 Bewertungslogik und Untersuchungsartefakt {#sec:bewertungslogik}
 
 Die Bewertung folgt nicht der Frage, ob mdedit.io jedes Einzelmerkmal von Word oder LaTeX repliziert. Entscheidend ist vielmehr, ob das Werkzeug die wissenschaftliche Produktionskette einer Abschlussarbeit ohne methodisch kritische Brüche tragen kann. Als kritisch gelten in dieser Arbeit Brüche, wenn sie zu Strukturverlust, inkonsistenter Zitation, nicht kontrollierbaren Exporten, betreuungspraktischen Reibungen oder institutionell problematischem Betrieb führen.
 
@@ -281,7 +282,7 @@ Für eine reale Masterarbeit reicht technische Satzfähigkeit allein nicht aus; 
 
 Die Bewertung lautet deshalb nicht, mdedit.io sei generell besser als Word, sondern dass es unter anderen Betreuungsbedingungen tragfähig ist. Sobald Betreuende zwingend .docx-Kommentarworkflows erwarten, muss der Exportpfad Teil des methodischen Arbeitsplans werden. Unter dieser Bedingung ist mdedit.io kompatibel; ohne sie kann es zu sozial-organisatorischen und nicht zu technischen Brüchen kommen.
 
-### 5.6 Ausschlusskriterien und Grenzfälle
+### 5.6 Ausschlusskriterien und Grenzfälle {#sec:ausschluss}
 
 Aus der Analyse ergeben sich klare Grenzfälle, in denen mdedit.io gegenwärtig nicht als primäre Umgebung empfohlen werden sollte: erstens bei strikt vorgeschriebenen Word-Schablonen mit fragiler Formatsemantik, zweitens bei juristischen note-style-Zitierregimen und drittens bei Projekten, die semantisch reichhaltige Cross-References und automatische Referenzobjekte zwingend voraussetzen [@mdeditcitations2026; @mdeditplan2026].
 
@@ -465,7 +466,7 @@ Wissenschaftliche Haupttexte brauchen selten Spalten; Anhänge und Sonderseiten 
 
 ### A.6 Unicode-, Querverweis- und Listingprobe
 
-Wie in Abbildung 1 und Tabelle 5 sichtbar wird, braucht eine Masterthesis nicht nur stabile Seiten, sondern auch belastbare textuelle Querverweise im Fließtext. Diese Probe bleibt bewusst einfach und testet, wie sich Referenzformulierungen im Satz verhalten, solange semantische Cross-References nicht in jedem Sonderfall automatisiert verfügbar sind.
+Die neuen semantischen Querverweise verknüpfen Abschnitte direkt im Text. Wie in [@sec:methodik] beschrieben, folgt die Analyse einer kriteriengeleiteten Artefaktprüfung. Die Forschungsfrage aus [@sec:forschungsfrage] wurde in [@sec:bewertungslogik] operationalisiert; die Grenzen des Untersuchungsfalls sind in [@sec:grenzen] und [@sec:ausschluss] dokumentiert. Diese `[@sec:...]`-Syntax ist ein Merkmal von SPR-03: Der Editor löst die Referenzen im Preview zu verlinkten Abschnittsnummern auf; Pandoc übernimmt sie beim Export über den `header_attributes`-Reader nativ.
 
 Die deutsche Typografieprobe enthält absichtlich echtes Unicode: für, äußere, Einführung, „deutsche Anführungszeichen“, Gedankenstrich – und § 1 Abs. 2. Damit lässt sich prüfen, ob Kopierbarkeit, Suchbarkeit und Zeichendarstellung im Export stabil bleiben.
 
