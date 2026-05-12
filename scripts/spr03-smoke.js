@@ -57,10 +57,14 @@ try {
 
   // Wait for preview content to render
   await page.waitForSelector(".preview-content", { timeout: 10000 });
-  // Wait until at least one heading has a section-number span (numbering applied)
+  // Wait until section IDs are present (set by Pandoc rendering or markdown-it)
+  // or until section-ref links appear (added by replacePandocSectionRefs)
   await page.waitForFunction(
-    () => document.querySelector(".preview-content .section-number") !== null,
-    { timeout: 10000 }
+    () =>
+      document.querySelector(".preview-content [id^='sec:']") !== null ||
+      document.querySelector(".preview-content a.section-ref") !== null ||
+      document.querySelector(".preview-content .section-number") !== null,
+    { timeout: 15000 }
   );
 
   const results = await page.evaluate(() => {
