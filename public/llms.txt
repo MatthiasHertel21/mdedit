@@ -1,6 +1,6 @@
 # mdedit.io
 
-> Style up your Markdown Documents — together, now and with AI help. mdedit.io is a browser-based Markdown editor with live preview, structured layout control, Mermaid, KaTeX, AI assistance, real-time collaboration, and PDF/DOCX export. No account needed. Self-hostable and open source (Apache 2.0).
+> mdedit.io is a no-account, browser-based Markdown editor for serious documents — live preview, structured layout control, Mermaid, KaTeX, AI assistance, real-time collaboration, and professional PDF/DOCX export. Self-hostable and open source (Apache 2.0).
 
 ## What mdedit.io is
 
