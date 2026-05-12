@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Self-hosted Markdown editor with PDF and DOCX export | mdedit.io</title>
-    <meta name="description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <title>Self-hosted Markdown editor with Docker, PDF and DOCX export | mdedit.io</title>
+    <meta name="description" content="Run mdedit.io on your own infrastructure with Docker. Get browser-based Markdown editing, live preview, citations, collaboration, and PDF/DOCX export without adopting a hosted SaaS stack." />
     <link rel="canonical" href="https://mdedit.io/self-hosted-markdown-editor/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="mdedit.io" />
-    <meta property="og:title" content="Self-hosted Markdown editor with PDF and DOCX export | mdedit.io" />
-    <meta property="og:description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <meta property="og:title" content="Self-hosted Markdown editor with Docker, PDF and DOCX export | mdedit.io" />
+    <meta property="og:description" content="Run mdedit.io on your own infrastructure with Docker, browser-based editing, citations, collaboration, and PDF/DOCX export." />
     <meta property="og:url" content="https://mdedit.io/self-hosted-markdown-editor/" />
     <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Self-hosted Markdown editor with PDF and DOCX export | mdedit.io" />
-    <meta name="twitter:description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <meta name="twitter:title" content="Self-hosted Markdown editor with Docker, PDF and DOCX export | mdedit.io" />
+    <meta name="twitter:description" content="Run mdedit.io on your own infrastructure with Docker, browser-based editing, citations, collaboration, and PDF/DOCX export." />
     <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
     <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
     <style>
@@ -105,21 +105,21 @@
       <section class="hero">
         <div class="hero-copy">
           <span class="eyebrow">Self-hosting</span>
-          <h1>Self-hosted Markdown editor with PDF and DOCX export</h1>
-          <p class="lead">Run mdedit.io on your own server with Docker and get live preview, collaboration, citations, and professional PDF/DOCX export in a browser-based workflow.</p>
+          <h1>Run mdedit.io on your own infrastructure with Docker</h1>
+          <p class="lead">Self-host a browser-based Markdown editor with live preview, collaboration, citations, and PDF or DOCX export, without pushing documents into a hosted account-first SaaS workflow.</p>
           <div class="cta-row">
-            <a class="cta" href="/">Start locally</a>
-            <a class="cta-secondary" href="/help-en.html#share">Read help</a>
-            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">View GitHub repository</a>
+            <a class="cta" href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">Open Docker setup on GitHub</a>
+            <a class="cta-secondary" href="/help-en.html#share">Read deployment help</a>
+            <a class="cta-secondary" href="/">Try the live app</a>
           </div>
         </div>
         <aside class="hero-proof">
-          <h2>Quick start</h2>
+          <h2>Fast path to a private deployment</h2>
           <pre><code>git clone https://github.com/MatthiasHertel21/mdedit.git
 cd mdedit
 cp .env.example .env
 docker compose up -d</code></pre>
-          <p>Open the app in your browser and start writing immediately. The runtime is Docker-based, documents are stored in SQLite, and configuration happens via environment variables.</p>
+          <p>Bring the stack up, set your secrets, and give users a browser URL. The runtime stays small: Docker, SQLite, environment variables, and your own reverse-proxy path.</p>
         </aside>
       </section>
 
