@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Markdown editor for thesis writing | mdedit.io</title>
+    <meta name="description" content="Write thesis and research documents in Markdown with citations, live preview, outline navigation, and print-ready PDF/DOCX export. Browser-based and self-hosted." />
+    <link rel="canonical" href="https://mdedit.io/thesis-writing/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Markdown editor for thesis writing | mdedit.io" />
+    <meta property="og:description" content="Write thesis and research documents in Markdown with citations, live preview, outline navigation, and print-ready PDF/DOCX export." />
+    <meta property="og:url" content="https://mdedit.io/thesis-writing/" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Markdown editor for thesis writing | mdedit.io" />
+    <meta name="twitter:description" content="Write thesis and research documents in Markdown with citations, live preview, outline navigation, and print-ready PDF/DOCX export." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6fbfe;
+        --panel: #ffffff;
+        --text: #173042;
+        --muted: #5d7383;
+        --border: #dfe9ef;
+        --primary: #0d5c84;
+        --accent: #0089cf;
+        --accent-light: #dff3fd;
+        --shadow: 0 10px 30px rgba(23, 48, 66, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(circle at top, #fafdff 0%, var(--bg) 55%, #eef6fb 100%);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef8fd;
+        color: #0e5579;
+      }
+      pre {
+        margin: 0;
+        padding: 16px;
+        overflow: auto;
+        border-radius: 14px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 13px;
+      }
+      .shell { max-width: 1160px; margin: 0 auto; padding: 24px; }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text);
+        font-weight: 700;
+      }
+      .brand img { width: 38px; height: 38px; }
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .nav a, .cta, .cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-weight: 600;
+      }
+      .nav a, .cta-secondary {
+        background: rgba(255,255,255,0.75);
+        border-color: var(--border);
+        color: var(--text);
+      }
+      .cta {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(0, 137, 207, 0.22);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 22px;
+        align-items: stretch;
+        margin-bottom: 24px;
+      }
+      .hero-copy, .hero-proof, .section, .faq {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+      }
+      .hero-copy { padding: 28px; }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-light);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      h1 { margin: 0 0 12px; font-size: 44px; line-height: 1.05; color: #12364c; }
+      .lead { margin: 0; font-size: 18px; color: var(--muted); }
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+      .hero-proof { padding: 24px; }
+      .hero-proof h2, .section h2, .faq h2 { margin-top: 0; color: var(--primary); }
+      .mini-list { margin: 0; padding-left: 18px; }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .section, .faq { padding: 24px; margin-bottom: 18px; }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .card {
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: #fbfdff;
+      }
+      .card h3 { margin-top: 0; color: var(--primary); }
+      .proof-links {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .proof-links a {
+        display: block;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #f8fcff;
+      }
+      .faq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      @media (max-width: 980px) {
+        .hero, .grid-2, .card-grid, .faq-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+      @media (max-width: 640px) {
+        .shell { padding: 16px; }
+        .topbar { align-items: flex-start; flex-direction: column; }
+        .hero-copy, .hero-proof, .section, .faq { padding: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <img src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <span>mdedit.io</span>
+        </a>
+        <div class="nav">
+          <a href="/">Open app</a>
+          <a href="/help-en.html#scientific">Scientific help</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Academic writing</span>
+          <h1>Markdown editor for thesis writing</h1>
+          <p class="lead">Write thesis and research documents with structured Markdown, citation support, outline navigation, and print-ready PDF or DOCX export, without switching to a heavy desktop toolchain.</p>
+          <div class="cta-row">
+            <a class="cta" href="/">Open mdedit.io</a>
+            <a class="cta-secondary" href="/sample-output.pdf">Download sample PDF</a>
+            <a class="cta-secondary" href="/help-en.html#scientific">See citations setup</a>
+          </div>
+        </div>
+        <aside class="hero-proof">
+          <h2>Why this page exists</h2>
+          <p>Thesis work usually breaks in one of three places: structure, references, or final export. mdedit.io is designed for exactly that boundary between daily writing and final document production.</p>
+          <ul class="mini-list">
+            <li>Structured source text with Markdown and YAML frontmatter</li>
+            <li>Scientific preset, numbering, references, and bibliography support</li>
+            <li>Preview plus professional PDF and DOCX export paths</li>
+          </ul>
+          <div class="proof-links">
+            <a href="/sample-output.pdf">Sample PDF output</a>
+            <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">Reference thesis document</a>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section">
+        <h2>Why mdedit fits thesis work</h2>
+        <div class="grid-2">
+          <div>
+            <p>Word is familiar, but long academic documents often become fragile once headings, references, layout, and review all fight inside one visual editing surface. LaTeX is powerful, but many authors do not want a full desktop toolchain just to write and export a thesis.</p>
+            <p>mdedit.io sits in the middle: Markdown as the source of truth, a browser-based editor for day-to-day writing, and a production path that stays close to the final thesis output.</p>
+          </div>
+          <div>
+            <pre><code>---
+title: "My Thesis"
+author:
+  - Jane Doe
+number-sections: true
+citation-source: embedded
+reference-section-title: References
+---
+
+# Introduction
+
+As shown by Smith [@smith2023] ...</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What you can do</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Write in structured Markdown</h3>
+            <p>Use headings, outline navigation, numbered sections, and long-document structure without losing the plain-text source of your work.</p>
+          </article>
+          <article class="card">
+            <h3>Use academic metadata</h3>
+            <p>Define title, author, language, bibliography behavior, and reference-section output in frontmatter instead of formatting everything by hand.</p>
+          </article>
+          <article class="card">
+            <h3>Add citations and references</h3>
+            <p>Work with embedded bibliography data, Pandoc-style citation keys, linked references, and scientific output presets.</p>
+          </article>
+          <article class="card">
+            <h3>Export when it matters</h3>
+            <p>Preview the document while writing, then export to PDF for print-ready output or DOCX for supervisor and institution workflows.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>How it works</h2>
+        <div class="card-grid">
+          <article class="card"><h3>1. Start from Markdown</h3><p>Write the thesis in one reproducible source format instead of managing layout manually in the editing phase.</p></article>
+          <article class="card"><h3>2. Add scientific metadata</h3><p>Enable numbered sections, bibliography handling, and reference output in frontmatter.</p></article>
+          <article class="card"><h3>3. Preview while writing</h3><p>Check structure, citations, diagrams, and layout continuously before final export.</p></article>
+          <article class="card"><h3>4. Export for delivery</h3><p>Create PDF or DOCX from the same source document when you need to submit, print, or share.</p></article>
+        </div>
+      </section>
+
+      <section class="faq">
+        <h2>Mini FAQ</h2>
+        <div class="faq-grid">
+          <article class="card">
+            <h3>Do I need LaTeX?</h3>
+            <p>No. mdedit.io is designed for authors who want a structured writing workflow without adopting a full LaTeX toolchain.</p>
+          </article>
+          <article class="card">
+            <h3>Can I still hand in DOCX?</h3>
+            <p>Yes. The same Markdown source can be exported to DOCX when supervisors or institutions require Word-compatible delivery.</p>
+          </article>
+          <article class="card">
+            <h3>Does it support citations?</h3>
+            <p>Yes. mdedit.io supports embedded bibliography data, citation rendering, and reference-list generation for scientific workflows.</p>
+          </article>
+          <article class="card">
+            <h3>Can I self-host it?</h3>
+            <p>Yes. If you prefer a private deployment, use the Docker path and keep the same browser-based workflow on infrastructure you control.</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

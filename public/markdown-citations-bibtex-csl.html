@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Markdown citations with BibTeX and CSL | mdedit.io</title>
+    <meta name="description" content="Write Markdown documents with citations, embedded bibliography data, and PDF/DOCX export. mdedit.io helps you work with BibTeX/CSL-style citation workflows in the browser." />
+    <link rel="canonical" href="https://mdedit.io/markdown-citations-bibtex-csl/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Markdown citations with BibTeX and CSL | mdedit.io" />
+    <meta property="og:description" content="Write Markdown documents with citations, embedded bibliography data, and PDF/DOCX export. mdedit.io helps you work with BibTeX/CSL-style citation workflows in the browser." />
+    <meta property="og:url" content="https://mdedit.io/markdown-citations-bibtex-csl/" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Markdown citations with BibTeX and CSL | mdedit.io" />
+    <meta name="twitter:description" content="Write Markdown documents with citations, embedded bibliography data, and PDF/DOCX export. mdedit.io helps you work with BibTeX/CSL-style citation workflows in the browser." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6fbfe;
+        --panel: #ffffff;
+        --text: #173042;
+        --muted: #5d7383;
+        --border: #dfe9ef;
+        --primary: #0d5c84;
+        --accent: #0089cf;
+        --accent-light: #dff3fd;
+        --shadow: 0 10px 30px rgba(23, 48, 66, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(circle at top, #fbfdff 0%, var(--bg) 52%, #eef6fb 100%);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      code { padding: 2px 6px; border-radius: 6px; background: #eef8fd; color: #0e5579; }
+      pre { margin: 0; padding: 16px; overflow: auto; border-radius: 14px; background: #0f172a; color: #f8fafc; font-size: 13px; }
+      .shell { max-width: 1160px; margin: 0 auto; padding: 24px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+      .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--text); font-weight: 700; }
+      .brand img { width: 38px; height: 38px; }
+      .nav { display: flex; flex-wrap: wrap; gap: 10px; }
+      .nav a, .cta, .cta-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px; border: 1px solid transparent; font-weight: 600; }
+      .nav a, .cta-secondary { background: rgba(255,255,255,0.75); border-color: var(--border); color: var(--text); }
+      .cta { background: var(--accent); color: #fff; box-shadow: 0 10px 20px rgba(0, 137, 207, 0.22); }
+      .hero { display: grid; grid-template-columns: 1.15fr 0.95fr; gap: 22px; margin-bottom: 24px; }
+      .hero-copy, .hero-proof, .section, .faq { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); padding: 24px; }
+      .eyebrow { display: inline-block; margin-bottom: 10px; padding: 6px 10px; border-radius: 999px; background: var(--accent-light); color: var(--primary); font-size: 13px; font-weight: 700; }
+      h1 { margin: 0 0 12px; font-size: 42px; line-height: 1.05; color: #12364c; }
+      .lead { margin: 0; font-size: 18px; color: var(--muted); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .section, .faq { margin-bottom: 18px; }
+      .grid-2, .card-grid, .faq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .card { padding: 18px; border-radius: 18px; border: 1px solid var(--border); background: #fbfdff; }
+      .card h3, .hero-proof h2, .section h2, .faq h2 { margin-top: 0; color: var(--primary); }
+      @media (max-width: 980px) {
+        .hero, .grid-2, .card-grid, .faq-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+      @media (max-width: 640px) {
+        .shell { padding: 16px; }
+        .topbar { align-items: flex-start; flex-direction: column; }
+        .hero-copy, .hero-proof, .section, .faq { padding: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <img src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <span>mdedit.io</span>
+        </a>
+        <div class="nav">
+          <a href="/">Open app</a>
+          <a href="/help-en.html#scientific">Citations help</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">Reference document</a>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Citations</span>
+          <h1>Markdown citations with BibTeX and CSL, without leaving the editor</h1>
+          <p class="lead">mdedit.io turns citation-heavy Markdown from a syntax exercise into an editing workflow. Add references, preview citation output, and export documents with bibliography support to PDF or DOCX in the browser.</p>
+          <div class="cta-row">
+            <a class="cta" href="/">Open mdedit.io</a>
+            <a class="cta-secondary" href="/help-en.html#scientific">Read citations help</a>
+            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">See thesis reference document</a>
+          </div>
+        </div>
+        <aside class="hero-proof">
+          <h2>Why this matters</h2>
+          <p>Pandoc-style citations are powerful, but raw syntax alone does not make a usable writing workflow. Authors still need structured metadata, a place for bibliography data, preview feedback, and an export path they can trust.</p>
+          <pre><code>---
+citation-source: embedded
+reference-section-title: References
+link-citations: true
+link-bibliography: true
+---</code></pre>
+        </aside>
+      </section>
+
+      <section class="section">
+        <h2>What mdedit adds to citation-heavy Markdown</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Embedded bibliography data</h3>
+            <p>Keep bibliography content inside the document workflow instead of relying on fragile local filesystem paths.</p>
+          </article>
+          <article class="card">
+            <h3>Preview plus export</h3>
+            <p>Check citation output before final export and use the same source document for PDF and DOCX delivery.</p>
+          </article>
+          <article class="card">
+            <h3>Reference-section control</h3>
+            <p>Set `reference-section-title`, citation linking, and output behavior in frontmatter rather than hand-editing the final document.</p>
+          </article>
+          <article class="card">
+            <h3>Thesis-scale workflow</h3>
+            <p>Use citations alongside section numbering, cross-references, and long-document structure in the same editor.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Minimal example</h2>
+        <div class="grid-2">
+          <div>
+            <pre><code>```mdedit-bibliography
+[
+  {
+    "id": "smith2023",
+    "title": "My Article",
+    "author": [{"family": "Smith", "given": "John"}],
+    "issued": {"date-parts": [[2023]]}
+  }
+]
+```</code></pre>
+          </div>
+          <div>
+            <pre><code>As shown by Smith [@smith2023], structured
+citation workflows scale better.
+
+# References</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>How it works</h2>
+        <div class="card-grid">
+          <article class="card"><h3>1. Add frontmatter</h3><p>Define citation mode and bibliography behavior in YAML frontmatter.</p></article>
+          <article class="card"><h3>2. Add bibliography data</h3><p>Store references in an embedded bibliography block so they travel with the document.</p></article>
+          <article class="card"><h3>3. Cite while writing</h3><p>Insert citation keys in the document and review them in live preview.</p></article>
+          <article class="card"><h3>4. Export with confidence</h3><p>Use the same document for PDF and DOCX export instead of maintaining separate reference paths.</p></article>
+        </div>
+      </section>
+
+      <section class="faq">
+        <h2>Mini FAQ</h2>
+        <div class="faq-grid">
+          <article class="card"><h3>Is this just Pandoc syntax?</h3><p>No. mdedit.io wraps the syntax in an editor workflow with preview, metadata handling, and export paths.</p></article>
+          <article class="card"><h3>Can I use it for thesis references?</h3><p>Yes. The citations path is designed to support academic documents together with numbering and structured export.</p></article>
+          <article class="card"><h3>Do I need a local BibTeX file?</h3><p>Not necessarily. mdedit.io supports embedded bibliography data as the document-bound default path.</p></article>
+          <article class="card"><h3>Where is the full syntax reference?</h3><p>Use the scientific-documents section in the help page and the thesis reference document for the deeper workflow.</p></article>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

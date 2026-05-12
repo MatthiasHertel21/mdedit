@@ -460,7 +460,14 @@ const SESSION_COOKIE_OPTIONS = {
 };
 
 const CRAWLER_USER_AGENT_PATTERN = /(?:bot|crawler|spider|slurp|facebookexternalhit|twitterbot|slackbot|discordbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|embedly|google-inspectiontool|googleother|googlebot|bingbot|applebot|bitlybot|vkshare)/i;
-const PUBLIC_CRAWLER_SAFE_PATHS = new Set(["/", "/help.html", "/help-en.html"]);
+const PUBLIC_CRAWLER_SAFE_PATHS = new Set([
+  "/",
+  "/help.html",
+  "/help-en.html",
+  "/thesis-writing/",
+  "/self-hosted-markdown-editor/",
+  "/markdown-citations-bibtex-csl/"
+]);
 
 let productionIndexHtmlCache = null;
 
@@ -3048,6 +3055,9 @@ app.get("/i18n/:filename", async (req, reply) =>
 
 app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
 app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.html"));
+app.get("/thesis-writing/", async (req, reply) => serveStatic(req, reply, "thesis-writing.html"));
+app.get("/self-hosted-markdown-editor/", async (req, reply) => serveStatic(req, reply, "self-hosted-markdown-editor.html"));
+app.get("/markdown-citations-bibtex-csl/", async (req, reply) => serveStatic(req, reply, "markdown-citations-bibtex-csl.html"));
 
 // Sample PDF output — direct download link for demos and README
 app.get("/sample-output.pdf", async (req, reply) => {

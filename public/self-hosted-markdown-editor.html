@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Self-hosted Markdown editor with PDF and DOCX export | mdedit.io</title>
+    <meta name="description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <link rel="canonical" href="https://mdedit.io/self-hosted-markdown-editor/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Self-hosted Markdown editor with PDF and DOCX export | mdedit.io" />
+    <meta property="og:description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <meta property="og:url" content="https://mdedit.io/self-hosted-markdown-editor/" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Self-hosted Markdown editor with PDF and DOCX export | mdedit.io" />
+    <meta name="twitter:description" content="Run a self-hosted Markdown editor with Docker. mdedit.io provides live preview, collaboration, citations, and professional PDF/DOCX export in your browser." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7fbfd;
+        --panel: #ffffff;
+        --text: #173042;
+        --muted: #5d7383;
+        --border: #dfe9ef;
+        --primary: #0d5c84;
+        --accent: #0089cf;
+        --accent-light: #dff3fd;
+        --shadow: 0 10px 30px rgba(23, 48, 66, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(circle at top, #fbfdff 0%, var(--bg) 52%, #eef6fb 100%);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef8fd;
+        color: #0e5579;
+      }
+      pre {
+        margin: 0;
+        padding: 16px;
+        overflow: auto;
+        border-radius: 14px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 13px;
+      }
+      .shell { max-width: 1160px; margin: 0 auto; padding: 24px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+      .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--text); font-weight: 700; }
+      .brand img { width: 38px; height: 38px; }
+      .nav { display: flex; flex-wrap: wrap; gap: 10px; }
+      .nav a, .cta, .cta-secondary {
+        display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px; border: 1px solid transparent; font-weight: 600;
+      }
+      .nav a, .cta-secondary { background: rgba(255,255,255,0.75); border-color: var(--border); color: var(--text); }
+      .cta { background: var(--accent); color: #fff; box-shadow: 0 10px 20px rgba(0, 137, 207, 0.22); }
+      .hero { display: grid; grid-template-columns: 1.15fr 0.95fr; gap: 22px; margin-bottom: 24px; }
+      .hero-copy, .hero-proof, .section, .faq { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
+      .hero-copy, .hero-proof, .section, .faq { padding: 24px; }
+      .eyebrow { display: inline-block; margin-bottom: 10px; padding: 6px 10px; border-radius: 999px; background: var(--accent-light); color: var(--primary); font-size: 13px; font-weight: 700; }
+      h1 { margin: 0 0 12px; font-size: 42px; line-height: 1.05; color: #12364c; }
+      .lead { margin: 0; font-size: 18px; color: var(--muted); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .section, .faq { margin-bottom: 18px; }
+      .grid-2, .card-grid, .faq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .card { padding: 18px; border-radius: 18px; border: 1px solid var(--border); background: #fbfdff; }
+      .card h3, .hero-proof h2, .section h2, .faq h2 { margin-top: 0; color: var(--primary); }
+      @media (max-width: 980px) {
+        .hero, .grid-2, .card-grid, .faq-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+      @media (max-width: 640px) {
+        .shell { padding: 16px; }
+        .topbar { align-items: flex-start; flex-direction: column; }
+        .hero-copy, .hero-proof, .section, .faq { padding: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <img src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <span>mdedit.io</span>
+        </a>
+        <div class="nav">
+          <a href="/">Open app</a>
+          <a href="/help-en.html#share">Help</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Self-hosting</span>
+          <h1>Self-hosted Markdown editor with PDF and DOCX export</h1>
+          <p class="lead">Run mdedit.io on your own server with Docker and get live preview, collaboration, citations, and professional PDF/DOCX export in a browser-based workflow.</p>
+          <div class="cta-row">
+            <a class="cta" href="/">Start locally</a>
+            <a class="cta-secondary" href="/help-en.html#share">Read help</a>
+            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">View GitHub repository</a>
+          </div>
+        </div>
+        <aside class="hero-proof">
+          <h2>Quick start</h2>
+          <pre><code>git clone https://github.com/MatthiasHertel21/mdedit.git
+cd mdedit
+cp .env.example .env
+docker compose up -d</code></pre>
+          <p>Open the app in your browser and start writing immediately. The runtime is Docker-based, documents are stored in SQLite, and configuration happens via environment variables.</p>
+        </aside>
+      </section>
+
+      <section class="section">
+        <h2>Why self-host mdedit</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Keep documents on infrastructure you control</h3>
+            <p>Use the same browser-based editor without sending documents through an account-first hosted SaaS path.</p>
+          </article>
+          <article class="card">
+            <h3>No desktop rollout required</h3>
+            <p>Users open the editor in the browser. No local install is needed for everyday writing and export.</p>
+          </article>
+          <article class="card">
+            <h3>One workflow for writing and output</h3>
+            <p>Markdown, preview, sharing, citations, PDF, and DOCX stay inside one product path rather than separate tools.</p>
+          </article>
+          <article class="card">
+            <h3>Simple runtime model</h3>
+            <p>Docker Compose, SQLite, environment variables, and reverse-proxy compatibility keep the operating surface understandable.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What you get</h2>
+        <div class="grid-2">
+          <div>
+            <ul>
+              <li>live Markdown preview in the browser</li>
+              <li>Mermaid and KaTeX support</li>
+              <li>shared documents and collaboration features</li>
+              <li>citations and bibliography-aware export paths</li>
+              <li>PDF and DOCX export from the same source document</li>
+            </ul>
+          </div>
+          <div>
+            <ul>
+              <li>SQLite-backed storage</li>
+              <li>environment-based configuration</li>
+              <li>Docker and reverse-proxy deployment path</li>
+              <li>open-source code under Apache 2.0</li>
+              <li>private hosting without cloud dependency</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Next steps</h2>
+        <div class="card-grid">
+          <article class="card"><h3>1. Start the stack</h3><p>Use the Docker Compose path and verify the health endpoint locally.</p></article>
+          <article class="card"><h3>2. Configure secrets</h3><p>Set `COOKIE_SECRET` and optional AI provider keys in `.env` before public exposure.</p></article>
+          <article class="card"><h3>3. Put it behind your domain</h3><p>Use a reverse proxy for your production hostname and HTTPS termination.</p></article>
+          <article class="card"><h3>4. Share the editor</h3><p>Give your users a browser URL instead of a desktop installation checklist.</p></article>
+        </div>
+      </section>
+
+      <section class="faq">
+        <h2>Mini FAQ</h2>
+        <div class="faq-grid">
+          <article class="card"><h3>Does self-hosting remove export features?</h3><p>No. PDF and DOCX export remain part of the same application path when the runtime dependencies are present.</p></article>
+          <article class="card"><h3>Can I run it privately for a team?</h3><p>Yes. That is one of the main reasons to self-host mdedit.io instead of relying on a public instance.</p></article>
+          <article class="card"><h3>Is it account-based SaaS?</h3><p>No. mdedit.io is a browser-based app and can be run without a hosted account model.</p></article>
+          <article class="card"><h3>Where is the full setup documentation?</h3><p>Use the main help page and the GitHub repository for the detailed Docker and deployment path.</p></article>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

@@ -4150,6 +4150,42 @@ a.section-ref {
   gap: 10px;
 }
 
+.tips-guide-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: -2px;
+}
+
+.tips-guide-links-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tips-guide-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 137, 207, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 137, 207, 0.08);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.tips-guide-link:hover {
+  background: rgba(0, 137, 207, 0.14);
+  border-color: rgba(0, 137, 207, 0.28);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
 .tips-cta-btn {
   display: inline-flex;
   align-items: center;
@@ -4429,6 +4465,11 @@ a.section-ref {
 
   .tips-cta-row {
     grid-template-columns: 1fr;
+  }
+
+  .tips-guide-links {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .tips-cta-row .tips-cta-btn {
