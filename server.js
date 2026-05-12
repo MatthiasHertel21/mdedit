@@ -1765,6 +1765,277 @@ const getStatsCountsForWindow = (sinceIso = null) => {
   return { activeAppSessions, linkedBrowserSessions, createdDocuments, shareActivations };
 };
 
+const MARKETING_STATS_FILE = process.env.MARKETING_STATS_FILE
+  ? path.resolve(process.env.MARKETING_STATS_FILE)
+  : path.join(process.env.DATA_DIR || __dirname, "marketing-stats.json");
+
+const OWNED_DISCOVERY_SURFACES = [
+  {
+    label: "Scientific help",
+    pathname: "/help-en.html",
+    filePath: path.join(__dirname, "public", "help-en.html")
+  },
+  {
+    label: "Thesis writing",
+    pathname: "/thesis-writing/",
+    filePath: path.join(__dirname, "public", "thesis-writing.html")
+  },
+  {
+    label: "Self-hosted editor",
+    pathname: "/self-hosted-markdown-editor/",
+    filePath: path.join(__dirname, "public", "self-hosted-markdown-editor.html")
+  },
+  {
+    label: "Markdown citations",
+    pathname: "/markdown-citations-bibtex-csl/",
+    filePath: path.join(__dirname, "public", "markdown-citations-bibtex-csl.html")
+  }
+];
+
+const TRACKED_MARKETING_SURFACES = new Map([
+  ["/thesis-writing/", { key: "thesis-writing", label: "Thesis writing" }],
+  ["/self-hosted-markdown-editor/", { key: "self-hosted-markdown-editor", label: "Self-hosting" }],
+  ["/markdown-citations-bibtex-csl/", { key: "markdown-citations-bibtex-csl", label: "Citations" }]
+]);
+
+const allowedMarketingSurfaceKeys = new Set(Array.from(TRACKED_MARKETING_SURFACES.values()).map((surface) => surface.key));
+
+const trackMarketingEventStmt = db.prepare(`
+  INSERT INTO marketing_events (
+    id, session_id, created_at, event_type, surface, path, target,
+    referrer_host, referrer_url, utm_source, utm_medium, utm_campaign
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+const parseReferrer = (value) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return { host: null, url: null };
+  }
+
+  try {
+    const url = new URL(value);
+    return { host: url.host || null, url: url.toString() };
+  } catch {
+    return { host: null, url: value.trim() };
+  }
+};
+
+const normalizeMarketingTarget = (value) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, 200) : null;
+};
+
+const recordMarketingEvent = ({
+  sessionId,
+  eventType,
+  surface,
+  path: requestPath,
+  target,
+  referrer,
+  utmSource,
+  utmMedium,
+  utmCampaign
+}) => {
+  if (!sessionId || !allowedMarketingSurfaceKeys.has(surface)) return;
+
+  const { host, url } = parseReferrer(referrer);
+  trackMarketingEventStmt.run(
+    crypto.randomUUID(),
+    sessionId,
+    nowIso(),
+    eventType,
+    surface,
+    requestPath,
+    normalizeMarketingTarget(target),
+    host,
+    url,
+    normalizeMarketingTarget(utmSource),
+    normalizeMarketingTarget(utmMedium),
+    normalizeMarketingTarget(utmCampaign)
+  );
+};
+
+const trackLandingPageVisit = (req, surface) => {
+  if (!req.sessionId) return;
+
+  recordMarketingEvent({
+    sessionId: req.sessionId,
+    eventType: "pageview",
+    surface,
+    path: (req.raw?.url || req.url || "").split("?")[0] || "/",
+    referrer: req.headers?.referer || req.headers?.referrer || null,
+    utmSource: req.query?.utm_source,
+    utmMedium: req.query?.utm_medium,
+    utmCampaign: req.query?.utm_campaign
+  });
+};
+
+const getMarketingStatsForWindow = (sinceIso = null) => {
+  const params = sinceIso ? [sinceIso] : [];
+  const where = sinceIso ? "WHERE created_at >= ?" : "";
+
+  const totals = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE event_type = 'pageview') AS landingVisits,
+      COUNT(DISTINCT CASE WHEN event_type = 'pageview' THEN session_id END) AS landingSessions,
+      COUNT(*) FILTER (WHERE event_type = 'cta_click') AS ctaClicks,
+      COUNT(*) FILTER (WHERE event_type = 'cta_click' AND target = 'open-app') AS appCtaClicks,
+      COUNT(DISTINCT CASE WHEN event_type = 'pageview' AND referrer_host IS NOT NULL AND referrer_host != '' THEN referrer_host END) AS uniqueReferrerDomains
+    FROM marketing_events
+    ${where}
+  `).get(...params);
+
+  const topReferrers = db.prepare(`
+    SELECT referrer_host AS domain, COUNT(*) AS visits
+    FROM marketing_events
+    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview' AND referrer_host IS NOT NULL AND referrer_host != ''
+    GROUP BY referrer_host
+    ORDER BY visits DESC, domain ASC
+    LIMIT 8
+  `).all(...params);
+
+  const topSurfaces = db.prepare(`
+    SELECT surface, COUNT(*) AS visits, COUNT(DISTINCT session_id) AS sessions
+    FROM marketing_events
+    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview'
+    GROUP BY surface
+    ORDER BY visits DESC, surface ASC
+    LIMIT 8
+  `).all(...params);
+
+  const topCtas = db.prepare(`
+    SELECT surface, target, COUNT(*) AS clicks
+    FROM marketing_events
+    ${where ? `${where} AND` : "WHERE"} event_type = 'cta_click'
+    GROUP BY surface, target
+    ORDER BY clicks DESC, surface ASC, target ASC
+    LIMIT 10
+  `).all(...params);
+
+  return {
+    landingVisits: Number(totals?.landingVisits || 0),
+    landingSessions: Number(totals?.landingSessions || 0),
+    ctaClicks: Number(totals?.ctaClicks || 0),
+    appCtaClicks: Number(totals?.appCtaClicks || 0),
+    uniqueReferrerDomains: Number(totals?.uniqueReferrerDomains || 0),
+    topReferrers,
+    topSurfaces,
+    topCtas
+  };
+};
+
+const formatPercent = (value, digits = 1) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "-";
+  return `${numeric.toFixed(digits)} %`;
+};
+
+const readMarketingSnapshot = async () => {
+  try {
+    const raw = await fs.promises.readFile(MARKETING_STATS_FILE, "utf8");
+    const data = JSON.parse(raw);
+    const numberOrNull = (value) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : null;
+    };
+    const normalizeTable = (rows, keys) => Array.isArray(rows)
+      ? rows.slice(0, 8).map((row) => {
+          const item = {};
+          for (const key of keys) {
+            item[key] = row && row[key] != null ? row[key] : null;
+          }
+          return item;
+        })
+      : [];
+
+    return {
+      updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : null,
+      source: typeof data.source === "string" && data.source.trim() ? data.source.trim() : "External SEO snapshot",
+      backlinks: numberOrNull(data.backlinks),
+      referringDomains: numberOrNull(data.referringDomains),
+      organicClicks30d: numberOrNull(data.organicClicks30d),
+      organicImpressions30d: numberOrNull(data.organicImpressions30d),
+      avgPosition: numberOrNull(data.avgPosition),
+      indexedPages: numberOrNull(data.indexedPages),
+      topQueries: normalizeTable(data.topQueries, ["query", "clicks", "impressions", "position"]),
+      topReferrers: normalizeTable(data.topReferrers, ["domain", "visits"])
+    };
+  } catch {
+    return null;
+  }
+};
+
+const getMarketingSurfaceHealth = async () => {
+  let sitemapUrls = new Set();
+  try {
+    const sitemapXml = await fs.promises.readFile(path.join(__dirname, "public", "sitemap.xml"), "utf8");
+    sitemapUrls = new Set(Array.from(sitemapXml.matchAll(/<loc>(.*?)<\/loc>/g)).map((match) => match[1]));
+  } catch {
+    sitemapUrls = new Set();
+  }
+
+  const rows = [];
+  for (const surface of OWNED_DISCOVERY_SURFACES) {
+    try {
+      const html = await fs.promises.readFile(surface.filePath, "utf8");
+      const robotsMatch = html.match(/<meta\s+name=["']robots["']\s+content=["']([^"']+)["']/i);
+      const robotsValue = robotsMatch ? String(robotsMatch[1]).toLowerCase() : "";
+      const fullUrl = `https://mdedit.io${surface.pathname}`;
+      rows.push({
+        label: surface.label,
+        pathname: surface.pathname,
+        inSitemap: sitemapUrls.has(fullUrl),
+        hasTitle: /<title>[^<]+<\/title>/i.test(html),
+        hasDescription: /<meta\s+name=["']description["']\s+content=["'][^"']+["']/i.test(html),
+        hasCanonical: new RegExp(`<link\\s+rel=["']canonical["']\\s+href=["']${surface.pathname === "/help-en.html" ? "https://mdedit.io/help-en.html" : fullUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`, "i").test(html),
+        hasOgTitle: /<meta\s+property=["']og:title["']\s+content=["'][^"']+["']/i.test(html),
+        hasOgDescription: /<meta\s+property=["']og:description["']\s+content=["'][^"']+["']/i.test(html),
+        hasOgImage: /<meta\s+property=["']og:image["']\s+content=["'][^"']+["']/i.test(html),
+        isIndexable: !robotsValue.includes("noindex"),
+        hasPrimaryAppLink: /<a[^>]+class=["'][^"']*cta[^"']*["'][^>]+href=["']\/["']/i.test(html)
+      });
+    } catch {
+      rows.push({
+        label: surface.label,
+        pathname: surface.pathname,
+        inSitemap: false,
+        hasTitle: false,
+        hasDescription: false,
+        hasCanonical: false,
+        hasOgTitle: false,
+        hasOgDescription: false,
+        hasOgImage: false,
+        isIndexable: false,
+        hasPrimaryAppLink: false
+      });
+    }
+  }
+
+  const metadataCompleteCount = rows.filter((row) => row.hasTitle && row.hasDescription && row.hasCanonical).length;
+  const socialMetaCount = rows.filter((row) => row.hasOgTitle && row.hasOgDescription && row.hasOgImage).length;
+  const indexedCount = rows.filter((row) => row.isIndexable).length;
+  const appCtaCount = rows.filter((row) => row.hasPrimaryAppLink).length;
+  const sitemapCount = rows.filter((row) => row.inSitemap).length;
+
+  return {
+    rows,
+    counts: {
+      surfaceCount: rows.length,
+      metadataCompleteCount,
+      socialMetaCount,
+      indexedCount,
+      appCtaCount,
+      sitemapCount,
+      sitemapUrlCount: sitemapUrls.size
+    }
+  };
+};
+
+const renderBoolBadge = (value, goodLabel = "Ja", badLabel = "Nein") => (`
+  <span class="badge ${value ? "badge-ok" : "badge-warn"}">${value ? goodLabel : badLabel}</span>
+`);
+
 const renderStatsPage = async () => {
   const now = Date.now();
   const windows = [
@@ -1780,10 +2051,26 @@ const renderStatsPage = async () => {
 
   const markdownBytes = db.prepare("SELECT SUM(LENGTH(markdown)) as total FROM pastes").get().total || 0;
   const imageBytes = db.prepare("SELECT SUM(size_bytes) as total FROM images").get().total || 0;
+  const liveSharedDocuments = db.prepare("SELECT COUNT(*) as count FROM pastes WHERE shared = 1").get().count;
   const dataDir = process.env.DATA_DIR || __dirname;
   const appDataBytes = await getDirectorySizeBytes(dataDir);
   const assetBytesOnDisk = await getDirectorySizeBytes(IMAGE_CONFIG.ASSETS_DIR);
   const disk = getDiskSpaceStats();
+  const marketingSurfaceHealth = await getMarketingSurfaceHealth();
+  const marketingSnapshot = await readMarketingSnapshot();
+  const marketingSignals30d = getMarketingStatsForWindow(new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString());
+  const last30d = windowRows.find((row) => row.key === "30d")?.counts || getStatsCountsForWindow(new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString());
+  const shareRate30d = last30d.createdDocuments > 0
+    ? (last30d.shareActivations / last30d.createdDocuments) * 100
+    : null;
+  const appCtaRate30d = marketingSignals30d.ctaClicks > 0
+    ? (marketingSignals30d.appCtaClicks / marketingSignals30d.ctaClicks) * 100
+    : null;
+  const proofAssets = await Promise.all([
+    fs.promises.access(path.join(__dirname, "docs", "examples", "example-output.pdf")).then(() => true).catch(() => false),
+    fs.promises.access(path.join(__dirname, "docs", "examples", "masterthesis-reference.md")).then(() => true).catch(() => false)
+  ]);
+  const proofAssetsReady = proofAssets.filter(Boolean).length;
 
   const rowsHtml = windowRows.map((row) => `
     <tr>
@@ -1794,6 +2081,141 @@ const renderStatsPage = async () => {
       <td>${formatNumber(row.counts.shareActivations)}</td>
     </tr>
   `).join("");
+
+  const surfaceRowsHtml = marketingSurfaceHealth.rows.map((row) => `
+    <tr>
+      <th scope="row">${escapeHtmlText(row.label)}</th>
+      <td><code>${escapeHtmlText(row.pathname)}</code></td>
+      <td>${renderBoolBadge(row.inSitemap)}</td>
+      <td>${renderBoolBadge(row.hasTitle && row.hasDescription && row.hasCanonical, "Vollständig", "Lücke")}</td>
+      <td>${renderBoolBadge(row.hasOgTitle && row.hasOgDescription && row.hasOgImage, "Vollständig", "Lücke")}</td>
+      <td>${renderBoolBadge(row.isIndexable, "Indexierbar", "Noindex")}</td>
+      <td>${renderBoolBadge(row.hasPrimaryAppLink, "App-CTA", "Fehlt")}</td>
+    </tr>
+  `).join("");
+
+  const acquisitionReferrersHtml = marketingSignals30d.topReferrers.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Referrer</th>
+              <th>Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSignals30d.topReferrers.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.domain || "-")}</th>
+                <td>${formatNumber(row.visits)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<p>Noch keine externen Referrer im Event-Log.</p>`;
+
+  const acquisitionSurfacesHtml = marketingSignals30d.topSurfaces.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Landing Surface</th>
+              <th>Visits</th>
+              <th>Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSignals30d.topSurfaces.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.surface || "-")}</th>
+                <td>${formatNumber(row.visits)}</td>
+                <td>${formatNumber(row.sessions)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<p>Noch keine Landingpage-Visits im Event-Log.</p>`;
+
+  const acquisitionCtasHtml = marketingSignals30d.topCtas.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Surface</th>
+              <th>CTA</th>
+              <th>Klicks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSignals30d.topCtas.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.surface || "-")}</th>
+                <td>${escapeHtmlText(row.target || "-")}</td>
+                <td>${formatNumber(row.clicks)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<p>Noch keine CTA-Klicks im Event-Log.</p>`;
+
+  const topQueriesHtml = marketingSnapshot && marketingSnapshot.topQueries.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Query</th>
+              <th>Klicks</th>
+              <th>Impressions</th>
+              <th>Ø Position</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSnapshot.topQueries.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.query || "-")}</th>
+                <td>${row.clicks == null ? "-" : formatNumber(row.clicks)}</td>
+                <td>${row.impressions == null ? "-" : formatNumber(row.impressions)}</td>
+                <td>${row.position == null ? "-" : escapeHtmlText(String(row.position))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : "";
+
+  const topReferrersHtml = marketingSnapshot && marketingSnapshot.topReferrers.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Referrer</th>
+              <th>Besuche</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSnapshot.topReferrers.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.domain || "-")}</th>
+                <td>${row.visits == null ? "-" : formatNumber(row.visits)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : "";
 
   return `<!doctype html>
 <html lang="de">
@@ -1859,6 +2281,11 @@ const renderStatsPage = async () => {
       margin-top: 8px;
       color: var(--accent);
     }
+    .metric-sub {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
     table {
       width: 100%;
       min-width: 620px;
@@ -1898,6 +2325,31 @@ const renderStatsPage = async () => {
       background: rgba(0, 137, 207, 0.12);
       color: var(--text);
     }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 84px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .badge-ok {
+      background: #e6f7ee;
+      color: #156b45;
+      border-color: #bfe7d0;
+    }
+    .badge-warn {
+      background: #fff4e5;
+      color: #8a5a11;
+      border-color: #f1d3a4;
+    }
+    .section-stack {
+      display: grid;
+      gap: 24px;
+    }
     @media (max-width: 720px) {
       main {
         padding: 24px 14px 40px;
@@ -1927,47 +2379,145 @@ const renderStatsPage = async () => {
   <main>
     <section class="hero">
       <h1>Server-Statistiken</h1>
-      <p>Aktive App-Sessions = Sessions mit Dokument- oder Kollaborationsaktivität im Zeitraum. Browser-Sessions = neu angelegte, app-relevante Sessions. Dokumente = neu angelegte Dokumente. Freigaben = erstmals freigegebene Permalinks.</p>
+      <p>Aktive App-Sessions = Sessions mit Dokument- oder Kollaborationsaktivität im Zeitraum. Browser-Sessions = neu angelegte, app-relevante Sessions. Dokumente = neu angelegte Dokumente. Freigaben = erstmals freigegebene Permalinks. Die Vermarktungssektion mischt interne Produkt-Signale mit optionalen externen SEO-Snapshots.</p>
     </section>
 
-    <section class="card" style="margin-bottom: 24px;">
-      <h2>Nutzung</h2>
-      <div class="table-shell">
-        <table>
-          <thead>
-            <tr>
-              <th>Zeitraum</th>
-              <th>Aktive App-Sessions</th>
-              <th>Browser-Sessions</th>
-              <th>Neue Dokumente</th>
-              <th>Freigaben</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-    </section>
+    <div class="section-stack">
+      <section class="card">
+        <h2>Nutzung</h2>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Zeitraum</th>
+                <th>Aktive App-Sessions</th>
+                <th>Browser-Sessions</th>
+                <th>Neue Dokumente</th>
+                <th>Freigaben</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </section>
 
-    <section class="grid">
-      <article class="card">
-        <h2>Dokumentinhalt</h2>
-        <p>Nur Markdown- und Bildinhalte, ohne DB-, WAL-, Session- und Secret-Overhead</p>
-        <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
-        <p style="margin-top: 10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
-      </article>
-      <article class="card">
-        <h2>App-Daten</h2>
-        <p>Plattenplatz des Datenverzeichnisses inklusive DB, WAL, Bilder und Secrets</p>
-        <div class="metric">${escapeHtmlText(formatBytes(appDataBytes))}</div>
-        <p style="margin-top: 10px;">Asset-Verzeichnis: <strong>${escapeHtmlText(formatBytes(assetBytesOnDisk))}</strong><br>Datenpfad: <code>${escapeHtmlText(dataDir)}</code></p>
-      </article>
-      <article class="card">
-        <h2>Freier Plattenplatz</h2>
-        <p>Verfügbar auf dem Volume des Datenverzeichnisses</p>
-        <div class="metric">${escapeHtmlText(formatBytes(disk.freeBytes))}</div>
-        <p style="margin-top: 10px;">Belegt: <strong>${escapeHtmlText(formatBytes(disk.usedBytes))}</strong><br>Gesamt: <strong>${escapeHtmlText(formatBytes(disk.totalBytes))}</strong></p>
-      </article>
-    </section>
+      <section>
+        <div class="grid">
+          <article class="card">
+            <h2>Vermarktungs-Readiness</h2>
+            <p>Eigene Such- und Einstiegsflächen mit sauberer SEO- und CTA-Grundausstattung</p>
+            <div class="metric">${marketingSurfaceHealth.counts.metadataCompleteCount}/${marketingSurfaceHealth.counts.surfaceCount}</div>
+            <p class="metric-sub">vollständige Title-, Description- und Canonical-Abdeckung</p>
+            <p style="margin-top: 10px;">Social-Meta: <strong>${marketingSurfaceHealth.counts.socialMetaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>Indexierbar: <strong>${marketingSurfaceHealth.counts.indexedCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>Primäre App-CTA: <strong>${marketingSurfaceHealth.counts.appCtaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Distribution-Signale</h2>
+            <p>Produktnahe Signale, die auf Nachfrage, Teilbarkeit und Proof-Flächen hinweisen</p>
+            <div class="metric">${shareRate30d == null ? "-" : escapeHtmlText(formatPercent(shareRate30d))}</div>
+            <p class="metric-sub">Freigabequote auf neue Dokumente in den letzten 30 Tagen</p>
+            <p style="margin-top: 10px;">Aktive Shared Docs: <strong>${formatNumber(liveSharedDocuments)}</strong><br>Proof-Assets bereit: <strong>${proofAssetsReady}/2</strong><br>Sitemap-URLs gesamt: <strong>${formatNumber(marketingSurfaceHealth.counts.sitemapUrlCount)}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Akquise-Signale</h2>
+            <p>Interne Einstiegs- und Klicksignale aus den drei Owned Landingpages</p>
+            <div class="metric">${formatNumber(marketingSignals30d.landingSessions)}</div>
+            <p class="metric-sub">eindeutige Landing-Sessions in den letzten 30 Tagen</p>
+            <p style="margin-top: 10px;">Landing-Visits: <strong>${formatNumber(marketingSignals30d.landingVisits)}</strong><br>CTA-Klicks: <strong>${formatNumber(marketingSignals30d.ctaClicks)}</strong><br>App-CTA-Anteil: <strong>${appCtaRate30d == null ? "-" : escapeHtmlText(formatPercent(appCtaRate30d))}</strong><br>Referrer-Domains: <strong>${formatNumber(marketingSignals30d.uniqueReferrerDomains)}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Externe SEO-Signale</h2>
+            ${marketingSnapshot ? `
+              <p>Zuletzt importierter Snapshot aus <strong>${escapeHtmlText(marketingSnapshot.source)}</strong></p>
+              <div class="metric">${marketingSnapshot.avgPosition == null ? "-" : escapeHtmlText(String(marketingSnapshot.avgPosition))}</div>
+              <p class="metric-sub">durchschnittliche Google-Position</p>
+              <p style="margin-top: 10px;">Backlinks: <strong>${marketingSnapshot.backlinks == null ? "-" : formatNumber(marketingSnapshot.backlinks)}</strong><br>Referring Domains: <strong>${marketingSnapshot.referringDomains == null ? "-" : formatNumber(marketingSnapshot.referringDomains)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
+            ` : `
+              <p>Kein externer SEO-Snapshot gefunden. Für Backlinks, Suchpositionen, Impressions und Top-Queries kann optional eine JSON-Datei importiert werden.</p>
+              <div class="metric">-</div>
+              <p class="metric-sub">Pfad: <code>${escapeHtmlText(MARKETING_STATS_FILE)}</code></p>
+              <div class="hint">Empfohlene Felder: <code>backlinks</code>, <code>referringDomains</code>, <code>organicClicks30d</code>, <code>organicImpressions30d</code>, <code>avgPosition</code>, <code>indexedPages</code>, <code>topQueries</code>, <code>topReferrers</code>.</div>
+            `}
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Owned Discovery Surfaces</h2>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Fläche</th>
+                <th>Pfad</th>
+                <th>Sitemap</th>
+                <th>SEO-Basis</th>
+                <th>Social Meta</th>
+                <th>Index</th>
+                <th>CTA</th>
+              </tr>
+            </thead>
+            <tbody>${surfaceRowsHtml}</tbody>
+          </table>
+        </div>
+        <div class="hint">SEO-Basis = Title, Description und Canonical vorhanden. Social Meta = <code>og:title</code>, <code>og:description</code> und <code>og:image</code>. CTA = primärer Einstieg zurück in die App vorhanden.</div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Top Referrer 30d</h2>
+          ${acquisitionReferrersHtml}
+        </article>
+        <article class="card">
+          <h2>Landing Surfaces 30d</h2>
+          ${acquisitionSurfacesHtml}
+        </article>
+        <article class="card">
+          <h2>CTA Performance 30d</h2>
+          ${acquisitionCtasHtml}
+        </article>
+      </section>
+
+      ${marketingSnapshot ? `
+        <section class="grid">
+          <article class="card">
+            <h2>Search Snapshot</h2>
+            <p>Quelle: <strong>${escapeHtmlText(marketingSnapshot.source)}</strong>${marketingSnapshot.updatedAt ? `<br>Stand: <strong>${escapeHtmlText(marketingSnapshot.updatedAt)}</strong>` : ""}</p>
+            <div class="metric">${marketingSnapshot.organicImpressions30d == null ? "-" : formatNumber(marketingSnapshot.organicImpressions30d)}</div>
+            <p class="metric-sub">Organic impressions in den letzten 30 Tagen</p>
+            <p style="margin-top: 10px;">Indexed Pages: <strong>${marketingSnapshot.indexedPages == null ? "-" : formatNumber(marketingSnapshot.indexedPages)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Top Queries</h2>
+            ${topQueriesHtml || `<p>Keine Query-Daten im Snapshot enthalten.</p>`}
+          </article>
+          <article class="card">
+            <h2>Top Referrers</h2>
+            ${topReferrersHtml || `<p>Keine Referrer-Daten im Snapshot enthalten.</p>`}
+          </article>
+        </section>
+      ` : ""}
+
+      <section class="grid">
+        <article class="card">
+          <h2>Dokumentinhalt</h2>
+          <p>Nur Markdown- und Bildinhalte, ohne DB-, WAL-, Session- und Secret-Overhead</p>
+          <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
+          <p style="margin-top: 10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
+        </article>
+        <article class="card">
+          <h2>App-Daten</h2>
+          <p>Plattenplatz des Datenverzeichnisses inklusive DB, WAL, Bilder und Secrets</p>
+          <div class="metric">${escapeHtmlText(formatBytes(appDataBytes))}</div>
+          <p style="margin-top: 10px;">Asset-Verzeichnis: <strong>${escapeHtmlText(formatBytes(assetBytesOnDisk))}</strong><br>Datenpfad: <code>${escapeHtmlText(dataDir)}</code></p>
+        </article>
+        <article class="card">
+          <h2>Freier Plattenplatz</h2>
+          <p>Verfügbar auf dem Volume des Datenverzeichnisses</p>
+          <div class="metric">${escapeHtmlText(formatBytes(disk.freeBytes))}</div>
+          <p style="margin-top: 10px;">Belegt: <strong>${escapeHtmlText(formatBytes(disk.usedBytes))}</strong><br>Gesamt: <strong>${escapeHtmlText(formatBytes(disk.totalBytes))}</strong></p>
+        </article>
+      </section>
+    </div>
   </main>
 </body>
 </html>`;
@@ -3055,9 +3605,42 @@ app.get("/i18n/:filename", async (req, reply) =>
 
 app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
 app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.html"));
-app.get("/thesis-writing/", async (req, reply) => serveStatic(req, reply, "thesis-writing.html"));
-app.get("/self-hosted-markdown-editor/", async (req, reply) => serveStatic(req, reply, "self-hosted-markdown-editor.html"));
-app.get("/markdown-citations-bibtex-csl/", async (req, reply) => serveStatic(req, reply, "markdown-citations-bibtex-csl.html"));
+app.get("/thesis-writing/", async (req, reply) => {
+  trackLandingPageVisit(req, "thesis-writing");
+  return serveStatic(req, reply, "thesis-writing.html");
+});
+app.get("/self-hosted-markdown-editor/", async (req, reply) => {
+  trackLandingPageVisit(req, "self-hosted-markdown-editor");
+  return serveStatic(req, reply, "self-hosted-markdown-editor.html");
+});
+app.get("/markdown-citations-bibtex-csl/", async (req, reply) => {
+  trackLandingPageVisit(req, "markdown-citations-bibtex-csl");
+  return serveStatic(req, reply, "markdown-citations-bibtex-csl.html");
+});
+
+app.post("/api/marketing/event", async (req, reply) => {
+  const surface = typeof req.body?.surface === "string" ? req.body.surface.trim() : "";
+  const target = typeof req.body?.target === "string" ? req.body.target.trim() : "";
+
+  if (!req.sessionId || !allowedMarketingSurfaceKeys.has(surface) || !target) {
+    reply.code(400);
+    return { error: "Invalid marketing event" };
+  }
+
+  recordMarketingEvent({
+    sessionId: req.sessionId,
+    eventType: "cta_click",
+    surface,
+    path: typeof req.body?.path === "string" ? req.body.path : "/",
+    target,
+    referrer: req.headers?.referer || req.headers?.referrer || null,
+    utmSource: req.body?.utmSource,
+    utmMedium: req.body?.utmMedium,
+    utmCampaign: req.body?.utmCampaign
+  });
+
+  return { ok: true };
+});
 
 // Sample PDF output — direct download link for demos and README
 app.get("/sample-output.pdf", async (req, reply) => {

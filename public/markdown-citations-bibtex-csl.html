@@ -92,9 +92,10 @@
           <h1>Write citation-heavy Markdown without breaking your writing flow</h1>
           <p class="lead">mdedit.io turns BibTeX- and CSL-style citations from raw syntax into a usable editing workflow: add references, preview output, and export PDF or DOCX from the same document in the browser.</p>
           <div class="cta-row">
-            <a class="cta" href="/">Try citations in mdedit.io</a>
-            <a class="cta-secondary" href="/help-en.html#scientific">Open citations guide</a>
-            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">View full reference example</a>
+            <a class="cta" href="/" data-track-target="open-app">Try citations in mdedit.io</a>
+            <a class="cta-secondary" href="/help-en.html#scientific" data-track-target="citations-guide">Open citations guide</a>
+            <a class="cta-secondary" href="/sample-output.pdf" data-track-target="sample-pdf">View sample thesis PDF</a>
+            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener" data-track-target="reference-example">View full reference example</a>
           </div>
         </div>
         <aside class="hero-proof">
@@ -175,5 +176,35 @@ citation workflows scale better.
         </div>
       </section>
     </div>
+    <script>
+      (() => {
+        const surface = "markdown-citations-bibtex-csl";
+        const params = new URLSearchParams(window.location.search);
+        const send = (target) => {
+          if (!target) return;
+          const payload = JSON.stringify({
+            surface,
+            target,
+            path: window.location.pathname,
+            utmSource: params.get("utm_source"),
+            utmMedium: params.get("utm_medium"),
+            utmCampaign: params.get("utm_campaign")
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon("/api/marketing/event", new Blob([payload], { type: "application/json" }));
+            return;
+          }
+          fetch("/api/marketing/event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        };
+        document.querySelectorAll("[data-track-target]").forEach((link) => {
+          link.addEventListener("click", () => send(link.getAttribute("data-track-target")));
+        });
+      })();
+    </script>
   </body>
 </html>

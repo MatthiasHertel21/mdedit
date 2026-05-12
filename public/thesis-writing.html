@@ -197,9 +197,9 @@
           <h1>Write your thesis in Markdown and export clean PDF or DOCX</h1>
           <p class="lead">mdedit.io gives you one browser workflow for long academic writing: structured Markdown, citation support, live preview, and final export without moving the document through a fragile desktop stack.</p>
           <div class="cta-row">
-            <a class="cta" href="/">Start writing in mdedit.io</a>
-            <a class="cta-secondary" href="/sample-output.pdf">View thesis PDF sample</a>
-            <a class="cta-secondary" href="/help-en.html#scientific">See citation workflow</a>
+            <a class="cta" href="/" data-track-target="open-app">Start writing in mdedit.io</a>
+            <a class="cta-secondary" href="/sample-output.pdf" data-track-target="sample-pdf">View thesis PDF sample</a>
+            <a class="cta-secondary" href="/help-en.html#scientific" data-track-target="scientific-help">See citation workflow</a>
           </div>
         </div>
         <aside class="hero-proof">
@@ -211,8 +211,8 @@
             <li>Live preview plus submission-ready PDF and DOCX export</li>
           </ul>
           <div class="proof-links">
-            <a href="/sample-output.pdf">See sample thesis output</a>
-            <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">Reference thesis document</a>
+            <a href="/sample-output.pdf" data-track-target="proof-sample-pdf">See sample thesis output</a>
+            <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener" data-track-target="reference-document">Reference thesis document</a>
           </div>
         </aside>
       </section>
@@ -295,5 +295,35 @@ As shown by Smith [@smith2023] ...</code></pre>
         </div>
       </section>
     </div>
+    <script>
+      (() => {
+        const surface = "thesis-writing";
+        const params = new URLSearchParams(window.location.search);
+        const send = (target) => {
+          if (!target) return;
+          const payload = JSON.stringify({
+            surface,
+            target,
+            path: window.location.pathname,
+            utmSource: params.get("utm_source"),
+            utmMedium: params.get("utm_medium"),
+            utmCampaign: params.get("utm_campaign")
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon("/api/marketing/event", new Blob([payload], { type: "application/json" }));
+            return;
+          }
+          fetch("/api/marketing/event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        };
+        document.querySelectorAll("[data-track-target]").forEach((link) => {
+          link.addEventListener("click", () => send(link.getAttribute("data-track-target")));
+        });
+      })();
+    </script>
   </body>
 </html>

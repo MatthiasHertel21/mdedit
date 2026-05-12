@@ -107,6 +107,14 @@ Before public releases or production deployments, the release gate should always
 npm run release:check
 ```
 
+If you want the internal `/stats` page to show backlink, query, and search-position snapshots, normalize a JSON export into the canonical format first:
+
+```bash
+npm run stats:marketing-snapshot -- --input docs/examples/marketing-stats.example.json
+```
+
+By default this writes `data/marketing-stats.json`, which matches the default `/stats` lookup path. You can override the source label or target path with `--source` and `--output`.
+
 ### Option 2: Direct Node.js start
 
 1. Install dependencies:

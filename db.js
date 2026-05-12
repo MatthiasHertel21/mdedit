@@ -44,6 +44,22 @@ CREATE TABLE IF NOT EXISTS images (
   created_at TEXT NOT NULL,
   FOREIGN KEY (paste_id) REFERENCES pastes(id)
 );
+
+CREATE TABLE IF NOT EXISTS marketing_events (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  created_at TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  surface TEXT NOT NULL,
+  path TEXT NOT NULL,
+  target TEXT,
+  referrer_host TEXT,
+  referrer_url TEXT,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
 `);
 
 // Migration: Add 'shared' column if it doesn't exist
@@ -160,6 +176,9 @@ CREATE INDEX IF NOT EXISTS idx_pastes_shared ON pastes(shared, id);
 CREATE INDEX IF NOT EXISTS idx_pastes_shared_at ON pastes(shared, shared_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_last_seen ON sessions(last_seen);
 CREATE INDEX IF NOT EXISTS idx_images_paste_id ON images(paste_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_events_created_at ON marketing_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_marketing_events_surface_type ON marketing_events(surface, event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_marketing_events_session ON marketing_events(session_id, created_at DESC);
 `);
 
 export default db;

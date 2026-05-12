@@ -108,9 +108,10 @@
           <h1>Run mdedit.io on your own infrastructure with Docker</h1>
           <p class="lead">Self-host a browser-based Markdown editor with live preview, collaboration, citations, and PDF or DOCX export, without pushing documents into a hosted account-first SaaS workflow.</p>
           <div class="cta-row">
-            <a class="cta" href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">Open Docker setup on GitHub</a>
-            <a class="cta-secondary" href="/help-en.html#share">Read deployment help</a>
-            <a class="cta-secondary" href="/">Try the live app</a>
+            <a class="cta" href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener" data-track-target="github-docker-setup">Open Docker setup on GitHub</a>
+            <a class="cta-secondary" href="/help-en.html#share" data-track-target="deployment-help">Read deployment help</a>
+            <a class="cta-secondary" href="/sample-output.pdf" data-track-target="sample-pdf">View sample PDF output</a>
+            <a class="cta-secondary" href="/" data-track-target="open-app">Try the live app</a>
           </div>
         </div>
         <aside class="hero-proof">
@@ -189,5 +190,35 @@ docker compose up -d</code></pre>
         </div>
       </section>
     </div>
+    <script>
+      (() => {
+        const surface = "self-hosted-markdown-editor";
+        const params = new URLSearchParams(window.location.search);
+        const send = (target) => {
+          if (!target) return;
+          const payload = JSON.stringify({
+            surface,
+            target,
+            path: window.location.pathname,
+            utmSource: params.get("utm_source"),
+            utmMedium: params.get("utm_medium"),
+            utmCampaign: params.get("utm_campaign")
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon("/api/marketing/event", new Blob([payload], { type: "application/json" }));
+            return;
+          }
+          fetch("/api/marketing/event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        };
+        document.querySelectorAll("[data-track-target]").forEach((link) => {
+          link.addEventListener("click", () => send(link.getAttribute("data-track-target")));
+        });
+      })();
+    </script>
   </body>
 </html>

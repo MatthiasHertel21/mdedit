@@ -1,0 +1,44 @@
+{
+  "updatedAt": "2026-05-12",
+  "source": "Example Search Console + backlink snapshot",
+  "backlinks": 42,
+  "referringDomains": 11,
+  "organicClicks30d": 128,
+  "organicImpressions30d": 3460,
+  "avgPosition": 18.6,
+  "indexedPages": 14,
+  "topQueries": [
+    {
+      "query": "markdown editor thesis",
+      "clicks": 31,
+      "impressions": 640,
+      "position": 11.8
+    },
+    {
+      "query": "self hosted markdown editor",
+      "clicks": 24,
+      "impressions": 520,
+      "position": 13.2
+    },
+    {
+      "query": "markdown citations bibtex csl",
+      "clicks": 19,
+      "impressions": 430,
+      "position": 9.7
+    }
+  ],
+  "topReferrers": [
+    {
+      "domain": "github.com",
+      "visits": 54
+    },
+    {
+      "domain": "news.ycombinator.com",
+      "visits": 21
+    },
+    {
+      "domain": "lobste.rs",
+      "visits": 8
+    }
+  ]
+}
