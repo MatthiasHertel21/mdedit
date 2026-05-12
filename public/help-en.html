@@ -302,6 +302,7 @@
           <a href="#mermaid">Mermaid diagrams</a>
           <a href="#math">Math with KaTeX</a>
           <a href="#extended">Extended syntax</a>
+          <a href="#scientific">Scientific documents</a>
           <a href="#layout">Layout, print &amp; images</a>
           <a href="#figures">Figures &amp; tables</a>
           <a href="#shortcuts">Keyboard shortcuts</a>
@@ -580,6 +581,58 @@ $$</code></pre>
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section id="scientific">
+          <h2>Scientific documents</h2>
+          <p>For structured academic and scientific writing, mdedit.io supports automatic section numbering, typed section IDs, internal cross-references, and bibliography management via BibTeX/CSL.</p>
+
+          <h3>Frontmatter keys</h3>
+          <table class="compact-table">
+            <thead><tr><th>Key</th><th>Value</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td><code>number-sections</code></td><td><code>true</code></td><td>Headings are automatically numbered in decimal form (1, 1.1, 1.1.1 …).</td></tr>
+              <tr><td><code>citation-source</code></td><td><code>embedded</code></td><td>Enables the BibTeX/CSL citation pipeline. References are rendered as a bibliography at the end of the document.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Section IDs and cross-references</h3>
+          <p>Assign a typed ID to a heading and reference it anywhere in the text:</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>Assign an ID</h3>
+              <pre><code>## Methodology {#sec:methodology}
+
+### Data collection {#sec:data}</code></pre>
+            </article>
+            <article class="card">
+              <h3>Cross-reference in text</h3>
+              <pre><code>As described in [@sec:methodology],
+see also [@sec:data].</code></pre>
+            </article>
+          </div>
+          <p>The preview resolves <code>[@sec:id]</code> into a clickable link with the section number, e.g. <em>Section 2.1</em>.</p>
+
+          <h3>Citations and bibliography</h3>
+          <p>When <code>citation-source: embedded</code> is set, the bibliography is parsed directly from the document:</p>
+          <pre><code>---
+citation-source: embedded
+number-sections: true
+---
+
+## Introduction {#sec:intro}
+
+As shown by [@Author2024] …
+
+## References
+
+``` bibtex
+@article{Author2024,
+  author = {Author, A.},
+  title  = {Title},
+  year   = {2024}
+}
+```</code></pre>
         </section>
 
         <section id="layout">

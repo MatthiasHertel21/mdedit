@@ -488,5 +488,26 @@
     "title": "Auto-detected table captions",
     "text": "A paragraph immediately before a table that begins with `Table N:` is automatically recognized as a table caption, numbered, and added to the list of tables.",
     "example": "Table 2: Comparison of layout options.\n\n| Option | Value |\n|---|---|\n| Margin | 2.1 cm |"
+  },
+  {
+    "id": 72,
+    "category": "features",
+    "title": "Automatic section numbering",
+    "text": "Add `number-sections: true` to the YAML frontmatter to automatically number headings in decimal form (1, 1.1, 1.1.1 …).",
+    "example": "---\nnumber-sections: true\n---\n\n## Introduction\n\n### Background"
+  },
+  {
+    "id": 73,
+    "category": "markdown",
+    "title": "Section IDs and cross-references",
+    "text": "Assign a typed ID to a heading with `{#sec:id}` and reference it in the text with `[@sec:id]`. The preview resolves the reference into a clickable link, e.g. *Section 2.1*.",
+    "example": "## Methodology {#sec:methodology}\n\nAs described in [@sec:methodology] …"
+  },
+  {
+    "id": 74,
+    "category": "features",
+    "title": "Citations and bibliography",
+    "text": "Set `citation-source: embedded` in the frontmatter and place BibTeX entries in a fenced code block at the end of the document. Citations like `[@Key2024]` are resolved automatically.",
+    "example": "---\ncitation-source: embedded\n---\n\nAs shown by [@Author2024] …\n\n``` bibtex\n@article{Author2024,\n  author = {Author, A.},\n  title  = {Title},\n  year   = {2024}\n}\n```"
   }
 ]

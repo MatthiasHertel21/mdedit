@@ -488,5 +488,26 @@
     "title": "Tabellenunterschriften automatisch erkennen",
     "text": "Ein Absatz direkt vor einer Tabelle, der mit `Tabelle N:` beginnt, wird automatisch als Tabellenunterschrift (`<caption>`) erkannt, nummeriert und in das Tabellenverzeichnis aufgenommen.",
     "example": "Tabelle 2: Vergleich der Layoutoptionen.\n\n| Option | Wert |\n|---|---|\n| Rand | 2,1 cm |"
+  },
+  {
+    "id": 72,
+    "category": "features",
+    "title": "Abschnitte automatisch nummerieren",
+    "text": "Füge `number-sections: true` ins YAML-Frontmatter ein, um Überschriften automatisch dezimal zu nummerieren (1, 1.1, 1.1.1 …).",
+    "example": "---\nnumber-sections: true\n---\n\n## Einleitung\n\n### Hintergrund"
+  },
+  {
+    "id": 73,
+    "category": "markdown",
+    "title": "Abschnitts-IDs und Querverweise",
+    "text": "Vergib einer Überschrift eine typisierte ID mit `{#sec:id}` und verweise im Text darauf mit `[@sec:id]`. Die Vorschau löst den Verweis zu einem klickbaren Link auf, z. B. *Abschnitt 2.1*.",
+    "example": "## Methodik {#sec:methodik}\n\nWie in [@sec:methodik] beschrieben …"
+  },
+  {
+    "id": 74,
+    "category": "features",
+    "title": "Zitationen und Bibliografie",
+    "text": "Setze `citation-source: embedded` im Frontmatter und lege BibTeX-Einträge in einem Fenced-Code-Block am Dokumentende ab. Zitationen im Text wie `[@Key2024]` werden automatisch aufgelöst.",
+    "example": "---\ncitation-source: embedded\n---\n\nNach [@Autor2024] gilt …\n\n``` bibtex\n@article{Autor2024,\n  author = {Autor, A.},\n  title  = {Titel},\n  year   = {2024}\n}\n```"
   }
 ]

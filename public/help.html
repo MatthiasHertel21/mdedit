@@ -302,6 +302,7 @@
           <a href="#mermaid">Mermaid-Diagramme</a>
           <a href="#math">Mathe mit KaTeX</a>
           <a href="#extended">Erweiterte Syntax</a>
+          <a href="#scientific">Wissenschaftliche Dokumente</a>
           <a href="#layout">Layout, Druck &amp; Bilder</a>
           <a href="#figures">Abbildungen &amp; Tabellen</a>
           <a href="#shortcuts">Tastenkürzel</a>
@@ -580,6 +581,58 @@ $$</code></pre>
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section id="scientific">
+          <h2>Wissenschaftliche Dokumente</h2>
+          <p>Für strukturierte wissenschaftliche Arbeiten unterstützt mdedit.io Abschnittsnummern, typisierte Abschnitts-IDs und interne Querverweise sowie Literaturverwaltung mit BibTeX/CSL.</p>
+
+          <h3>Frontmatter-Schlüssel</h3>
+          <table class="compact-table">
+            <thead><tr><th>Schlüssel</th><th>Wert</th><th>Wirkung</th></tr></thead>
+            <tbody>
+              <tr><td><code>number-sections</code></td><td><code>true</code></td><td>Überschriften werden automatisch dezimal nummeriert (1, 1.1, 1.1.1 …).</td></tr>
+              <tr><td><code>citation-source</code></td><td><code>embedded</code></td><td>Aktiviert die BibTeX/CSL-Zitationspipeline. Literatur wird am Dokumentende als Bibliografie gerendert.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Abschnitts-IDs und Querverweise</h3>
+          <p>Weise einer Überschrift eine typisierte ID zu und verweise im Text darauf:</p>
+          <div class="two-col">
+            <article class="card">
+              <h3>ID vergeben</h3>
+              <pre><code>## Methodik {#sec:methodik}
+
+### Datenerhebung {#sec:daten}</code></pre>
+            </article>
+            <article class="card">
+              <h3>Querverweis im Text</h3>
+              <pre><code>Wie in [@sec:methodik] beschrieben,
+siehe auch [@sec:daten].</code></pre>
+            </article>
+          </div>
+          <p>Die Vorschau ersetzt <code>[@sec:id]</code> durch einen klickbaren Link mit der aufgelösten Abschnittsnummer, z. B. <em>Abschnitt 2.1</em>.</p>
+
+          <h3>Zitationen und Bibliografie</h3>
+          <p>Wenn <code>citation-source: embedded</code> gesetzt ist, wird das Literaturverzeichnis automatisch aus dem Dokument geparst:</p>
+          <pre><code>---
+citation-source: embedded
+number-sections: true
+---
+
+## Einleitung {#sec:intro}
+
+Nach [@Autor2024] gilt …
+
+## Literaturverzeichnis
+
+``` bibtex
+@article{Autor2024,
+  author = {Autor, A.},
+  title  = {Titel},
+  year   = {2024}
+}
+```</code></pre>
         </section>
 
         <section id="layout">
@@ -1035,6 +1088,7 @@ $$</code></pre>
                 <a href="#mermaid">Mermaid-Diagramme</a>
                 <a href="#math">Mathe mit KaTeX</a>
                 <a href="#extended">Erweiterte Syntax</a>
+                <a href="#scientific">Wissenschaftliche Dokumente</a>
                 <a href="#layout">Layout, Druck &amp; Bilder</a>
                 <a href="#figures">Abbildungen &amp; Tabellen</a>
                 <a href="#shortcuts">Tastenkürzel</a>
@@ -1313,6 +1367,58 @@ $$</code></pre>
                     </tr>
                   </tbody>
                 </table>
+              </section>
+
+              <section id="scientific">
+                <h2>Wissenschaftliche Dokumente</h2>
+                <p>Für strukturierte wissenschaftliche Arbeiten unterstützt mdedit.io Abschnittsnummern, typisierte Abschnitts-IDs und interne Querverweise sowie Literaturverwaltung mit BibTeX/CSL.</p>
+
+                <h3>Frontmatter-Schlüssel</h3>
+                <table class="compact-table">
+                  <thead><tr><th>Schlüssel</th><th>Wert</th><th>Wirkung</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>number-sections</code></td><td><code>true</code></td><td>Überschriften werden automatisch dezimal nummeriert (1, 1.1, 1.1.1 …).</td></tr>
+                    <tr><td><code>citation-source</code></td><td><code>embedded</code></td><td>Aktiviert die BibTeX/CSL-Zitationspipeline. Literatur wird am Dokumentende als Bibliografie gerendert.</td></tr>
+                  </tbody>
+                </table>
+
+                <h3>Abschnitts-IDs und Querverweise</h3>
+                <p>Weise einer Überschrift eine typisierte ID zu und verweise im Text darauf:</p>
+                <div class="two-col">
+                  <article class="card">
+                    <h3>ID vergeben</h3>
+                    <pre><code>## Methodik {#sec:methodik}
+
+### Datenerhebung {#sec:daten}</code></pre>
+                  </article>
+                  <article class="card">
+                    <h3>Querverweis im Text</h3>
+                    <pre><code>Wie in [@sec:methodik] beschrieben,
+siehe auch [@sec:daten].</code></pre>
+                  </article>
+                </div>
+                <p>Die Vorschau ersetzt <code>[@sec:id]</code> durch einen klickbaren Link mit der aufgelösten Abschnittsnummer, z. B. <em>Abschnitt 2.1</em>.</p>
+
+                <h3>Zitationen und Bibliografie</h3>
+                <p>Wenn <code>citation-source: embedded</code> gesetzt ist, wird das Literaturverzeichnis automatisch aus dem Dokument geparst:</p>
+                <pre><code>---
+citation-source: embedded
+number-sections: true
+---
+
+## Einleitung {#sec:intro}
+
+Nach [@Autor2024] gilt …
+
+## Literaturverzeichnis
+
+``` bibtex
+@article{Autor2024,
+  author = {Autor, A.},
+  title  = {Titel},
+  year   = {2024}
+}
+```</code></pre>
               </section>
 
               <section id="layout">
