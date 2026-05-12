@@ -1313,6 +1313,31 @@ const headingIdState = {
   index: 0
 };
 
+// SCI-010: Core rule — strip Pandoc-style {#id .class} attribute blocks from
+// heading inline content before rendering so they don't appear as visible text.
+md.core.ruler.push("strip_heading_attrs", (state) => {
+  const tokens = state.tokens;
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (tokens[i].type !== "heading_open") continue;
+    const inline = tokens[i + 1];
+    if (inline.type !== "inline") continue;
+    const m = inline.content.match(/\s+\{[^}]*\}\s*$/);
+    if (!m) continue;
+    inline.content = inline.content.slice(0, -m[0].length).trim();
+    if (inline.children) {
+      for (let j = inline.children.length - 1; j >= 0; j--) {
+        const child = inline.children[j];
+        if (child.type === "softbreak" || child.type === "hardbreak") continue;
+        if (child.type === "text") {
+          child.content = child.content.replace(/\s+\{[^}]*\}\s*$/, "").trim();
+          if (!child.content) inline.children.splice(j, 1);
+        }
+        break;
+      }
+    }
+  }
+});
+
 md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   const id = headingIdState.ids[headingIdState.index++] || "";
   if (id) {
@@ -4414,7 +4439,16 @@ const renderPreview = () => {
     refreshDynamicStyles(text);
   }
   elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(md.render(previewText)));
-  
+
+  // SCI-011/012/013: Heading numbering and section cross-reference resolution
+  const rawText = getMarkdown();
+  if (parseFrontmatterBoolean(rawText, "number-sections")) {
+    applyHeadingNumbers(elements.preview);
+  } else {
+    buildSectionRegistryFromDOM(elements.preview);
+  }
+  applySectionCrossRefs(elements.preview);
+
   // Zeige Korrekturvorschlag im Editor
   const suggestionEl = document.getElementById("editorSuggestion");
   if (wasHealed && suggestionEl) {
@@ -4500,6 +4534,97 @@ const slugify = (text) =>
     .trim()
     .replace(/\s+/g, "-");
 
+// SCI-010: Extract Pandoc-style {#id} attribute block from end of heading text.
+// Returns { displayTitle, explicitId } — displayTitle has the {#...} stripped.
+const extractHeadingAttrs = (rawTitle) => {
+  const m = rawTitle.match(/\s+\{([^}]*)\}\s*$/);
+  if (!m) return { displayTitle: rawTitle.trim(), explicitId: null };
+  const idM = m[1].match(/#([\w:.-]+)/);
+  return {
+    displayTitle: rawTitle.slice(0, -m[0].length).trim(),
+    explicitId: idM ? idM[1] : null
+  };
+};
+
+// SCI-011: Compute decimal section numbers (1, 1.2, 1.2.3) for a flat headings list.
+const buildSectionNumbers = (headings) => {
+  const counters = [0, 0, 0, 0, 0, 0];
+  return headings.map((h) => {
+    const lvl = h.level - 1;
+    counters[lvl]++;
+    for (let i = lvl + 1; i < 6; i++) counters[i] = 0;
+    return { ...h, number: counters.slice(0, h.level).join(".") };
+  });
+};
+
+// SCI-011: Check a single boolean frontmatter key via regex (no full YAML parser needed).
+const parseFrontmatterBoolean = (text, key) => {
+  const fm = extractDocumentFrontmatterBlock(text);
+  if (!fm) return false;
+  return new RegExp(`(?:^|\\n)\\s*${key}\\s*:\\s*(true|yes)`, "i").test(fm);
+};
+
+// SCI-012/013: Registry mapping section id → { displayTitle, number }
+// Rebuilt on every preview render.
+const sectionRegistry = new Map();
+
+// SCI-012: Inject resolved cross-reference links for [@sec:id] patterns in preview.
+const applySectionCrossRefs = (container) => {
+  if (!sectionRegistry.size) return;
+  const XREF_RE = /\[@([\w:.-]+)\]/g;
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (!XREF_RE.test(node.textContent)) return;
+      XREF_RE.lastIndex = 0;
+      const span = document.createElement("span");
+      span.innerHTML = node.textContent.replace(XREF_RE, (match, id) => {
+        const entry = sectionRegistry.get(id);
+        if (!entry) return match;
+        const label = entry.number
+          ? `Abschnitt\u202F${entry.number}`
+          : entry.displayTitle;
+        return `<a href="#${id}" class="section-ref">${label}</a>`;
+      });
+      node.parentNode.replaceChild(span, node);
+      return;
+    }
+    // Skip script/style/pre/code and already-resolved anchors
+    const tag = node.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "PRE" || tag === "CODE" || tag === "A") return;
+    Array.from(node.childNodes).forEach(walk);
+  };
+  walk(container);
+};
+
+// SCI-011: Apply automatic heading numbers to rendered preview and populate sectionRegistry.
+const applyHeadingNumbers = (container) => {
+  sectionRegistry.clear();
+  const counters = [0, 0, 0, 0, 0, 0];
+  container.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((el) => {
+    // Skip headings inside title-page or TOC containers
+    if (el.closest(".title-page, .toc, .md-toc")) return;
+    const lvl = parseInt(el.tagName[1], 10) - 1;
+    counters[lvl]++;
+    for (let i = lvl + 1; i < 6; i++) counters[i] = 0;
+    const number = counters.slice(0, lvl + 1).join(".");
+    const id = el.id || "";
+    const displayTitle = el.textContent.trim();
+    if (id) sectionRegistry.set(id, { displayTitle, number });
+    const numSpan = document.createElement("span");
+    numSpan.className = "section-number";
+    numSpan.textContent = number;
+    el.insertBefore(numSpan, el.firstChild);
+  });
+};
+
+// SCI-010: Populate sectionRegistry without numbering (number-sections not active).
+const buildSectionRegistryFromDOM = (container) => {
+  sectionRegistry.clear();
+  container.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((el) => {
+    if (el.id) sectionRegistry.set(el.id, { displayTitle: el.textContent.trim(), number: "" });
+  });
+};
+
 const buildHeadingTree = (markdown) => {
   const headings = [];
   const regex = /^\s{0,3}(#{1,6})\s+(.+)$/gm;
@@ -4508,11 +4633,17 @@ const buildHeadingTree = (markdown) => {
 
   while ((match = regex.exec(markdown)) !== null) {
     const level = match[1].length;
-    const title = match[2].replace(/\s+#+\s*$/, "").trim();
-    const base = slugify(title) || "section";
-    const count = (slugCounts.get(base) || 0) + 1;
-    slugCounts.set(base, count);
-    const slug = count > 1 ? `${base}-${count}` : base;
+    const raw = match[2].replace(/\s+#+\s*$/, "").trim();
+    const { displayTitle: title, explicitId } = extractHeadingAttrs(raw);
+    let slug;
+    if (explicitId) {
+      slug = explicitId; // stable explicit ID — no deduplication
+    } else {
+      const base = slugify(title) || "section";
+      const count = (slugCounts.get(base) || 0) + 1;
+      slugCounts.set(base, count);
+      slug = count > 1 ? `${base}-${count}` : base;
+    }
 
     headings.push({
       level,
@@ -4595,11 +4726,17 @@ const buildOutline = (markdown) => {
     if (tokens[i].type === "heading_open") {
       const level = Number(tokens[i].tag.replace("h", ""));
       const inline = tokens[i + 1];
-      const title = inline?.content?.trim() || "(ohne Titel)";
-      const base = slugify(title) || "section";
-      const count = (slugCounts.get(base) || 0) + 1;
-      slugCounts.set(base, count);
-      const slug = count > 1 ? `${base}-${count}` : base;
+      const raw = inline?.content?.trim() || "(ohne Titel)";
+      const { displayTitle: title, explicitId } = extractHeadingAttrs(raw);
+      let slug;
+      if (explicitId) {
+        slug = explicitId;
+      } else {
+        const base = slugify(title) || "section";
+        const count = (slugCounts.get(base) || 0) + 1;
+        slugCounts.set(base, count);
+        slug = count > 1 ? `${base}-${count}` : base;
+      }
       const line = tokens[i].map?.[0] ?? 0;
       headings.push({ level, title, slug, line });
     }

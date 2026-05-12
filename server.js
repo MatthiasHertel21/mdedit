@@ -2825,7 +2825,7 @@ ${html}
       app.log.info("Trying markdown export as fallback");
       let result = await runPandoc(
         mdPath,
-        citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm",
+        citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm+header_attributes",
         citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
       );
 
@@ -2844,7 +2844,7 @@ ${html}
           pdfEngine = fallbackEngine;
           result = await runPandoc(
             mdPath,
-            citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm",
+            citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm+header_attributes",
             citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
           );
         }
