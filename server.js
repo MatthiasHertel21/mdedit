@@ -1793,6 +1793,8 @@ const OWNED_DISCOVERY_SURFACES = [
 ];
 
 const TRACKED_MARKETING_SURFACES = new Map([
+  ["/", { key: "homepage", label: "Homepage" }],
+  ["/help-en.html", { key: "help-en", label: "Scientific help" }],
   ["/thesis-writing/", { key: "thesis-writing", label: "Thesis writing" }],
   ["/self-hosted-markdown-editor/", { key: "self-hosted-markdown-editor", label: "Self-hosting" }],
   ["/markdown-citations-bibtex-csl/", { key: "markdown-citations-bibtex-csl", label: "Citations" }]
@@ -1856,7 +1858,7 @@ const recordMarketingEvent = ({
   );
 };
 
-const trackLandingPageVisit = (req, surface) => {
+const trackMarketingSurfaceVisit = (req, surface) => {
   if (!req.sessionId) return;
 
   recordMarketingEvent({
@@ -2419,7 +2421,7 @@ const renderStatsPage = async () => {
           </article>
           <article class="card">
             <h2>Akquise-Signale</h2>
-            <p>Interne Einstiegs- und Klicksignale aus den drei Owned Landingpages</p>
+            <p>Interne Einstiegs- und Klicksignale aus Homepage, Help und den Owned Landingpages</p>
             <div class="metric">${formatNumber(marketingSignals30d.landingSessions)}</div>
             <p class="metric-sub">eindeutige Landing-Sessions in den letzten 30 Tagen</p>
             <p style="margin-top: 10px;">Landing-Visits: <strong>${formatNumber(marketingSignals30d.landingVisits)}</strong><br>CTA-Klicks: <strong>${formatNumber(marketingSignals30d.ctaClicks)}</strong><br>App-CTA-Anteil: <strong>${appCtaRate30d == null ? "-" : escapeHtmlText(formatPercent(appCtaRate30d))}</strong><br>Referrer-Domains: <strong>${formatNumber(marketingSignals30d.uniqueReferrerDomains)}</strong></p>
@@ -2468,7 +2470,7 @@ const renderStatsPage = async () => {
           ${acquisitionReferrersHtml}
         </article>
         <article class="card">
-          <h2>Landing Surfaces 30d</h2>
+          <h2>Entry Surfaces 30d</h2>
           ${acquisitionSurfacesHtml}
         </article>
         <article class="card">
@@ -3604,17 +3606,20 @@ app.get("/i18n/:filename", async (req, reply) =>
 );
 
 app.get("/help.html", async (req, reply) => serveStatic(req, reply, "help.html"));
-app.get("/help-en.html", async (req, reply) => serveStatic(req, reply, "help-en.html"));
+app.get("/help-en.html", async (req, reply) => {
+  trackMarketingSurfaceVisit(req, "help-en");
+  return serveStatic(req, reply, "help-en.html");
+});
 app.get("/thesis-writing/", async (req, reply) => {
-  trackLandingPageVisit(req, "thesis-writing");
+  trackMarketingSurfaceVisit(req, "thesis-writing");
   return serveStatic(req, reply, "thesis-writing.html");
 });
 app.get("/self-hosted-markdown-editor/", async (req, reply) => {
-  trackLandingPageVisit(req, "self-hosted-markdown-editor");
+  trackMarketingSurfaceVisit(req, "self-hosted-markdown-editor");
   return serveStatic(req, reply, "self-hosted-markdown-editor.html");
 });
 app.get("/markdown-citations-bibtex-csl/", async (req, reply) => {
-  trackLandingPageVisit(req, "markdown-citations-bibtex-csl");
+  trackMarketingSurfaceVisit(req, "markdown-citations-bibtex-csl");
   return serveStatic(req, reply, "markdown-citations-bibtex-csl.html");
 });
 
@@ -3658,6 +3663,7 @@ app.get("/sample-output.pdf", async (req, reply) => {
 
 // Root path
 app.get("/", async (req, reply) => {
+  trackMarketingSurfaceVisit(req, "homepage");
   const html = await readIndexHtml();
   reply.type("text/html; charset=utf-8");
   return html;
