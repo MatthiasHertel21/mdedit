@@ -4510,6 +4510,15 @@ const renderCitationPreview = async () => {
     }
 
     elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(payload.html || ""));
+
+    // SCI-011/012/013: Heading numbering and section cross-reference resolution
+    if (parseFrontmatterBoolean(text, "number-sections")) {
+      applyHeadingNumbers(elements.preview);
+    } else {
+      buildSectionRegistryFromDOM(elements.preview);
+    }
+    applySectionCrossRefs(elements.preview);
+
     finalizePreviewRender();
     return true;
   } catch (error) {
