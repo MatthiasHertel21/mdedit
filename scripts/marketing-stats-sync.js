@@ -48,8 +48,15 @@ if (!inputArg) {
 }
 
 const rootDir = process.cwd();
+const defaultOutputPath = process.env.MARKETING_STATS_FILE
+  ? path.resolve(process.env.MARKETING_STATS_FILE)
+  : process.env.DATA_DIR
+    ? path.join(path.resolve(process.env.DATA_DIR), "marketing-stats.json")
+    : path.resolve(rootDir, "data", "marketing-stats.json");
 const inputPath = path.resolve(rootDir, inputArg);
-const outputPath = path.resolve(rootDir, takeOption("--output") || path.join("data", "marketing-stats.json"));
+const outputPath = takeOption("--output")
+  ? path.resolve(rootDir, takeOption("--output"))
+  : defaultOutputPath;
 const sourceOverride = takeOption("--source");
 
 const parseJsonFile = (filePath) => {

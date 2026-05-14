@@ -9,6 +9,7 @@ citation-source: embedded
 reference-section-title: Literaturverzeichnis
 link-citations: true
 link-bibliography: true
+nocite: '@*'
 ---
 
 ```mdedit-bibliography
@@ -419,8 +420,7 @@ Der folgende Anhang ist kein dekorativer Zusatz, sondern Teil des Untersuchungsd
 
 ### A.1 Abbildungsprobe
 
-<!-- img: align=center width=86% frame -->
-![Neutrales Bildartefakt für Caption-, Listen- und Printtests](/static/brand/mdedit-logo.png)
+![Abbildung 1: Neutrales Bildartefakt für Caption-, Listen- und Printtests](/static/brand/mdedit-logo.png)
 
 ### A.2 Wissenschaftliche Tabelle
 
@@ -448,7 +448,7 @@ Tabelle 6: Typische Aufgaben vor der Abgabe.
 | DOCX für Betreuung exportieren | optional |
 :::
 
-### A.4 Mathematik- und Fußnotenprobe
+### A.4 Mathematik- und Anmerkungsprobe
 
 Die Formel $E = mc^2$ dient als Inline-Test. Für einen Blocktest eignet sich folgende Darstellung:
 
@@ -456,13 +456,20 @@ $$
 \int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
 $$
 
-Zusätzlich bleibt eine Fußnote als Satz- und Exportprobe erhalten.[^layoutprobe]
-
-[^layoutprobe]: Die Fußnote prüft, ob Lauftext, Marker und Fußnotenbereich in der Ausgabe stabil lesbar bleiben.
+Zusätzlich bleibt eine Anmerkung als Satz- und Exportprobe erhalten. Die Anmerkung prüft, ob Lauftext und Zusatzhinweis in der Ausgabe stabil lesbar bleiben.
 
 ### A.5 Mehrspaltenprobe
 
-Wissenschaftliche Haupttexte brauchen selten Spalten; Anhänge und Sonderseiten können jedoch von einem zweispaltigen Layout profitieren. Die Zweispaltensyntax (`columns{count=2}`) wird im Editor-Preview unterstützt. Für den PDF-Export muss das Layout explizit im Layout-Editor konfiguriert werden.
+Wissenschaftliche Haupttexte brauchen selten Spalten; Anhänge und Sonderseiten können jedoch von einem zweispaltigen Layout profitieren. Die Referenzdatei enthält deshalb hier einen echten Spaltenblock mit bewusstem Spaltenwechsel.
+
+<!-- columns:2 gap:18pt rule:true -->
+Die linke Spalte prüft, ob längerer Fließtext in einem wissenschaftlichen Dokument stabil in ein zweispaltiges Layout überführt wird, ohne dass Abstände, Absatztrennung oder Wortumbrüche kollabieren. Gleichzeitig bleibt der Text bewusst sachlich genug, um als realistische Anhangs- oder Beiblattprobe zu fungieren.
+
+<!-- column-break -->
+
+Die rechte Spalte prüft denselben Pfad nach einem expliziten Spaltenwechsel. Damit lässt sich im Preview und im PDF unterscheiden, ob automatische Verteilung und manuell gesetzte Spaltenumbrüche gleichermaßen stabil funktionieren. Für Thesis-Workflows ist das vor allem bei Anhängen, Listen oder verdichteten Zusatzinformationen relevant.
+
+<!-- /columns -->
 
 ### A.6 Unicode-, Querverweis- und Listingprobe
 

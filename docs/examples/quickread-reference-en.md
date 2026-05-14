@@ -3,6 +3,7 @@ preset: compact
 header: "mdedit.io — Feature Showcase"
 footer: "mdedit.io | mdedit.io"
 toc: true
+lang: en-US
 ---
 
 # mdedit.io Feature Showcase
@@ -41,7 +42,7 @@ Three right-hand panels share a single tab bar: **Preview**, **Outline**, and **
 | Toggle AI panel | `Alt+Space` / `Ctrl+Space` |
 | Bold | `Ctrl+B` |
 | Italic | `Ctrl+I` |
-| Export PDF | Share menu → Download PDF |
+| Export PDF | Share menu -> Download PDF |
 | Next document | `Ctrl+→` |
 | Previous document | `Ctrl+←` |
 | Toggle sidebar | sidebar pin button |
@@ -295,5 +296,4 @@ All data stays in your `./data` volume. No external services required. PDF expor
 
 *This document is generated with mdedit.io and demonstrates all major features. Export it as PDF to see the result.*
 
-*Source: [docs/examples/quickread-reference.md](https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/quickread-reference.md) — Apache 2.0*
-
+*Source: [docs/examples/quickread-reference-en.md](https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/quickread-reference-en.md) — Apache 2.0*

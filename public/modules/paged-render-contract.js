@@ -183,6 +183,11 @@ export const buildPagedRenderContract = ({
     '.footnotes li { break-inside: avoid; page-break-inside: avoid; }',
     // Keep the footnote separator (hr) with the footnote list.
     '.footnotes hr { break-after: avoid; page-break-after: avoid; }',
+    '.page-break, .page-break-before { break-before: page; page-break-before: always; }',
+    // Force the generated bibliography section onto a fresh page in the
+    // Paged.js chunker; the wrapper is injected in app.js after citation render.
+    '.reference-section-start { break-before: page; page-break-before: always; }',
+    '.reference-section-heading { break-before: page; page-break-before: always; }',
   ].join('\n');
 
   const polisherCSS = [

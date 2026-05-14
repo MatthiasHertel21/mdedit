@@ -11,6 +11,7 @@ import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyWebsocket from "@fastify/websocket";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import pino from "pino";
 import puppeteer from "puppeteer-core";
 import bcryptjs from "bcryptjs";
 import db from "./db.js";
@@ -23,6 +24,25 @@ const DEMO_REFERENCE_DOCUMENTS = [
   { key: "book", filename: "book-reference.md" },
   { key: "quickread", filename: "quickread-reference.md" }
 ];
+
+const resolveDemoReferenceFilename = async (filename, locale) => {
+  const normalizedLocale = typeof locale === "string" ? locale.trim().toLowerCase() : "";
+  if (!normalizedLocale.startsWith("en")) {
+    return filename;
+  }
+
+  const ext = path.extname(filename);
+  const base = filename.slice(0, -ext.length);
+  const localizedFilename = `${base}-en${ext}`;
+  const localizedPath = path.join(__dirname, "docs", "examples", localizedFilename);
+
+  try {
+    await fs.promises.access(localizedPath);
+    return localizedFilename;
+  } catch {
+    return filename;
+  }
+};
 
 // Export queue to prevent too many concurrent pandoc processes
 const exportQueue = {
@@ -94,6 +114,38 @@ const normalizeAiProvider = (provider) => {
   if (!provider || typeof provider !== "string") return null;
   const normalized = provider.trim().toLowerCase();
   return SUPPORTED_AI_PROVIDERS.has(normalized) ? normalized : null;
+};
+
+const disableLoggerStream = (stream) => {
+  if (!stream || stream.__mdeditDisabled) return;
+
+  stream.__mdeditDisabled = true;
+  stream.write = () => true;
+  stream.end = () => {};
+  stream.flushSync = () => {};
+  stream.destroy = () => {};
+};
+
+const createSafeLoggerInstance = () => {
+  const destination = pino.destination({
+    dest: process.stdout.fd || 1,
+    minLength: 0,
+    sync: false
+  });
+
+  destination.removeAllListeners("error");
+  destination.on("error", (err) => {
+    if (err?.code === "EPIPE" || err?.code === "EINTR") {
+      disableLoggerStream(destination);
+      return;
+    }
+
+    setImmediate(() => {
+      throw err;
+    });
+  });
+
+  return pino({ level: process.env.LOG_LEVEL || "info" }, destination);
 };
 
 const getDefaultAiProvider = () => {
@@ -341,7 +393,7 @@ const requestClaudeChatCompletion = async ({ apiKey, model, history, inputMessag
 };
 
 const app = Fastify({
-  logger: true,
+  loggerInstance: createSafeLoggerInstance(),
   bodyLimit: 15 * 1024 * 1024  // 15 MB (base64 overhead + images)
 });
 
@@ -592,8 +644,10 @@ app.get("/api/pastes", async (req) => {
 
 app.get("/api/demo-reference-documents", async (req, reply) => {
   try {
+    const requestedLocale = typeof req.query?.locale === "string" ? req.query.locale : "";
     const documents = await Promise.all(DEMO_REFERENCE_DOCUMENTS.map(async ({ key, filename }) => {
-      const markdown = await fs.promises.readFile(path.join(__dirname, "docs", "examples", filename), "utf8");
+      const resolvedFilename = await resolveDemoReferenceFilename(filename, requestedLocale);
+      const markdown = await fs.promises.readFile(path.join(__dirname, "docs", "examples", resolvedFilename), "utf8");
       return { key, markdown };
     }));
     return { documents };
@@ -731,10 +785,22 @@ app.delete("/api/pastes/:id", async (req, reply) => {
 });
 
 app.post("/api/export/docx", async (req, reply) => {
+  recordAttributedMarketingActivation({
+    sessionId: req.sessionId,
+    eventType: "export",
+    target: "docx",
+    requestPath: "/api/export/docx"
+  });
   return exportQueue.execute(() => exportWithPandoc(req, reply, "docx"));
 });
 
 app.post("/api/export/pdf", async (req, reply) => {
+  recordAttributedMarketingActivation({
+    sessionId: req.sessionId,
+    eventType: "export",
+    target: "pdf",
+    requestPath: "/api/export/pdf"
+  });
   return exportQueue.execute(() => exportWithPandoc(req, reply, "pdf"));
 });
 
@@ -758,6 +824,199 @@ app.post("/api/preview/citations/html", async (req, reply) => {
     } catch (error) {
       reply.code(error?.statusCode || 500);
       return { error: error?.message || "Citations preview failed" };
+    }
+  });
+});
+
+/**
+ * POST /api/preview/scientific
+ * Server-side scientific preview: renders Markdown via Pandoc to HTML.
+ * For citation documents, resolves bibliography/citeproc.
+ * For plain documents, renders via Pandoc without citeproc.
+ * Body: { markdown: string }
+ * Returns: { html: string, isCitationDocument: boolean }
+ */
+// ── External bibliography lookup proxies (CIT-006) ───────────────────────────
+
+const EXTERNAL_API_TIMEOUT_MS = 8000;
+
+const openAlexToCsl = (work) => {
+  const authors = (work.authorships || []).map((a) => {
+    const parts = (a.author?.display_name || "").split(" ");
+    return { family: parts.pop() || "", given: parts.join(" ") };
+  });
+  const year = work.publication_year;
+  const doi = work.doi?.replace("https://doi.org/", "") || undefined;
+  const journal = work.primary_location?.source?.display_name || undefined;
+  return {
+    id: doi
+      ? doi.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24)
+      : `openalex_${(work.id || "").split("/").pop()}`,
+    type: work.type === "article" ? "article-journal" : (work.type || "article"),
+    title: work.title || "",
+    author: authors,
+    ...(year ? { issued: { "date-parts": [[year]] } } : {}),
+    ...(journal ? { "container-title": journal } : {}),
+    ...(doi ? { DOI: doi } : {}),
+    ...(work.doi ? { URL: work.doi } : {}),
+  };
+};
+
+// DOI → CSL-JSON via Crossref
+app.get("/api/bibliography/doi/:doi", {
+  config: { rateLimit: { max: 30, timeWindow: "1 minute" } }
+}, async (req, reply) => {
+  const doi = String(req.params.doi || "").trim();
+  if (!doi || !/^10\.\d{4,}\/\S+$/.test(doi)) {
+    reply.code(400);
+    return { error: "Invalid DOI format" };
+  }
+  try {
+    const res = await fetch(
+      `https://api.crossref.org/works/${encodeURIComponent(doi)}/transform/application/vnd.citationstyles.csl+json`,
+      {
+        headers: { "User-Agent": "mdedit/1.0 (https://mdedit.io; mailto:info@mdedit.io)" },
+        signal: AbortSignal.timeout(EXTERNAL_API_TIMEOUT_MS)
+      }
+    );
+    if (!res.ok) {
+      reply.code(res.status === 404 ? 404 : 502);
+      return { error: "DOI not found" };
+    }
+    const csl = await res.json();
+    return { item: csl };
+  } catch (_err) {
+    reply.code(502);
+    return { error: "Crossref unreachable" };
+  }
+});
+
+// Title/author search → CSL-JSON via OpenAlex
+app.get("/api/bibliography/openalex", {
+  config: { rateLimit: { max: 30, timeWindow: "1 minute" } }
+}, async (req, reply) => {
+  const q = String(req.query.q || "").trim().slice(0, 200);
+  if (!q) {
+    reply.code(400);
+    return { error: "Query parameter 'q' required" };
+  }
+  try {
+    const url = `https://api.openalex.org/works?filter=title.search:${encodeURIComponent(q)}&per-page=10&select=id,title,authorships,publication_year,primary_location,doi,type`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "mdedit/1.0 (https://mdedit.io; mailto:info@mdedit.io)" },
+      signal: AbortSignal.timeout(EXTERNAL_API_TIMEOUT_MS)
+    });
+    if (!res.ok) {
+      reply.code(502);
+      return { error: "OpenAlex error" };
+    }
+    const data = await res.json();
+    const items = (data.results || []).map(openAlexToCsl);
+    return { items };
+  } catch (_err) {
+    reply.code(502);
+    return { error: "OpenAlex unreachable" };
+  }
+});
+
+// Zotero user library → CSL-JSON (credentials in POST body, never logged)
+app.post("/api/bibliography/zotero", {
+  config: { rateLimit: { max: 30, timeWindow: "1 minute" } }
+}, async (req, reply) => {
+  const { userId, apiKey, q } = req.body || {};
+  if (!userId || !apiKey || typeof userId !== "string" || typeof apiKey !== "string") {
+    reply.code(400);
+    return { error: "userId and apiKey required" };
+  }
+  if (!/^\d+$/.test(userId) || !/^[a-zA-Z0-9]{24}$/.test(apiKey)) {
+    reply.code(400);
+    return { error: "Invalid Zotero credentials format" };
+  }
+  const search = q ? `&q=${encodeURIComponent(String(q).slice(0, 200))}` : "";
+  const url = `https://api.zotero.org/users/${userId}/items?format=csljson&limit=25${search}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "Zotero-API-Key": apiKey,
+        "Zotero-API-Version": "3",
+        "User-Agent": "mdedit/1.0"
+      },
+      signal: AbortSignal.timeout(EXTERNAL_API_TIMEOUT_MS)
+    });
+    if (res.status === 403) {
+      reply.code(403);
+      return { error: "Invalid Zotero API key" };
+    }
+    if (!res.ok) {
+      reply.code(res.status);
+      return { error: "Zotero error" };
+    }
+    const data = await res.json();
+    return { items: data.items || data };
+  } catch (_err) {
+    reply.code(502);
+    return { error: "Zotero unreachable" };
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.post("/api/preview/scientific", {
+  schema: {
+    body: {
+      type: "object",
+      required: ["markdown"],
+      properties: {
+        markdown: { type: "string", maxLength: 2 * 1024 * 1024 }
+      }
+    }
+  }
+}, async (req, reply) => {
+  return exportQueue.execute(async () => {
+    const { markdown } = req.body;
+
+    const pandocAvailable = await checkPandoc();
+    if (!pandocAvailable) {
+      reply.code(501);
+      return { error: "Pandoc not installed" };
+    }
+
+    const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "md-sci-preview-"));
+    try {
+      let citationSpec;
+      try {
+        citationSpec = buildCitationSpec(markdown, { tmpDir });
+      } catch (error) {
+        reply.code(error?.statusCode || 400);
+        return { error: error?.message || "Invalid citation metadata" };
+      }
+
+      const inputPath = path.join(tmpDir, "input.md");
+      await fs.promises.writeFile(inputPath, citationSpec.normalizedMarkdown, "utf8");
+
+      const pandocArgs = [
+        inputPath,
+        `--from=${scientificPandocReader}`,
+        "--to=html5",
+        "--mathml",
+        ...(citationSpec.pandocArgs || [])
+      ];
+
+      const result = await runPandocCaptureStdout(pandocArgs);
+
+      if (result.code !== 0) {
+        const detail = (result.stderr || "").trim().slice(0, 1200);
+        reply.code(400);
+        return { error: detail || "Pandoc rendering failed" };
+      }
+
+      const html = String(result.stdout || "").trim()
+        .replace(/\bsrc="public\/([^"]+)"/g, 'src="/static/$1"')
+        .replace(/\bsrc="assets\/([^"]+)"/g, 'src="/assets/$1"');
+
+      return { html, isCitationDocument: citationSpec.isCitationDocument };
+    } finally {
+      await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
   });
 });
@@ -1279,18 +1538,6 @@ const normalizeYamlScalar = (value) => {
   return trimmed;
 };
 
-const parseYamlPathList = (value) => {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return [];
-  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-    return trimmed.slice(1, -1)
-      .split(",")
-      .map((entry) => normalizeYamlScalar(entry))
-      .filter(Boolean);
-  }
-  return [normalizeYamlScalar(trimmed)].filter(Boolean);
-};
-
 const embeddedBibliographyBlockRegex = /(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n([\s\S]*?)\n\2(?=\n|$)/gi;
 
 const stripEmbeddedBibliographyBlocks = (markdown) => String(markdown || "").replace(
@@ -1310,16 +1557,20 @@ const extractEmbeddedBibliography = (markdown) => {
     throw createHttpError(400, "Nur ein mdedit-bibliography-Block ist pro Dokument erlaubt.");
   }
 
-  const rawJson = String(matches[0][3] || "").trim();
-  if (!rawJson) {
+  const rawBlock = String(matches[0][3] || "").trim();
+  if (!rawBlock) {
     throw createHttpError(400, "Der mdedit-bibliography-Block ist leer.");
+  }
+
+  if (/^@[a-z][a-z0-9_-]*\s*\{/i.test(rawBlock)) {
+    return { format: "bibtex", raw: rawBlock };
   }
 
   let parsed;
   try {
-    parsed = JSON.parse(rawJson);
+    parsed = JSON.parse(rawBlock);
   } catch (_error) {
-    throw createHttpError(400, "Der mdedit-bibliography-Block enthaelt kein gueltiges JSON.");
+    throw createHttpError(400, "Der mdedit-bibliography-Block muss gueltiges CSL-JSON oder BibTeX enthalten.");
   }
 
   const format = Array.isArray(parsed)
@@ -1332,7 +1583,7 @@ const extractEmbeddedBibliography = (markdown) => {
       : null;
 
   if (format !== "csl-json") {
-    throw createHttpError(400, "Der mdedit-bibliography-Block unterstuetzt aktuell nur format: csl-json.");
+    throw createHttpError(400, "Der mdedit-bibliography-Block muss gueltiges CSL-JSON oder BibTeX enthalten.");
   }
 
   if (!Array.isArray(items)) {
@@ -1348,10 +1599,8 @@ const extractCitationMetadata = (markdown) => {
   if (!frontmatter) {
     return {
       frontmatter: "",
-      bibliography: [],
       citationSource: null,
       embeddedBibliography,
-      hasLegacyBibliographyPaths: false,
       csl: null,
       referenceSectionTitle: null,
       hasCitationMetadata: Boolean(embeddedBibliography)
@@ -1359,36 +1608,12 @@ const extractCitationMetadata = (markdown) => {
   }
 
   const lines = frontmatter.split("\n");
-  const bibliography = [];
   let citationSource = null;
   let csl = null;
   let referenceSectionTitle = null;
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    const bibliographyMatch = line.match(/^\s*bibliography\s*:\s*(.*)$/i);
-    if (bibliographyMatch) {
-      const remainder = bibliographyMatch[1].trim();
-      if (remainder) {
-        bibliography.push(...parseYamlPathList(remainder));
-        continue;
-      }
-
-      const baseIndent = (line.match(/^\s*/) || [""])[0].length;
-      let cursor = index + 1;
-      while (cursor < lines.length) {
-        const nextLine = lines[cursor];
-        const nextIndent = (nextLine.match(/^\s*/) || [""])[0].length;
-        if (nextLine.trim() && nextIndent <= baseIndent) break;
-        const itemMatch = nextLine.match(/^\s*-\s*(.+?)\s*$/);
-        if (itemMatch) {
-          bibliography.push(normalizeYamlScalar(itemMatch[1]));
-        }
-        cursor += 1;
-      }
-      index = cursor - 1;
-      continue;
-    }
 
     const citationSourceMatch = line.match(/^\s*citation-source\s*:\s*(.+?)\s*$/i);
     if (citationSourceMatch) {
@@ -1410,14 +1635,11 @@ const extractCitationMetadata = (markdown) => {
 
   return {
     frontmatter,
-    bibliography: bibliography.filter(Boolean),
     citationSource,
     embeddedBibliography,
-    hasLegacyBibliographyPaths: bibliography.length > 0,
     csl,
     referenceSectionTitle,
-    hasCitationMetadata: bibliography.length > 0
-      || Boolean(citationSource)
+    hasCitationMetadata: Boolean(citationSource)
       || Boolean(embeddedBibliography)
       || Boolean(csl)
       || /(^|\n)\s*(reference-section-title|link-citations|link-bibliography|nocite)\s*:/i.test(frontmatter)
@@ -1466,12 +1688,18 @@ const stripClientSideMarkersForPandoc = (markdown) => String(markdown || "")
   .replace(/^[ \t]*:::\s*list-of-figures[ \t]*$/gim, '[[MDLAYOUT:list-of-figures]]')
   .replace(/^[ \t]*:::\s*list-of-tables[ \t]*$/gim, '[[MDLAYOUT:list-of-tables]]');
 
+const stripAuthorComments = (markdown) => String(markdown || '')
+  // Multiline and inline: %% ... %%
+  .replace(/%%[\s\S]*?%%/g, '')
+  // Leftover lone %%-starting lines (unclosed blocks)
+  .replace(/^%%[^\n]*$/gm, '');
+
 const normalizeScientificMarkdownForPandoc = (markdown, options = {}) => rewriteMarkdownResourcePathsForPandoc(
   normalizeScientificRefsPlaceholder(
     stripClientSideMarkersForPandoc(
       hydrateTableLayoutTokensForPandoc(
         stripTableMarkersForPandoc(
-          stripEmbeddedBibliographyBlocks(stripScientificLayoutBlock(String(markdown || "")))
+          stripEmbeddedBibliographyBlocks(stripScientificLayoutBlock(stripAuthorComments(String(markdown || ""))))
         )
       )
     ),
@@ -1509,8 +1737,7 @@ const resolveScientificResourcePath = (resourcePath, label) => {
 const buildCitationSpec = (markdown, { previewMarkdown, tmpDir } = {}) => {
   const sourceMarkdown = String(markdown || "");
   const metadata = extractCitationMetadata(sourceMarkdown);
-  const hasRenderableCitationState = metadata.hasLegacyBibliographyPaths
-    || Boolean(metadata.embeddedBibliography)
+  const hasRenderableCitationState = Boolean(metadata.embeddedBibliography)
     || Boolean(metadata.csl)
     || Boolean(metadata.referenceSectionTitle)
     || /(^|\n)\s*(link-citations|link-bibliography|nocite)\s*:/i.test(metadata.frontmatter)
@@ -1526,10 +1753,6 @@ const buildCitationSpec = (markdown, { previewMarkdown, tmpDir } = {}) => {
     };
   }
 
-  if (metadata.hasLegacyBibliographyPaths) {
-    throw createHttpError(400, "Filesystem-basierte bibliography-Pfade werden nicht mehr unterstuetzt. Bitte migriere das Dokument auf einen mdedit-bibliography-Block.");
-  }
-
   if (!metadata.embeddedBibliography) {
     throw createHttpError(400, "Zitationssyntax gefunden, aber die eingebettete Bibliothek fehlt oder ist ungueltig.");
   }
@@ -1538,8 +1761,13 @@ const buildCitationSpec = (markdown, { previewMarkdown, tmpDir } = {}) => {
     throw new Error("buildCitationSpec requires tmpDir for citation documents");
   }
 
-  const bibliographyPath = path.join(tmpDir, "embedded-bibliography.json");
-  fs.writeFileSync(bibliographyPath, `${JSON.stringify(metadata.embeddedBibliography.items, null, 2)}\n`, "utf8");
+  const bibliographyExt = metadata.embeddedBibliography.format === "bibtex" ? "bib" : "json";
+  const bibliographyPath = path.join(tmpDir, `embedded-bibliography.${bibliographyExt}`);
+  if (metadata.embeddedBibliography.format === "bibtex") {
+    fs.writeFileSync(bibliographyPath, `${metadata.embeddedBibliography.raw}\n`, "utf8");
+  } else {
+    fs.writeFileSync(bibliographyPath, `${JSON.stringify(metadata.embeddedBibliography.items, null, 2)}\n`, "utf8");
+  }
   const cslFile = metadata.csl ? resolveScientificResourcePath(metadata.csl, "CSL") : null;
   const resourceDirs = Array.from(new Set([
     ...getScientificAllowedResourceBases(),
@@ -1562,6 +1790,21 @@ const buildCitationSpec = (markdown, { previewMarkdown, tmpDir } = {}) => {
     pandocFromArg: `--from=${scientificPandocReader}`,
     pandocArgs
   };
+};
+
+const requiresScientificPdfPipeline = (markdown) => {
+  const source = String(markdown || "").replace(/\r/g, "");
+  if (!source.trim()) return false;
+
+  const frontmatter = extractScientificFrontmatter(source);
+  return Boolean(frontmatter)
+    || /\[\[_?toc_?\]\]/i.test(source)
+    || /(^|\n)\s*#refs\s*(?=\n|$)/m.test(source)
+    || /\[@(?:sec|fig|tbl):[^\]]+\]/.test(source)
+    || /(^|\n)\s*:::\s*(?:title-page|appendix|list-of-figures|list-of-tables|columns\{|column-?break|page-?break|chapter|section\{)/im.test(source)
+    || /<!--\s*(?:columns:|column-break|page-break|chapter|appendix|img:|tbl:|list-of-figures|list-of-tables)\b/i.test(source)
+    || /(^|\n)\s*(?:citation-source|reference-section-title|link-citations|link-bibliography|nocite)\s*:/i.test(frontmatter)
+    || hasCitationSyntax(source);
 };
 
 const runPandocCaptureStdout = async (args) => {
@@ -1809,6 +2052,14 @@ const trackMarketingEventStmt = db.prepare(`
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
+const latestMarketingAttributionStmt = db.prepare(`
+  SELECT surface, path, referrer_url, utm_source, utm_medium, utm_campaign
+  FROM marketing_events
+  WHERE session_id = ? AND event_type IN ('pageview', 'cta_click')
+  ORDER BY created_at DESC
+  LIMIT 1
+`);
+
 const parseReferrer = (value) => {
   if (typeof value !== "string" || !value.trim()) {
     return { host: null, url: null };
@@ -1873,6 +2124,25 @@ const trackMarketingSurfaceVisit = (req, surface) => {
   });
 };
 
+const recordAttributedMarketingActivation = ({ sessionId, eventType, target, requestPath }) => {
+  if (!sessionId) return;
+
+  const attribution = latestMarketingAttributionStmt.get(sessionId);
+  if (!attribution || !allowedMarketingSurfaceKeys.has(attribution.surface)) return;
+
+  recordMarketingEvent({
+    sessionId,
+    eventType,
+    surface: attribution.surface,
+    path: requestPath || attribution.path || "/",
+    target,
+    referrer: attribution.referrer_url || null,
+    utmSource: attribution.utm_source,
+    utmMedium: attribution.utm_medium,
+    utmCampaign: attribution.utm_campaign
+  });
+};
+
 const getMarketingStatsForWindow = (sinceIso = null) => {
   const params = sinceIso ? [sinceIso] : [];
   const where = sinceIso ? "WHERE created_at >= ?" : "";
@@ -1881,8 +2151,17 @@ const getMarketingStatsForWindow = (sinceIso = null) => {
     SELECT
       COUNT(*) FILTER (WHERE event_type = 'pageview') AS landingVisits,
       COUNT(DISTINCT CASE WHEN event_type = 'pageview' THEN session_id END) AS landingSessions,
+      COUNT(DISTINCT CASE WHEN event_type = 'pageview' AND (
+        (utm_source IS NOT NULL AND utm_source != '')
+        OR (utm_medium IS NOT NULL AND utm_medium != '')
+        OR (utm_campaign IS NOT NULL AND utm_campaign != '')
+      ) THEN session_id END) AS taggedLandingSessions,
       COUNT(*) FILTER (WHERE event_type = 'cta_click') AS ctaClicks,
       COUNT(*) FILTER (WHERE event_type = 'cta_click' AND target = 'open-app') AS appCtaClicks,
+      COUNT(*) FILTER (WHERE event_type = 'export') AS exportRequests,
+      COUNT(*) FILTER (WHERE event_type = 'export' AND target = 'pdf') AS pdfExportRequests,
+      COUNT(*) FILTER (WHERE event_type = 'export' AND target = 'docx') AS docxExportRequests,
+      COUNT(DISTINCT CASE WHEN event_type = 'export' THEN session_id END) AS exportSessions,
       COUNT(DISTINCT CASE WHEN event_type = 'pageview' AND referrer_host IS NOT NULL AND referrer_host != '' THEN referrer_host END) AS uniqueReferrerDomains
     FROM marketing_events
     ${where}
@@ -1915,15 +2194,52 @@ const getMarketingStatsForWindow = (sinceIso = null) => {
     LIMIT 10
   `).all(...params);
 
+  const topUtmSources = db.prepare(`
+    SELECT
+      COALESCE(NULLIF(utm_source, ''), '(none)') AS source,
+      COALESCE(NULLIF(utm_medium, ''), '(none)') AS medium,
+      COUNT(*) AS visits,
+      COUNT(DISTINCT session_id) AS sessions
+    FROM marketing_events
+    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview' AND (
+      (utm_source IS NOT NULL AND utm_source != '')
+      OR (utm_medium IS NOT NULL AND utm_medium != '')
+      OR (utm_campaign IS NOT NULL AND utm_campaign != '')
+    )
+    GROUP BY source, medium
+    ORDER BY visits DESC, source ASC, medium ASC
+    LIMIT 8
+  `).all(...params);
+
+  const topUtmCampaigns = db.prepare(`
+    SELECT
+      utm_campaign AS campaign,
+      COALESCE(NULLIF(utm_source, ''), '(none)') AS source,
+      COUNT(*) AS visits,
+      COUNT(DISTINCT session_id) AS sessions
+    FROM marketing_events
+    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview' AND utm_campaign IS NOT NULL AND utm_campaign != ''
+    GROUP BY campaign, source
+    ORDER BY visits DESC, campaign ASC, source ASC
+    LIMIT 8
+  `).all(...params);
+
   return {
     landingVisits: Number(totals?.landingVisits || 0),
     landingSessions: Number(totals?.landingSessions || 0),
+    taggedLandingSessions: Number(totals?.taggedLandingSessions || 0),
     ctaClicks: Number(totals?.ctaClicks || 0),
     appCtaClicks: Number(totals?.appCtaClicks || 0),
+    exportRequests: Number(totals?.exportRequests || 0),
+    pdfExportRequests: Number(totals?.pdfExportRequests || 0),
+    docxExportRequests: Number(totals?.docxExportRequests || 0),
+    exportSessions: Number(totals?.exportSessions || 0),
     uniqueReferrerDomains: Number(totals?.uniqueReferrerDomains || 0),
     topReferrers,
     topSurfaces,
-    topCtas
+    topCtas,
+    topUtmSources,
+    topUtmCampaigns
   };
 };
 
@@ -2038,12 +2354,44 @@ const renderBoolBadge = (value, goodLabel = "Ja", badLabel = "Nein") => (`
   <span class="badge ${value ? "badge-ok" : "badge-warn"}">${value ? goodLabel : badLabel}</span>
 `);
 
-const renderStatsPage = async () => {
+const NGINX_STATS_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, "data"), "nginx-stats.json");
+
+const readNginxStats = async () => {
+  try {
+    const raw = await fs.promises.readFile(NGINX_STATS_FILE, "utf8");
+    const data = JSON.parse(raw);
+    // Merge both domains for the combined view, keep per-domain for detail
+    const domains = data.domains || {};
+    const merge = (window) => {
+      const combined = { totalRequests:0, botRequests:0, scanRequests:0, uniqueHumanIps:0, status200:0, status5xx:0, topUrls:{}, topCrawlers:{} };
+      for (const d of Object.values(domains)) {
+        const w = d[window] || {};
+        combined.totalRequests += w.totalRequests || 0;
+        combined.botRequests += w.botRequests || 0;
+        combined.scanRequests += w.scanRequests || 0;
+        combined.uniqueHumanIps += w.uniqueHumanIps || 0;
+        combined.status200 += w.status200 || 0;
+        combined.status5xx += w.status5xx || 0;
+        for (const [url, n] of (w.topUrls || [])) combined.topUrls[url] = (combined.topUrls[url] || 0) + n;
+        for (const [bot, n] of (w.topCrawlers || [])) combined.topCrawlers[bot] = (combined.topCrawlers[bot] || 0) + n;
+      }
+      combined.topUrls = Object.entries(combined.topUrls).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      combined.topCrawlers = Object.entries(combined.topCrawlers).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      return combined;
+    };
+    return { ok: true, generatedAt: data.generatedAt, domains, combined24h: merge("24h"), combined7d: merge("7d") };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+const renderStatsPage = async (hostname = "") => {
   const now = Date.now();
   const windows = [
     { key: "24h", label: "Letzte 24 Stunden", sinceIso: new Date(now - 24 * 60 * 60 * 1000).toISOString() },
-    { key: "30d", label: "Letzte 30 Tage", sinceIso: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString() },
-    { key: "all", label: "Gesamt", sinceIso: null }
+    { key: "7d",  label: "Letzte 7 Tage",     sinceIso: new Date(now - 7  * 24 * 60 * 60 * 1000).toISOString() },
+    { key: "30d", label: "Letzte 30 Tage",     sinceIso: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString() },
+    { key: "all", label: "Gesamt",             sinceIso: null }
   ];
 
   const windowRows = windows.map((window) => ({
@@ -2068,21 +2416,25 @@ const renderStatsPage = async () => {
   const appCtaRate30d = marketingSignals30d.ctaClicks > 0
     ? (marketingSignals30d.appCtaClicks / marketingSignals30d.ctaClicks) * 100
     : null;
+  const exportSessionRate30d = marketingSignals30d.landingSessions > 0
+    ? (marketingSignals30d.exportSessions / marketingSignals30d.landingSessions) * 100
+    : null;
+  const utmCoverageRate30d = marketingSignals30d.landingSessions > 0
+    ? (marketingSignals30d.taggedLandingSessions / marketingSignals30d.landingSessions) * 100
+    : null;
   const proofAssets = await Promise.all([
     fs.promises.access(path.join(__dirname, "docs", "examples", "example-output.pdf")).then(() => true).catch(() => false),
     fs.promises.access(path.join(__dirname, "docs", "examples", "masterthesis-reference.md")).then(() => true).catch(() => false)
   ]);
   const proofAssetsReady = proofAssets.filter(Boolean).length;
-
-  const rowsHtml = windowRows.map((row) => `
-    <tr>
-      <th scope="row">${escapeHtmlText(row.label)}</th>
-      <td>${formatNumber(row.counts.activeAppSessions)}</td>
-      <td>${formatNumber(row.counts.linkedBrowserSessions)}</td>
-      <td>${formatNumber(row.counts.createdDocuments)}</td>
-      <td>${formatNumber(row.counts.shareActivations)}</td>
-    </tr>
-  `).join("");
+  const nginxStats = await readNginxStats();
+  const nginxDomainKey = nginxStats.ok
+    ? (Object.keys(nginxStats.domains).find(d => hostname.includes(d.replace(/^www\./, ""))) || Object.keys(nginxStats.domains)[0])
+    : null;
+  const nginxDomainData = nginxDomainKey ? (nginxStats.domains[nginxDomainKey] || {}) : {};
+  const nc24h = nginxDomainData["24h"] || {};
+  const nc7d  = nginxDomainData["7d"]  || {};
+  const nc30d = nginxDomainData["30d"] || {};
 
   const surfaceRowsHtml = marketingSurfaceHealth.rows.map((row) => `
     <tr>
@@ -2169,6 +2521,60 @@ const renderStatsPage = async () => {
     `
     : `<p>Noch keine CTA-Klicks im Event-Log.</p>`;
 
+  const attributionSourcesHtml = marketingSignals30d.topUtmSources.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Medium</th>
+              <th>Visits</th>
+              <th>Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSignals30d.topUtmSources.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.source || "(none)")}</th>
+                <td>${escapeHtmlText(row.medium || "(none)")}</td>
+                <td>${formatNumber(row.visits)}</td>
+                <td>${formatNumber(row.sessions)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<p>Noch keine UTM-markierten Einstiege im Event-Log.</p>`;
+
+  const attributionCampaignsHtml = marketingSignals30d.topUtmCampaigns.length > 0
+    ? `
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Campaign</th>
+              <th>Source</th>
+              <th>Visits</th>
+              <th>Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${marketingSignals30d.topUtmCampaigns.map((row) => `
+              <tr>
+                <th scope="row">${escapeHtmlText(row.campaign || "(none)")}</th>
+                <td>${escapeHtmlText(row.source || "(none)")}</td>
+                <td>${formatNumber(row.visits)}</td>
+                <td>${formatNumber(row.sessions)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `
+    : `<p>Noch keine Kampagnen im Event-Log.</p>`;
+
   const topQueriesHtml = marketingSnapshot && marketingSnapshot.topQueries.length > 0
     ? `
       <div class="table-shell">
@@ -2218,6 +2624,148 @@ const renderStatsPage = async () => {
       </div>
     `
     : "";
+
+  // Traffic & Nutzung — kombinierter Block (Nginx + App nach Zeithorizonten)
+  const nginxBlockHtml = (() => {
+    const row24h = windowRows.find(r => r.key === "24h")?.counts || {};
+    const row7d  = windowRows.find(r => r.key === "7d")?.counts  || {};
+    const row30d = windowRows.find(r => r.key === "30d")?.counts || {};
+    const rowAll = windowRows.find(r => r.key === "all")?.counts || {};
+
+    const nginxColHeaders = nginxStats.ok ? `<th>Anfragen</th><th>Human-IPs</th>` : "";
+    const nginx24hCols = nginxStats.ok
+      ? `<td>${formatNumber(nc24h.totalRequests||0)}</td><td>${formatNumber(nc24h.uniqueHumanIps||0)}</td>`
+      : "";
+    const nginx7dCols = nginxStats.ok
+      ? `<td>${formatNumber(nc7d.totalRequests||0)}</td><td>${formatNumber(nc7d.uniqueHumanIps||0)}</td>`
+      : "";
+    const nginx30dCols = nginxStats.ok
+      ? `<td>${formatNumber(nc30d.totalRequests||0)}</td><td>${formatNumber(nc30d.uniqueHumanIps||0)}</td>`
+      : "";
+    const nginxAllCols = nginxStats.ok
+      ? `<td style="color:var(--muted);font-style:italic;">–</td><td style="color:var(--muted);font-style:italic;">–</td>`
+      : "";
+    const topUrlsFiltered = (nc24h.topUrls||[]).filter(([url]) => !url.startsWith("/static/") && !url.startsWith("/vendor/"));
+
+    // 6 KPI boxes — displayed ABOVE the table card as a separate section
+    const nginx6KpiSectionHtml = nginxStats.ok ? `
+      <section class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Anfragen 24h</p>
+          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.totalRequests||0)}</div>
+        </article>
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Human-IPs 24h</p>
+          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.uniqueHumanIps||0)}</div>
+        </article>
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Bots 24h</p>
+          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.botRequests||0)}</div>
+        </article>
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Scanner 24h</p>
+          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.scanRequests||0)}</div>
+        </article>
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Status 200</p>
+          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.status200||0)}</div>
+        </article>
+        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Status 5xx</p>
+          <div class="metric" style="font-size:22px;color:${(nc24h.status5xx||0) > 0 ? "#c0392b" : "var(--accent)"};">${formatNumber(nc24h.status5xx||0)}</div>
+        </article>
+      </section>` : "";
+
+    // Detail block: label + Top URLs + Crawlers (6 boxes moved out)
+    const nginxDetailHtml = nginxStats.ok ? `
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:13px;font-weight:600;color:var(--accent);">▶ 24h Nginx-Detail — ${escapeHtmlText(nginxDomainKey||"")}</span>
+            <span style="font-size:12px;color:var(--muted);">Stand: <code>${escapeHtmlText(nginxStats.generatedAt||"–")}</code> · alle 15 min</span>
+          </div>
+          <div class="grid" style="margin-bottom:0;">
+            <article class="card" style="padding:14px 16px;">
+              <h2 style="font-size:15px;">Top URLs (Human)</h2>
+              ${topUrlsFiltered.length > 0 ? `
+              <div class="table-shell">
+                <table style="min-width:0;">
+                  <thead><tr><th>Pfad</th><th>Hits</th></tr></thead>
+                  <tbody>
+                    ${topUrlsFiltered.map(([url, n]) => `<tr><th scope="row"><code>${escapeHtmlText(url)}</code></th><td>${formatNumber(n)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>` : `<p>Keine menschlichen Requests.</p>`}
+            </article>
+            <article class="card" style="padding:14px 16px;">
+              <h2 style="font-size:15px;">Aktive Crawler</h2>
+              ${(nc24h.topCrawlers||[]).length > 0 ? `
+              <div class="table-shell">
+                <table style="min-width:0;">
+                  <thead><tr><th>Bot</th><th>Requests</th></tr></thead>
+                  <tbody>
+                    ${(nc24h.topCrawlers||[]).map(([name, n]) => `<tr><th scope="row">${escapeHtmlText(name)}</th><td>${formatNumber(n)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>` : `<p>Keine bekannten Crawler erkannt.</p>`}
+            </article>
+          </div>
+        </div>`
+      : `<div class="hint">Keine Nginx-Daten — bitte einmal <code>sudo node scripts/nginx-log-analyze.js</code> ausführen. Fehler: <code>${escapeHtmlText(nginxStats.error || "nginx-stats.json nicht gefunden")}</code></div>`;
+
+    return `${nginx6KpiSectionHtml}
+      <section class="card">
+        <h2>Traffic &amp; Nutzung</h2>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Zeitraum</th>
+                <th>App-Sessions</th>
+                <th>Browser-Sessions</th>
+                <th>Neue Dok.</th>
+                <th>Freigaben</th>
+                ${nginxColHeaders}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">24 Stunden</th>
+                <td>${formatNumber(row24h.activeAppSessions)}</td>
+                <td>${formatNumber(row24h.linkedBrowserSessions)}</td>
+                <td>${formatNumber(row24h.createdDocuments)}</td>
+                <td>${formatNumber(row24h.shareActivations)}</td>
+                ${nginx24hCols}
+              </tr>
+              <tr>
+                <th scope="row">7 Tage</th>
+                <td>${formatNumber(row7d.activeAppSessions)}</td>
+                <td>${formatNumber(row7d.linkedBrowserSessions)}</td>
+                <td>${formatNumber(row7d.createdDocuments)}</td>
+                <td>${formatNumber(row7d.shareActivations)}</td>
+                ${nginx7dCols}
+              </tr>
+              <tr>
+                <th scope="row">30 Tage</th>
+                <td>${formatNumber(row30d.activeAppSessions)}</td>
+                <td>${formatNumber(row30d.linkedBrowserSessions)}</td>
+                <td>${formatNumber(row30d.createdDocuments)}</td>
+                <td>${formatNumber(row30d.shareActivations)}</td>
+                ${nginx30dCols}
+              </tr>
+              <tr>
+                <th scope="row">Gesamt</th>
+                <td>${formatNumber(rowAll.activeAppSessions)}</td>
+                <td>${formatNumber(rowAll.linkedBrowserSessions)}</td>
+                <td>${formatNumber(rowAll.createdDocuments)}</td>
+                <td>${formatNumber(rowAll.shareActivations)}</td>
+                ${nginxAllCols}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ${nginxDetailHtml}
+      </section>`;
+  })();
 
   return `<!doctype html>
 <html lang="de">
@@ -2319,6 +2867,14 @@ const renderStatsPage = async () => {
       color: var(--text);
       font-size: 14px;
     }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 32px 0 10px;
+    }
     code {
       font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
       font-size: 13px;
@@ -2353,27 +2909,11 @@ const renderStatsPage = async () => {
       gap: 24px;
     }
     @media (max-width: 720px) {
-      main {
-        padding: 24px 14px 40px;
-      }
-      .hero,
-      .card {
-        padding: 16px;
-        border-radius: 14px;
-      }
-      .table-shell {
-        margin: 8px -4px 0;
-        padding: 0 4px 2px;
-      }
-      table {
-        min-width: 560px;
-      }
-      th,
-      td,
-      tbody th {
-        padding: 10px 12px;
-        font-size: 14px;
-      }
+      main { padding: 24px 14px 40px; }
+      .hero, .card { padding: 16px; border-radius: 14px; }
+      .table-shell { margin: 8px -4px 0; padding: 0 4px 2px; }
+      table { min-width: 560px; }
+      th, td, tbody th { padding: 10px 12px; font-size: 14px; }
     }
   </style>
 </head>
@@ -2381,70 +2921,156 @@ const renderStatsPage = async () => {
   <main>
     <section class="hero">
       <h1>Server-Statistiken</h1>
-      <p>Aktive App-Sessions = Sessions mit Dokument- oder Kollaborationsaktivität im Zeitraum. Browser-Sessions = neu angelegte, app-relevante Sessions. Dokumente = neu angelegte Dokumente. Freigaben = erstmals freigegebene Permalinks. Die Vermarktungssektion mischt interne Produkt-Signale mit optionalen externen SEO-Snapshots.</p>
+      <p>Live-Übersicht: Nginx-Traffic (15 min), App-Nutzung, Akquise-Signale und SEO-Readiness.</p>
     </section>
 
     <div class="section-stack">
-      <section class="card">
-        <h2>Nutzung</h2>
-        <div class="table-shell">
-          <table>
-            <thead>
-              <tr>
-                <th>Zeitraum</th>
-                <th>Aktive App-Sessions</th>
-                <th>Browser-Sessions</th>
-                <th>Neue Dokumente</th>
-                <th>Freigaben</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
-        </div>
+
+      <!-- 1. TRAFFIC & NUTZUNG — kombiniert -->
+      ${nginxBlockHtml}
+
+      <!-- 2. TOP REFERRER / SURFACES / CTAs 30d — Akquise-Kanäle -->
+      <section class="grid">
+        <article class="card">
+          <h2>Top Referrer 30d</h2>
+          ${acquisitionReferrersHtml}
+        </article>
+        <article class="card">
+          <h2>Entry Surfaces 30d</h2>
+          ${acquisitionSurfacesHtml}
+        </article>
+        <article class="card">
+          <h2>CTA Performance 30d</h2>
+          ${acquisitionCtasHtml}
+        </article>
       </section>
 
+      <section class="grid">
+        <article class="card">
+          <h2>UTM Sources 30d</h2>
+          <p style="margin-bottom:10px;">UTM-abgeleitete Source-/Medium-Kombinationen fuer Attribution und Syndication-Review</p>
+          ${attributionSourcesHtml}
+        </article>
+        <article class="card">
+          <h2>UTM Campaigns 30d</h2>
+          <p style="margin-bottom:10px;">Kampagnenabdeckung und tagged Landing-Sessions</p>
+          <div class="metric">${utmCoverageRate30d == null ? "-" : escapeHtmlText(formatPercent(utmCoverageRate30d))}</div>
+          <p class="metric-sub">Anteil der Landing-Sessions mit UTM-Markierung in den letzten 30 Tagen</p>
+          <p style="margin-top:10px;">Tagged Sessions: <strong>${formatNumber(marketingSignals30d.taggedLandingSessions)}</strong><br>Landing-Sessions: <strong>${formatNumber(marketingSignals30d.landingSessions)}</strong></p>
+          ${attributionCampaignsHtml}
+        </article>
+        <article class="card">
+          <h2>Externe SEO-Signale</h2>
+          ${marketingSnapshot ? `
+              <p>Snapshot aus <strong>${escapeHtmlText(marketingSnapshot.source)}</strong></p>
+              <div class="metric">${marketingSnapshot.avgPosition == null ? "-" : escapeHtmlText(String(marketingSnapshot.avgPosition))}</div>
+              <p class="metric-sub">durchschnittliche Google-Position</p>
+              <p style="margin-top:10px;">Backlinks: <strong>${marketingSnapshot.backlinks == null ? "-" : formatNumber(marketingSnapshot.backlinks)}</strong><br>Referring Domains: <strong>${marketingSnapshot.referringDomains == null ? "-" : formatNumber(marketingSnapshot.referringDomains)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
+          ` : `
+              <p>Kein externer SEO-Snapshot. Optional als JSON importierbar.</p>
+              <div class="metric">-</div>
+              <p class="metric-sub">Pfad: <code>${escapeHtmlText(MARKETING_STATS_FILE)}</code></p>
+          `}
+        </article>
+      </section>
+
+      <!-- 3. AKQUISE-SIGNALE — 30d rollierend -->
       <section>
         <div class="grid">
           <article class="card">
-            <h2>Vermarktungs-Readiness</h2>
-            <p>Eigene Such- und Einstiegsflächen mit sauberer SEO- und CTA-Grundausstattung</p>
-            <div class="metric">${marketingSurfaceHealth.counts.metadataCompleteCount}/${marketingSurfaceHealth.counts.surfaceCount}</div>
-            <p class="metric-sub">vollständige Title-, Description- und Canonical-Abdeckung</p>
-            <p style="margin-top: 10px;">Social-Meta: <strong>${marketingSurfaceHealth.counts.socialMetaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>Indexierbar: <strong>${marketingSurfaceHealth.counts.indexedCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>Primäre App-CTA: <strong>${marketingSurfaceHealth.counts.appCtaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong></p>
+            <h2>Akquise-Signale</h2>
+            <p>Einstiegs- und Klicksignale aus Homepage, Help und Landingpages</p>
+            <div class="metric">${formatNumber(marketingSignals30d.landingSessions)}</div>
+            <p class="metric-sub">Landing-Sessions in den letzten 30 Tagen</p>
+            <p style="margin-top:10px;">Landing-Visits: <strong>${formatNumber(marketingSignals30d.landingVisits)}</strong><br>CTA-Klicks: <strong>${formatNumber(marketingSignals30d.ctaClicks)}</strong><br>App-CTA-Anteil: <strong>${appCtaRate30d == null ? "-" : escapeHtmlText(formatPercent(appCtaRate30d))}</strong><br>Referrer-Domains: <strong>${formatNumber(marketingSignals30d.uniqueReferrerDomains)}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Aktivierungs-Signale</h2>
+            <p>Produktnahe Export-Aktionen aus Discoverability-Sessions</p>
+            <div class="metric">${exportSessionRate30d == null ? "-" : escapeHtmlText(formatPercent(exportSessionRate30d))}</div>
+            <p class="metric-sub">Landing-Sessions mit mindestens einem Export-Request in den letzten 30 Tagen</p>
+            <p style="margin-top:10px;">Export-Sessions: <strong>${formatNumber(marketingSignals30d.exportSessions)}</strong><br>Export-Requests: <strong>${formatNumber(marketingSignals30d.exportRequests)}</strong><br>PDF-Requests: <strong>${formatNumber(marketingSignals30d.pdfExportRequests)}</strong><br>DOCX-Requests: <strong>${formatNumber(marketingSignals30d.docxExportRequests)}</strong></p>
           </article>
           <article class="card">
             <h2>Distribution-Signale</h2>
-            <p>Produktnahe Signale, die auf Nachfrage, Teilbarkeit und Proof-Flächen hinweisen</p>
+            <p>Teilbarkeit und Proof-Flächen</p>
             <div class="metric">${shareRate30d == null ? "-" : escapeHtmlText(formatPercent(shareRate30d))}</div>
-            <p class="metric-sub">Freigabequote auf neue Dokumente in den letzten 30 Tagen</p>
-            <p style="margin-top: 10px;">Aktive Shared Docs: <strong>${formatNumber(liveSharedDocuments)}</strong><br>Proof-Assets bereit: <strong>${proofAssetsReady}/2</strong><br>Sitemap-URLs gesamt: <strong>${formatNumber(marketingSurfaceHealth.counts.sitemapUrlCount)}</strong></p>
-          </article>
-          <article class="card">
-            <h2>Akquise-Signale</h2>
-            <p>Interne Einstiegs- und Klicksignale aus Homepage, Help und den Owned Landingpages</p>
-            <div class="metric">${formatNumber(marketingSignals30d.landingSessions)}</div>
-            <p class="metric-sub">eindeutige Landing-Sessions in den letzten 30 Tagen</p>
-            <p style="margin-top: 10px;">Landing-Visits: <strong>${formatNumber(marketingSignals30d.landingVisits)}</strong><br>CTA-Klicks: <strong>${formatNumber(marketingSignals30d.ctaClicks)}</strong><br>App-CTA-Anteil: <strong>${appCtaRate30d == null ? "-" : escapeHtmlText(formatPercent(appCtaRate30d))}</strong><br>Referrer-Domains: <strong>${formatNumber(marketingSignals30d.uniqueReferrerDomains)}</strong></p>
-          </article>
-          <article class="card">
-            <h2>Externe SEO-Signale</h2>
-            ${marketingSnapshot ? `
-              <p>Zuletzt importierter Snapshot aus <strong>${escapeHtmlText(marketingSnapshot.source)}</strong></p>
-              <div class="metric">${marketingSnapshot.avgPosition == null ? "-" : escapeHtmlText(String(marketingSnapshot.avgPosition))}</div>
-              <p class="metric-sub">durchschnittliche Google-Position</p>
-              <p style="margin-top: 10px;">Backlinks: <strong>${marketingSnapshot.backlinks == null ? "-" : formatNumber(marketingSnapshot.backlinks)}</strong><br>Referring Domains: <strong>${marketingSnapshot.referringDomains == null ? "-" : formatNumber(marketingSnapshot.referringDomains)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
-            ` : `
-              <p>Kein externer SEO-Snapshot gefunden. Für Backlinks, Suchpositionen, Impressions und Top-Queries kann optional eine JSON-Datei importiert werden.</p>
-              <div class="metric">-</div>
-              <p class="metric-sub">Pfad: <code>${escapeHtmlText(MARKETING_STATS_FILE)}</code></p>
-              <div class="hint">Empfohlene Felder: <code>backlinks</code>, <code>referringDomains</code>, <code>organicClicks30d</code>, <code>organicImpressions30d</code>, <code>avgPosition</code>, <code>indexedPages</code>, <code>topQueries</code>, <code>topReferrers</code>.</div>
-            `}
+            <p class="metric-sub">Freigabequote in den letzten 30 Tagen</p>
+            <p style="margin-top:10px;">Aktive Shared Docs: <strong>${formatNumber(liveSharedDocuments)}</strong><br>Proof-Assets bereit: <strong>${proofAssetsReady}/2</strong><br>Sitemap-URLs: <strong>${formatNumber(marketingSurfaceHealth.counts.sitemapUrlCount)}</strong></p>
           </article>
         </div>
       </section>
 
+      <!-- 5. SEARCH SNAPSHOT (optional, wenn GSC-Daten vorhanden) -->
+      ${marketingSnapshot ? `
+        <section class="grid">
+          <article class="card">
+            <h2>Search Snapshot</h2>
+            <p>Quelle: <strong>${escapeHtmlText(marketingSnapshot.source)}</strong>${marketingSnapshot.updatedAt ? `<br>Stand: <strong>${escapeHtmlText(marketingSnapshot.updatedAt)}</strong>` : ""}</p>
+            <div class="metric">${marketingSnapshot.organicImpressions30d == null ? "-" : formatNumber(marketingSnapshot.organicImpressions30d)}</div>
+            <p class="metric-sub">Organic Impressions 30d</p>
+            <p style="margin-top:10px;">Indexed Pages: <strong>${marketingSnapshot.indexedPages == null ? "-" : formatNumber(marketingSnapshot.indexedPages)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
+          </article>
+          <article class="card">
+            <h2>Top Queries</h2>
+            ${topQueriesHtml || `<p>Keine Query-Daten im Snapshot enthalten.</p>`}
+          </article>
+          <article class="card">
+            <h2>Top Referrers</h2>
+            ${topReferrersHtml || `<p>Keine Referrer-Daten im Snapshot enthalten.</p>`}
+          </article>
+        </section>
+      ` : `
+        <section class="grid">
+          <article class="card">
+            <h2>Search Snapshot</h2>
+            <p>Kein Search- oder SEO-Snapshot importiert. Query-, Impression- und Indexdaten bleiben damit fuer GTM-005 unsichtbar.</p>
+            <div class="metric">-</div>
+            <p class="metric-sub">Pfad: <code>${escapeHtmlText(MARKETING_STATS_FILE)}</code></p>
+          </article>
+          <article class="card">
+            <h2>Top Queries</h2>
+            <p>Keine Query-Daten verfuegbar. Importiere Search-Console-Daten oder einen normalisierten Snapshot.</p>
+          </article>
+          <article class="card">
+            <h2>Top Referrers</h2>
+            <p>Keine externen Snapshot-Referrer verfuegbar. Interne Referrer bleiben oben in der 30d-Akquise sichtbar.</p>
+          </article>
+        </section>
+      `}
+
+      <!-- 5. STORAGE — ändert sich kaum -->
+      <section class="grid">
+        <article class="card">
+          <h2>Dokumentinhalt</h2>
+          <p>Markdown- und Bildinhalte, ohne DB-Overhead</p>
+          <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
+          <p style="margin-top:10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
+        </article>
+        <article class="card">
+          <h2>App-Daten</h2>
+          <p>Datenverzeichnis inkl. DB, WAL, Bilder und Secrets</p>
+          <div class="metric">${escapeHtmlText(formatBytes(appDataBytes))}</div>
+          <p style="margin-top:10px;">Assets: <strong>${escapeHtmlText(formatBytes(assetBytesOnDisk))}</strong><br>Pfad: <code>${escapeHtmlText(dataDir)}</code></p>
+        </article>
+        <article class="card">
+          <h2>Freier Plattenplatz</h2>
+          <p>Verfügbar auf dem Volume des Datenverzeichnisses</p>
+          <div class="metric">${escapeHtmlText(formatBytes(disk.freeBytes))}</div>
+          <p style="margin-top:10px;">Belegt: <strong>${escapeHtmlText(formatBytes(disk.usedBytes))}</strong><br>Gesamt: <strong>${escapeHtmlText(formatBytes(disk.totalBytes))}</strong></p>
+        </article>
+      </section>
+
+      <!-- 6. READINESS & DISCOVERY — strukturell, ändert sich selten -->
       <section class="card">
-        <h2>Owned Discovery Surfaces</h2>
+        <h2>Vermarktungs-Readiness &amp; Owned Discovery</h2>
+        <div style="margin-bottom:16px;">          <p><strong>Readiness-Übersicht</strong></p>
+          <p>Owned Surfaces mit vollständiger SEO- und CTA-Grundausstattung</p>
+          <div class="metric">${marketingSurfaceHealth.counts.metadataCompleteCount}/${marketingSurfaceHealth.counts.surfaceCount}</div>
+          <p class="metric-sub">Title, Description und Canonical vollständig</p>
+            <p style="margin-top:10px;">Social-Meta: <strong>${marketingSurfaceHealth.counts.socialMetaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>Indexierbar: <strong>${marketingSurfaceHealth.counts.indexedCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong><br>App-CTA: <strong>${marketingSurfaceHealth.counts.appCtaCount}/${marketingSurfaceHealth.counts.surfaceCount}</strong></p>
+
+        </div>
         <div class="table-shell">
           <table>
             <thead>
@@ -2461,64 +3087,10 @@ const renderStatsPage = async () => {
             <tbody>${surfaceRowsHtml}</tbody>
           </table>
         </div>
-        <div class="hint">SEO-Basis = Title, Description und Canonical vorhanden. Social Meta = <code>og:title</code>, <code>og:description</code> und <code>og:image</code>. CTA = primärer Einstieg zurück in die App vorhanden.</div>
+        <div class="hint">SEO-Basis = Title, Description und Canonical. Social Meta = <code>og:title</code>, <code>og:description</code>, <code>og:image</code>. CTA = primärer Einstieg in die App.</div>
+
       </section>
 
-      <section class="grid">
-        <article class="card">
-          <h2>Top Referrer 30d</h2>
-          ${acquisitionReferrersHtml}
-        </article>
-        <article class="card">
-          <h2>Entry Surfaces 30d</h2>
-          ${acquisitionSurfacesHtml}
-        </article>
-        <article class="card">
-          <h2>CTA Performance 30d</h2>
-          ${acquisitionCtasHtml}
-        </article>
-      </section>
-
-      ${marketingSnapshot ? `
-        <section class="grid">
-          <article class="card">
-            <h2>Search Snapshot</h2>
-            <p>Quelle: <strong>${escapeHtmlText(marketingSnapshot.source)}</strong>${marketingSnapshot.updatedAt ? `<br>Stand: <strong>${escapeHtmlText(marketingSnapshot.updatedAt)}</strong>` : ""}</p>
-            <div class="metric">${marketingSnapshot.organicImpressions30d == null ? "-" : formatNumber(marketingSnapshot.organicImpressions30d)}</div>
-            <p class="metric-sub">Organic impressions in den letzten 30 Tagen</p>
-            <p style="margin-top: 10px;">Indexed Pages: <strong>${marketingSnapshot.indexedPages == null ? "-" : formatNumber(marketingSnapshot.indexedPages)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
-          </article>
-          <article class="card">
-            <h2>Top Queries</h2>
-            ${topQueriesHtml || `<p>Keine Query-Daten im Snapshot enthalten.</p>`}
-          </article>
-          <article class="card">
-            <h2>Top Referrers</h2>
-            ${topReferrersHtml || `<p>Keine Referrer-Daten im Snapshot enthalten.</p>`}
-          </article>
-        </section>
-      ` : ""}
-
-      <section class="grid">
-        <article class="card">
-          <h2>Dokumentinhalt</h2>
-          <p>Nur Markdown- und Bildinhalte, ohne DB-, WAL-, Session- und Secret-Overhead</p>
-          <div class="metric">${escapeHtmlText(formatBytes(markdownBytes + imageBytes))}</div>
-          <p style="margin-top: 10px;">Markdown: <strong>${escapeHtmlText(formatBytes(markdownBytes))}</strong><br>Bilder: <strong>${escapeHtmlText(formatBytes(imageBytes))}</strong></p>
-        </article>
-        <article class="card">
-          <h2>App-Daten</h2>
-          <p>Plattenplatz des Datenverzeichnisses inklusive DB, WAL, Bilder und Secrets</p>
-          <div class="metric">${escapeHtmlText(formatBytes(appDataBytes))}</div>
-          <p style="margin-top: 10px;">Asset-Verzeichnis: <strong>${escapeHtmlText(formatBytes(assetBytesOnDisk))}</strong><br>Datenpfad: <code>${escapeHtmlText(dataDir)}</code></p>
-        </article>
-        <article class="card">
-          <h2>Freier Plattenplatz</h2>
-          <p>Verfügbar auf dem Volume des Datenverzeichnisses</p>
-          <div class="metric">${escapeHtmlText(formatBytes(disk.freeBytes))}</div>
-          <p style="margin-top: 10px;">Belegt: <strong>${escapeHtmlText(formatBytes(disk.usedBytes))}</strong><br>Gesamt: <strong>${escapeHtmlText(formatBytes(disk.totalBytes))}</strong></p>
-        </article>
-      </section>
     </div>
   </main>
 </body>
@@ -2726,7 +3298,11 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
       rawBodyHtml
         .replace(
           /(<[^>]+\bclass="[^"]*pagedjs_page_content[^"]*"[^>]*\bstyle=")([^"]*)"/gi,
-          (match, prefix, styleVal) => prefix + styleVal.replace(/\bcolumn-width\s*:\s*[^;]+;?\s*/gi, '') + '"'
+          (match, prefix, styleVal) => prefix + styleVal
+            .replace(/\bcolumn-width\s*:\s*[^;]+;?\s*/gi, '')
+            .replace(/\bcolumn-gap\s*:\s*[^;]+;?\s*/gi, '')
+            .replace(/\bcolumn-fill\s*:\s*[^;]+;?\s*/gi, '')
+            + '"'
         )
         // Paged.js sets break-before:column on elements that follow flex-column blocks.
         // In Chromium's print context (no multi-column container), break-before:column
@@ -2851,6 +3427,37 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
     .pagedjs_margin-content::after {
       content: none !important;
     }
+    .pagedjs_margin-top-center > .pagedjs_margin-content::before,
+    .pagedjs_margin-top-center > .pagedjs_margin-content::after,
+    .pagedjs_margin-bottom-center > .pagedjs_margin-content::before,
+    .pagedjs_margin-bottom-center > .pagedjs_margin-content::after {
+      content: none !important;
+    }
+    .pagedjs_margin-bottom-center,
+    .pagedjs_margin-bottom-center .pagedjs_margin-content {
+      text-align: center !important;
+    }
+    .pagedjs_margin-bottom-center .pagedjs_margin-content {
+      display: block !important;
+      width: 100% !important;
+      font-family: Georgia, 'Times New Roman', serif !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    .md-export-page-number {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 8mm;
+      text-align: center;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 9pt;
+      line-height: 1.2;
+      color: #555;
+      font-variant-numeric: tabular-nums;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .pagedjs_page,
     .pagedjs_pagebox,
     .pagedjs_area,
     .pagedjs_page_content {
@@ -2866,17 +3473,19 @@ const exportPagedHtmlWithChromium = async ({ html, outputPath, tmpDir }) => {
     .pagedjs_page_content {
       column-width: auto !important;
       column-count: auto !important;
+      column-gap: 0 !important;
       column-fill: initial !important;
+      columns: auto !important;
     }
-    /* Freeze table wrapping for PDF export even when the browser still sends an
-       older embedded stylesheet from cache. Thesis tables should wrap at spaces,
-       not split long German words mid-token. */
+    /* Keep table cells readable even when an older embedded stylesheet is sent
+       from cache. Prefer normal word boundaries, but allow long tokens to wrap
+       and enable automatic hyphenation for German prose in cells. */
     .print-content table th,
     .print-content table td {
       word-break: normal !important;
-      overflow-wrap: normal !important;
-      hyphens: manual !important;
-      -webkit-hyphens: manual !important;
+      overflow-wrap: anywhere !important;
+      hyphens: auto !important;
+      -webkit-hyphens: auto !important;
     }
     /* Force code block styling — ensure pre/code is visually distinct even when
        the embedded stylesheet is missing or a font substitution occurs. */
@@ -3036,6 +3645,10 @@ ${inlinedBodyHtml}
 </html>`;
 
   await fs.promises.writeFile(pagedHtmlPath, wrappedHtml, "utf8");
+  if (process.env.MD_DEBUG_EXPORT_HTML === "1") {
+    const debugHtmlPath = path.join(__dirname, "tmp", "paged-chromium-debug-latest.html");
+    await fs.promises.writeFile(debugHtmlPath, wrappedHtml, "utf8").catch(() => {});
+  }
   const browser = await puppeteer.launch({
     executablePath: chromiumCmd,
     headless: true,
@@ -3048,6 +3661,29 @@ ${inlinedBodyHtml}
   try {
     const page = await browser.newPage();
     await page.setContent(wrappedHtml, { waitUntil: "networkidle0" });
+    await page.evaluate(() => {
+      const pagedPages = Array.from(document.querySelectorAll('.pagedjs_page'));
+      pagedPages.forEach((pagedPage, index) => {
+        const marginContents = Array.from(pagedPage.querySelectorAll('.pagedjs_margin-content'));
+        pagedPage.querySelector('.md-export-page-number')?.remove();
+        marginContents.forEach((node) => {
+          node.textContent = '';
+          node.setAttribute('data-page-number', '');
+        });
+
+        const pageNumber = index + 1;
+        if (pagedPage.classList.contains('pagedjs_first_page') || pageNumber === 1) {
+          return;
+        }
+
+        const pageText = String(pageNumber);
+        const overlay = document.createElement('div');
+        overlay.className = 'md-export-page-number';
+        overlay.textContent = pageText;
+        overlay.setAttribute('data-page-number', pageText);
+        pagedPage.appendChild(overlay);
+      });
+    });
     await page.evaluate(async () => {
       if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
@@ -3073,6 +3709,14 @@ const exportWithPandoc = async (req, reply, format) => {
   if (!hasHtml && (!markdown || typeof markdown !== "string")) {
     reply.code(400);
     return { error: "Markdown required" };
+  }
+
+  if (format === "pdf" && !hasHtml && requiresScientificPdfPipeline(markdown)) {
+    reply.code(409);
+    return {
+      error: "Scientific PDF export requires the preprocessed preview HTML. Retry the export from the app without the markdown-only fallback.",
+      code: "SCIENTIFIC_PDF_HTML_REQUIRED"
+    };
   }
 
   const pandocAvailable = await checkPandoc();
@@ -3332,6 +3976,13 @@ ${html}
       }
     }
 
+    const referenceDocxPath = path.join(__dirname, "data", "reference.docx");
+    let referenceDocxExists = false;
+    try {
+      await fs.promises.access(referenceDocxPath);
+      referenceDocxExists = true;
+    } catch { /* no reference.docx */ }
+
     const runPandoc = async (inputFile, fromArg, extraArgs = []) => {
       let args = [inputFile, fromArg, ...extraArgs, "-o", outputPath];
       
@@ -3344,6 +3995,11 @@ ${html}
           args.push("-V", "graphics=true");
           args.push("--dpi=300");
         }
+      }
+
+      // For DOCX, use reference.docx baseline when available (SCI-037)
+      if (format === "docx" && referenceDocxExists) {
+        args.push(`--reference-doc=${referenceDocxPath}`);
       }
       
       const proc = spawn("pandoc", args, { stdio: ["ignore", "ignore", "pipe"] });
@@ -3550,7 +4206,7 @@ app.get("/stats", async (req, reply) => {
     return { error: "Not found" };
   }
   reply.type("text/html; charset=utf-8");
-  return renderStatsPage();
+  return renderStatsPage(req.hostname || "");
 });
 
 app.get("/api/version", async () => {

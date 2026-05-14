@@ -635,7 +635,7 @@ see also [@sec:data].</code></pre>
           <p>The preview resolves <code>[@sec:id]</code> into a clickable link with the section number, e.g. <em>Section 2.1</em>.</p>
 
           <h3>Citations and bibliography</h3>
-          <p>When <code>citation-source: embedded</code> is set, the bibliography is parsed directly from the document:</p>
+          <p>When <code>citation-source: embedded</code> is set, mdedit.io reads the bibliography from an <code>mdedit-bibliography</code> block inside the document. The block accepts BibTeX or CSL JSON:</p>
           <pre><code>---
 citation-source: embedded
 number-sections: true
@@ -645,15 +645,90 @@ number-sections: true
 
 As shown by [@Author2024] …
 
-## References
-
-``` bibtex
+```mdedit-bibliography
 @article{Author2024,
   author = {Author, A.},
   title  = {Title},
   year   = {2024}
 }
 ```</code></pre>
+          <p>You can also place a CSL JSON array in the same block. Use <code>#refs</code> when you want to place the references section explicitly.</p>
+
+          <h3>Bibliography modal: manage sources</h3>
+          <p>Click the bibliography icon in the toolbar to open the modal for managing all sources in the embedded block.</p>
+          <table class="compact-table">
+            <thead><tr><th>Action</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>DOI search</strong></td><td>Enter a DOI → Crossref metadata is fetched and added as a new entry.</td></tr>
+              <tr><td><strong>Search (OpenAlex)</strong></td><td>Search by title or author in the open academic literature database. No account required.</td></tr>
+              <tr><td><strong>Zotero</strong></td><td>Enter your Zotero user ID and API key → import sources from your Zotero library. Credentials stay in the browser (sessionStorage only).</td></tr>
+              <tr><td><strong>New source</strong></td><td>Add a source manually using the form.</td></tr>
+              <tr><td><strong>Import</strong></td><td>Open a .bib (BibTeX) or .json (CSL JSON) file → entries are merged into the block (no duplicates).</td></tr>
+              <tr><td><strong>JSON / BibTeX</strong></td><td>Download the current block as a CSL JSON or BibTeX file.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>PDF vs. DOCX in the scientific workflow</h3>
+          <p>mdedit.io exports scientific documents in two formats for different purposes:</p>
+          <ul>
+            <li><strong>PDF (Paged preview):</strong> Print-ready output for submission and archiving. Layout, margins and typography are rendered precisely.</li>
+            <li><strong>DOCX (Word):</strong> Editable review format for supervisor feedback and track-changes annotation. Headings, body text, lists, tables, citations and bibliography remain fully editable. Mermaid diagrams and complex layout elements are best-effort.</li>
+          </ul>
+
+          <h3>Scientific containers</h3>
+          <p>Semantic environments for theorems, definitions, proofs and similar structures. Use Pandoc fenced divs with a type name and optional title:</p>
+          <pre><code>::: theorem Fundamental Theorem of Calculus
+Let $f$ be continuously differentiable on $[a,b]$, then …
+:::
+
+::: definition
+A set $M$ is called **compact** if …
+:::
+
+::: proof
+From compactness it follows that …
+:::</code></pre>
+          <p>Supported types: <code>theorem</code>, <code>definition</code>, <code>proof</code>, <code>remark</code>, <code>example</code>, <code>lemma</code>, <code>corollary</code>, <code>proposition</code>. Containers are numbered and visually set apart in preview and PDF.</p>
+
+          <h3>Appendix mode</h3>
+          <p>Place <code>&lt;!-- appendix --&gt;</code> or <code>::: appendix</code> anywhere in the document to have all subsequent <code>##</code> headings automatically labelled Appendix A, B, C …. In the PDF each appendix starts on a new page:</p>
+          <pre><code>## Conclusion
+
+&lt;!-- appendix --&gt;
+
+## Raw measurement data
+
+(Contents of Appendix A)
+
+## Interview transcripts
+
+(Contents of Appendix B)</code></pre>
+
+          <h3>Mermaid diagrams with captions</h3>
+          <p>A caption and figure ID can be specified directly inside the Mermaid code block as comments:</p>
+          <pre><code>```mermaid
+%% caption: System architecture overview
+%% id: fig:architecture
+flowchart LR
+  A[Client] --> B[Server]
+  B --> C[Database]
+```</code></pre>
+          <p>In the PDF the diagram is placed as a numbered figure. Use <code>[@fig:architecture]</code> to cross-reference it in the text.</p>
+
+          <h3>Footnotes in PDF</h3>
+          <p>Standard Markdown footnotes are placed as true page footnotes in the PDF — Paged.js automatically positions them at the bottom of the correct page:</p>
+          <pre><code>This claim is disputed.[^1]
+
+[^1]: See Müller (2023), pp. 45–48 for an extended discussion.</code></pre>
+
+          <h3>Author comments</h3>
+          <p>Text between <code>%%</code> is treated as an internal author comment and stripped entirely from both preview and export. Useful for working notes, TODOs, and editorial remarks:</p>
+          <pre><code>%% TODO: expand this section %%
+
+The finished paragraph goes here.
+
+%% REVIEW: check citation — page number missing %%</code></pre>
+          <p>Single-line comments without a closing <code>%%</code> are also removed.</p>
         </section>
 
         <section id="layout">

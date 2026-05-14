@@ -120,7 +120,36 @@ export class PrintPreview {
     }
 
     const processedHtml = layoutPreprocessor.postProcessHTML(payload.html);
-    return this.prepareHTMLForPrint(sanitizeRenderedHtml(processedHtml));
+    const sanitized = sanitizeRenderedHtml(processedHtml);
+
+    // SCI-039: Resolve [@sec:] cross-references for print output.
+    // SCI-040: Resolve [@fig:] and [@tbl:] cross-references for print output.
+    // renderCitationPreview() in app.js does this for the regular preview;
+    // the paged print path must run the same steps on its own HTML copy.
+    const api = window.__mdTestApi;
+    if (api?.buildSectionRegistryFromPandocHTML && api?.replacePandocSectionRefs) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = sanitized;
+      if (api.applyMarkdownTableLayouts) {
+        api.applyMarkdownTableLayouts(tmp, previewMarkdown);
+      }
+      if (api.applyLongUrlParagraphLayout) {
+        api.applyLongUrlParagraphLayout(tmp);
+      }
+      if (api.applyReferenceSectionBreak) {
+        api.applyReferenceSectionBreak(tmp);
+      }
+      api.buildSectionRegistryFromPandocHTML(tmp);
+      api.replacePandocSectionRefs(tmp);
+      if (api.applyFigureTableCrossRefs) {
+        const lang = api.parseFrontmatterString
+          ? (api.parseFrontmatterString(markdown, 'lang') || 'de')
+          : 'de';
+        api.applyFigureTableCrossRefs(tmp, lang);
+      }
+      return this.prepareHTMLForPrint(tmp.innerHTML);
+    }
+    return this.prepareHTMLForPrint(sanitized);
   }
   
   setupErrorSuppression() {
@@ -465,6 +494,9 @@ export class PrintPreview {
         if (stagingTarget) {
           this.moveRenderedPreview(stagingTarget, this.elements.printPreview);
         }
+        this.syncTableLayoutsFromPreview();
+        this.syncListStylesFromPreview();
+        this.syncUrlParagraphsFromPreview();
         this.restoreSplitTableHeaders();
 
         // Count pages within the print preview container
@@ -665,6 +697,109 @@ export class PrintPreview {
     
     // Return clean HTML without wrapper - Paged.js will create its own structure
     return cleanHTML;
+  }
+
+  syncTableLayoutsFromPreview() {
+    const previewTables = Array.from(this.elements.preview?.querySelectorAll('table') || []);
+    const printTables = Array.from(this.elements.printPreview?.querySelectorAll('table') || []);
+
+    if (!previewTables.length || !printTables.length) {
+      return;
+    }
+
+    const previewById = new Map(
+      previewTables
+        .filter((table) => table.id)
+        .map((table) => [table.id, table])
+    );
+
+    printTables.forEach((table, index) => {
+      const sourceTable = (table.id && previewById.get(table.id)) || previewTables[index] || null;
+
+      Array.from(table.classList).forEach((className) => {
+        if (className.startsWith('table-layout-')) {
+          table.classList.remove(className);
+        }
+      });
+
+      if (!sourceTable?.dataset?.layout) {
+        delete table.dataset.layout;
+        return;
+      }
+
+      table.dataset.layout = sourceTable.dataset.layout;
+      Array.from(sourceTable.classList).forEach((className) => {
+        if (className.startsWith('table-layout-')) {
+          table.classList.add(className);
+        }
+      });
+    });
+  }
+
+  syncListStylesFromPreview() {
+    const listSelector = 'ol, ul';
+    const skipSelector = '.table-of-contents, .footnotes, .list-of-figures, .list-of-tables';
+    const previewLists = Array.from(this.elements.preview?.querySelectorAll(listSelector) || [])
+      .filter((list) => !list.closest(skipSelector));
+    const printLists = Array.from(this.elements.printPreview?.querySelectorAll(listSelector) || [])
+      .filter((list) => !list.closest(skipSelector));
+
+    if (!previewLists.length || !printLists.length) {
+      return;
+    }
+
+    printLists.forEach((list, index) => {
+      const sourceList = previewLists[index] || null;
+      if (!sourceList) {
+        return;
+      }
+
+      const sourceStyle = getComputedStyle(sourceList);
+      list.style.listStyleType = sourceStyle.listStyleType;
+      list.style.listStylePosition = sourceStyle.listStylePosition;
+      list.style.paddingLeft = sourceStyle.paddingLeft;
+      list.style.marginTop = sourceStyle.marginTop;
+      list.style.marginBottom = sourceStyle.marginBottom;
+
+      const sourceItems = Array.from(sourceList.querySelectorAll(':scope > li'));
+      const targetItems = Array.from(list.querySelectorAll(':scope > li'));
+
+      targetItems.forEach((item, itemIndex) => {
+        const sourceItem = sourceItems[itemIndex] || null;
+        if (!sourceItem) {
+          return;
+        }
+
+        const sourceItemStyle = getComputedStyle(sourceItem);
+        item.style.paddingLeft = sourceItemStyle.paddingLeft;
+        item.style.marginLeft = sourceItemStyle.marginLeft;
+        item.style.textIndent = sourceItemStyle.textIndent;
+      });
+    });
+  }
+
+  syncUrlParagraphsFromPreview() {
+    const previewParagraphs = Array.from(this.elements.preview?.querySelectorAll('p.url-break-paragraph') || []);
+    const printParagraphs = Array.from(this.elements.printPreview?.querySelectorAll('p') || []);
+
+    if (!previewParagraphs.length || !printParagraphs.length) {
+      return;
+    }
+
+    const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+    const previewByText = new Map(previewParagraphs.map((paragraph) => [normalizeText(paragraph.textContent), paragraph]));
+
+    printParagraphs.forEach((paragraph) => {
+      const sourceParagraph = previewByText.get(normalizeText(paragraph.textContent));
+      if (!sourceParagraph) {
+        return;
+      }
+
+      paragraph.classList.add('url-break-paragraph');
+      paragraph.style.textAlign = 'left';
+      paragraph.style.textAlignLast = 'auto';
+      paragraph.style.wordSpacing = 'normal';
+    });
   }
 
   waitForPagedJS() {

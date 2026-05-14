@@ -504,10 +504,94 @@
     "example": "## Methodology {#sec:methodology}\n\nAs described in [@sec:methodology] …"
   },
   {
+    "id": 75,
+    "category": "markdown",
+    "title": "Semantic figure IDs and cross-references",
+    "text": "Assign a typed ID to a figure using `{#fig:id}` directly after the image or with an `<!-- img: #fig:id -->` marker. Reference it in the text with `[@fig:id]` — the preview turns this into a clickable link, e.g. *Figure 2*.",
+    "example": "<!-- img: #fig:schema align=center -->\n\n![System overview](schema.png)\n\nAs shown in [@fig:schema] …"
+  },
+  {
+    "id": 76,
+    "category": "markdown",
+    "title": "Semantic table IDs and cross-references",
+    "text": "Assign a typed ID to a table using `<!-- tbl: #tbl:id -->` directly before the table caption. Reference it in the text with `[@tbl:id]` — the preview turns this into a clickable link, e.g. *Table 1*.",
+    "example": "<!-- tbl: #tbl:results -->\nTable 1: Measurement results overview.\n\n| Metric | Value |\n|---|---|\n| Accuracy | 94 % |\n\nSee [@tbl:results] for details."
+  },
+  {
     "id": 74,
     "category": "features",
     "title": "Citations and bibliography",
     "text": "Set `citation-source: embedded` in the frontmatter and place BibTeX entries in a fenced code block at the end of the document. Citations like `[@Key2024]` are resolved automatically.",
     "example": "---\ncitation-source: embedded\n---\n\nAs shown by [@Author2024] …\n\n``` bibtex\n@article{Author2024,\n  author = {Author, A.},\n  title  = {Title},\n  year   = {2024}\n}\n```"
+  },
+  {
+    "id": 77,
+    "category": "features",
+    "title": "Bibliography panel",
+    "text": "Documents with embedded sources show a book icon in the editor header. Click it to open the bibliography panel with an overview of all sources. From there you can add, edit, delete, and insert sources at the cursor position.",
+    "example": "---\ncitation-source: embedded\n---\n\nSee [@Mueller2024]."
+  },
+  {
+    "id": 78,
+    "category": "features",
+    "title": "Collapse the bibliography block in the editor",
+    "text": "A large `mdedit-bibliography` block can take up a lot of space in the editor. In settings (Editor tab) you can collapse it to a single placeholder line \u2014 the content is preserved and the block remains accessible via the bibliography panel.",
+    "example": null
+  },
+  {
+    "id": 79,
+    "category": "features",
+    "title": "Scientific containers (Theorem, Definition, Proof)",
+    "text": "Use `:::theorem`, `:::definition`, `:::proof`, `:::remark`, and `:::example` to create semantic containers. An optional title can follow the type: `:::theorem Mean Value Theorem`. Containers are automatically numbered and visually styled in preview and PDF.",
+    "example": ":::definition Uniform Continuity\n\nA function $f$ is uniformly continuous on $I$ if...\n\n:::"
+  },
+  {
+    "id": 80,
+    "category": "features",
+    "title": "Appendix mode",
+    "text": "Place `<!-- appendix -->` anywhere in your document to switch all following `##` headings into appendix sections labeled A, B, C … In the PDF each appendix starts on a new page.",
+    "example": "## Conclusion\n\n<!-- appendix -->\n\n## Raw Data\n\n(Content of Appendix A)"
+  },
+  {
+    "id": 81,
+    "category": "features",
+    "title": "Author comments (hidden in export)",
+    "text": "Text between `%%` and `%%` is completely stripped from preview and export. Ideal for notes, TODOs, and editorial remarks that should not appear in the final document.",
+    "example": "%% TODO: verify sources %%\n\nThis paragraph appears normally."
+  },
+  {
+    "id": 82,
+    "category": "features",
+    "title": "Mermaid diagrams with caption and ID",
+    "text": "A paragraph directly before a Mermaid block in the format `Figure N: Title {#fig:id}` is detected as a figure caption. The diagram is wrapped in a `<figure>` element with automatic numbering and can be referenced via `@fig:id`.",
+    "example": "Figure 1: System overview {#fig:overview}\n\n```mermaid\ngraph LR\n  A --> B\n```"
+  },
+  {
+    "id": 83,
+    "category": "citations",
+    "title": "Embed bibliography directly in the document",
+    "text": "With `citation-source: embedded` in the frontmatter, mdedit.io reads the bibliography from a `mdedit-bibliography` block inside the document. The block accepts BibTeX or CSL JSON. This keeps the bibliography part of the Markdown file — no separate .bib file needed.",
+    "example": "---\ncitation-source: embedded\n---\n\nSee [@doe2024].\n\n```mdedit-bibliography\n@book{doe2024,\n  author={Doe, Jane},\n  title={Example},\n  year={2024}\n}\n```"
+  },
+  {
+    "id": 84,
+    "category": "citations",
+    "title": "DOI lookup: fetch metadata automatically",
+    "text": "Click 'DOI search' in the bibliography modal and enter a DOI (e.g. `10.1000/xyz`). mdedit.io fetches the metadata from Crossref and creates the entry automatically — no manual typing required.",
+    "example": "DOI: 10.1038/s41586-020-2649-2\n→ Entry imported automatically from Crossref."
+  },
+  {
+    "id": 85,
+    "category": "citations",
+    "title": "Zotero connector: import from your library",
+    "text": "Click 'Zotero' in the bibliography modal, enter your Zotero user ID and API key, and search for sources. Selected results are added directly to the embedded block. Credentials stay in the browser (sessionStorage only) and are never sent to the server.",
+    "example": "Zotero User ID: 12345678\nAPI Key: AbCdEfGhIjKlMnOpQrStUvWx\n→ Search and import from your Zotero library."
+  },
+  {
+    "id": 86,
+    "category": "citations",
+    "title": "Import and export bibliography",
+    "text": "In the bibliography modal you can import .bib (BibTeX) and .json (CSL JSON) files — duplicate keys are skipped. Use the 'JSON' and 'BibTeX' buttons to download the current block as a file.",
+    "example": "Import: existing.bib → entries are merged\nExport JSON: bibliography.json\nExport BibTeX: bibliography.bib"
   }
 ]

@@ -17,11 +17,11 @@ export class DocumentLayout {
         size: 'A4',
         orientation: 'portrait',
         margins: {
-          top: '2.1cm',
-          right: '2.1cm',
-          bottom: '2.1cm',
-          left: '2.5cm',
-          firstPageTop: '2.1cm'
+          top: '25mm',
+          right: '25mm',
+          bottom: '25mm',
+          left: '25mm',
+          firstPageTop: '25mm'
         },
         bindingOffset: '0',
         mirrorMargins: false
@@ -184,12 +184,12 @@ export class DocumentLayout {
           },
           caption: {
             enabled: true,
-            position: 'bottom',
+            position: 'top',
             fontSize: '9pt',
             fontStyle: 'italic',
             color: '#666666',
-            marginTop: '8pt',
-            marginBottom: '8pt'
+            marginTop: '0',
+            marginBottom: '6pt'
           }
         },
         compact: {
@@ -222,11 +222,11 @@ export class DocumentLayout {
           },
           caption: {
             enabled: true,
-            position: 'bottom',
+            position: 'top',
             fontSize: '8pt',
             fontStyle: 'italic',
             color: '#666666',
-            marginTop: '6pt',
+            marginTop: '0',
             marginBottom: '6pt'
           }
         },
@@ -323,6 +323,78 @@ export class DocumentLayout {
     };
   }
 
+  normalizeLayoutShorthand(parsed) {
+    if (!this.isObject(parsed)) {
+      return parsed;
+    }
+
+    const normalized = { ...parsed };
+
+    if (typeof parsed.page === 'string') {
+      normalized.page = {
+        size: parsed.page
+      };
+    }
+
+    if (Array.isArray(parsed.margin) && parsed.margin.length >= 4) {
+      const [top, right, bottom, left] = parsed.margin;
+      normalized.page = this.deepMerge(normalized.page || {}, {
+        margins: {
+          top,
+          right,
+          bottom,
+          left,
+          firstPageTop: top
+        }
+      });
+    }
+
+    if (parsed['font-size'] !== undefined) {
+      normalized.typography = this.deepMerge(normalized.typography || {}, {
+        body: {
+          fontSize: parsed['font-size']
+        }
+      });
+    }
+
+    if (parsed['line-height'] !== undefined) {
+      normalized.typography = this.deepMerge(normalized.typography || {}, {
+        body: {
+          lineHeight: parsed['line-height']
+        }
+      });
+    }
+
+    if (typeof parsed.columns === 'number') {
+      normalized.columns = {
+        enabled: parsed.columns > 1,
+        count: parsed.columns
+      };
+    }
+
+    if (typeof parsed.header === 'string') {
+      normalized.header = {
+        enabled: true,
+        center: parsed.header
+      };
+    }
+
+    if (typeof parsed.footer === 'string') {
+      normalized.footer = {
+        enabled: true,
+        center: parsed.footer
+      };
+    }
+
+    delete normalized.margin;
+    delete normalized['font-size'];
+    delete normalized['line-height'];
+    delete normalized['table-style'];
+    delete normalized['figure-style'];
+
+    return normalized;
+  }
+
   /**
    * Parse layout from markdown code block
    */
@@ -340,7 +412,8 @@ export class DocumentLayout {
         const parsed = jsyaml.load(lastMatch[1]);
         if (parsed) {
           // Deep merge with defaults
-          this.currentLayout = this.deepMerge(this.getDefaultLayout(), parsed);
+          const normalized = this.normalizeLayoutShorthand(parsed);
+          this.currentLayout = this.deepMerge(this.getDefaultLayout(), normalized);
           return this.currentLayout;
         }
       }

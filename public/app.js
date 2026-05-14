@@ -53,7 +53,7 @@ const defaultSettings = {
   showToasts: true,
   autoSync: false,
   syncScroll: true,
-  hideLayoutBlock: false,
+  hideLayoutBlock: true,
   hideBibliographyBlock: true,
   allowDocumentLayouts: true,
   documentLayoutDefaultPreset: "scientific",
@@ -1437,6 +1437,13 @@ const elements = {
   bibliographyOverlay: document.getElementById("bibliographyOverlay"),
   bibliographyClose: document.getElementById("bibliographyClose"),
   bibliographyList: document.getElementById("bibliographyList"),
+  bibliographyDoiBtn: document.getElementById("bibliographyDoiBtn"),
+  bibliographySearchBtn: document.getElementById("bibliographySearchBtn"),
+  bibliographyZoteroBtn: document.getElementById("bibliographyZoteroBtn"),
+  bibliographyImportBtn: document.getElementById("bibliographyImportBtn"),
+  bibliographyImportFile: document.getElementById("bibliographyImportFile"),
+  bibliographyExportJsonBtn: document.getElementById("bibliographyExportJsonBtn"),
+  bibliographyExportBibtexBtn: document.getElementById("bibliographyExportBibtexBtn"),
   bibliographyNewBtn: document.getElementById("bibliographyNewBtn"),
   citationEditorModal: document.getElementById("citationEditorModal"),
   citationEditorOverlay: document.getElementById("citationEditorOverlay"),
@@ -1869,6 +1876,18 @@ const extractDocumentFrontmatterBlock = (text) => {
   return match ? match[0].trimEnd() : "";
 };
 const stripDocumentFrontmatter = (text) => String(text || "").replace(documentFrontmatterRegex, "").trimStart();
+const extractEmbeddedBibliographyBlock = (text) => {
+  const match = String(text || "").match(embeddedBibliographyBlockRegex);
+  if (!match) return { raw: "", format: null };
+  const raw = match[0]
+    .replace(/(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n/i, "")
+    .replace(/\n(`{3,}|~{3,})\s*$/i, "")
+    .trim();
+  return {
+    raw,
+    format: /^@[a-z][a-z0-9_-]*\s*\{/i.test(raw) ? "bibtex" : "csl-json"
+  };
+};
 const stripMarkdownCodeSamples = (text) => String(text || "")
   .replace(/(^|\n)(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\2(?=\n|$)/g, "\n")
   .replace(/`[^`\n]+`/g, "");
@@ -1879,21 +1898,147 @@ const hasCitationMetadata = (text) => {
 };
 const hasCitationSyntax = (text) => {
   const plain = stripMarkdownCodeSamples(stripDocumentFrontmatter(stripLayoutBlock(text)));
-  return /\[[^\]]*?@[a-zA-Z0-9:_-]+[^\]]*?\]/.test(plain)
-    || /(^|[\s(])-?@[a-zA-Z0-9:_-]+/m.test(plain)
+  return /\[[^\]]*?@(?!fig:|tbl:|sec:)[a-zA-Z0-9:_-]+[^\]]*?\]/.test(plain)
+    || /(^|[\s(])-?@(?!fig:|tbl:|sec:)[a-zA-Z0-9:_-]+/m.test(plain)
     || /(^|\n)\s*#refs\s*(?=\n|$)/m.test(plain);
 };
 const isCitationDocument = (text) => hasCitationMetadata(text) || hasCitationSyntax(text);
+const trimBibtexValue = (value) => {
+  let nextValue = String(value || "").trim();
+  while (
+    (nextValue.startsWith("{") && nextValue.endsWith("}"))
+    || (nextValue.startsWith('"') && nextValue.endsWith('"'))
+  ) {
+    nextValue = nextValue.slice(1, -1).trim();
+  }
+  return nextValue.replace(/\s+/g, " ").trim();
+};
+const parseBibtexAuthors = (value) => trimBibtexValue(value)
+  .split(/\s+and\s+/i)
+  .map((part) => part.trim())
+  .filter(Boolean)
+  .map((part) => {
+    if (part.includes(",")) {
+      const [family, given] = part.split(",", 2).map((segment) => segment.trim());
+      return { family: family || "", given: given || "" };
+    }
+    const parts = part.split(/\s+/).filter(Boolean);
+    return {
+      family: parts.pop() || "",
+      given: parts.join(" ")
+    };
+  });
+const citationTypeFromBibtex = (type) => {
+  const normalized = String(type || "").trim().toLowerCase();
+  if (normalized === "article") return "article-journal";
+  if (normalized === "book") return "book";
+  if (normalized === "inbook" || normalized === "incollection") return "chapter";
+  if (normalized === "inproceedings" || normalized === "conference") return "paper-conference";
+  if (normalized === "phdthesis" || normalized === "mastersthesis" || normalized === "thesis") return "thesis";
+  if (normalized === "report" || normalized === "techreport") return "report";
+  if (normalized === "misc" || normalized === "online") return "webpage";
+  return normalized || "article-journal";
+};
+const parseBibtexFields = (input) => {
+  const fields = {};
+  let index = 0;
+
+  while (index < input.length) {
+    while (index < input.length && /[\s,]/.test(input[index])) index += 1;
+    const nameMatch = input.slice(index).match(/^([a-zA-Z][a-zA-Z0-9_-]*)\s*=/);
+    if (!nameMatch) break;
+    const fieldName = nameMatch[1].toLowerCase();
+    index += nameMatch[0].length;
+    while (index < input.length && /\s/.test(input[index])) index += 1;
+
+    let value = "";
+    if (input[index] === "{") {
+      let depth = 1;
+      let cursor = index + 1;
+      while (cursor < input.length && depth > 0) {
+        if (input[cursor] === "{") depth += 1;
+        if (input[cursor] === "}") depth -= 1;
+        cursor += 1;
+      }
+      value = input.slice(index, cursor);
+      index = cursor;
+    } else if (input[index] === '"') {
+      let cursor = index + 1;
+      while (cursor < input.length) {
+        if (input[cursor] === '"' && input[cursor - 1] !== "\\") {
+          cursor += 1;
+          break;
+        }
+        cursor += 1;
+      }
+      value = input.slice(index, cursor);
+      index = cursor;
+    } else {
+      const nextComma = input.indexOf(",", index);
+      value = input.slice(index, nextComma === -1 ? input.length : nextComma);
+      index = nextComma === -1 ? input.length : nextComma;
+    }
+    fields[fieldName] = trimBibtexValue(value);
+  }
+
+  return fields;
+};
+const parseBibtexBibliographyItems = (block) => {
+  const items = [];
+  let index = 0;
+  const source = String(block || "");
+
+  while (index < source.length) {
+    const atIndex = source.indexOf("@", index);
+    if (atIndex === -1) break;
+    const braceIndex = source.indexOf("{", atIndex);
+    if (braceIndex === -1) break;
+    const type = source.slice(atIndex + 1, braceIndex).trim();
+    let depth = 1;
+    let cursor = braceIndex + 1;
+    while (cursor < source.length && depth > 0) {
+      if (source[cursor] === "{") depth += 1;
+      if (source[cursor] === "}") depth -= 1;
+      cursor += 1;
+    }
+    const entryBody = source.slice(braceIndex + 1, Math.max(braceIndex + 1, cursor - 1)).trim();
+    const separatorIndex = entryBody.indexOf(",");
+    if (separatorIndex !== -1) {
+      const id = entryBody.slice(0, separatorIndex).trim();
+      const fields = parseBibtexFields(entryBody.slice(separatorIndex + 1));
+      const year = Number.parseInt(fields.year, 10);
+      const nextItem = {
+        id,
+        type: citationTypeFromBibtex(type),
+        title: fields.title || "",
+        author: parseBibtexAuthors(fields.author),
+        ...(Number.isFinite(year) ? { issued: { "date-parts": [[year]] } } : {}),
+        ...(fields.journal || fields.booktitle ? { "container-title": fields.journal || fields.booktitle } : {}),
+        ...(fields.volume ? { volume: fields.volume } : {}),
+        ...(fields.issue || fields.number ? { issue: fields.issue || fields.number } : {}),
+        ...(fields.pages || fields.page ? { page: fields.pages || fields.page } : {}),
+        ...(fields.publisher ? { publisher: fields.publisher } : {}),
+        ...(fields.doi ? { DOI: fields.doi } : {}),
+        ...(fields.url ? { URL: fields.url } : {}),
+        ...(fields.note ? { note: fields.note } : {})
+      };
+      items.push(nextItem);
+    }
+    index = cursor;
+  }
+
+  return items;
+};
 const extractEmbeddedBibliographyItems = (text) => {
-  const match = String(text || "").match(embeddedBibliographyBlockRegex);
-  if (!match) return [];
-  const block = match[0]
-    .replace(/(^|\n)(`{3,}|~{3,})mdedit-bibliography[^\n]*\n/i, "")
-    .replace(/\n(`{3,}|~{3,})\s*$/i, "");
+  const { raw, format } = extractEmbeddedBibliographyBlock(text);
+  if (!raw) return [];
+  if (format === "bibtex") {
+    return parseBibtexBibliographyItems(raw);
+  }
   try {
-    const raw = JSON.parse(block.trim());
-    if (Array.isArray(raw)) return raw;
-    if (Array.isArray(raw?.items)) return raw.items;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.items)) return parsed.items;
     return [];
   } catch {
     return [];
@@ -1906,6 +2051,21 @@ const buildCitationPreviewMarkdown = (text) => {
 };
 
 const readBibliographyItems = () => extractEmbeddedBibliographyItems(getMarkdown());
+
+const rememberFocusableElement = () => document.activeElement instanceof HTMLElement
+  ? document.activeElement
+  : null;
+
+const restoreFocusableElement = (element) => {
+  if (element && document.contains(element) && typeof element.focus === "function") {
+    element.focus();
+    return;
+  }
+  editorView?.focus();
+};
+
+let bibliographyReturnFocus = null;
+let citationEditorReturnFocus = null;
 
 const writeBibliographyItems = (items) => {
   const text = getMarkdown();
@@ -2016,14 +2176,19 @@ const renderBibliographyList = () => {
 };
 
 const openBibliographyPanel = () => {
+  bibliographyReturnFocus = rememberFocusableElement();
   renderBibliographyList();
   elements.bibliographyModal?.classList.remove("hidden");
   elements.bibliographyOverlay?.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    elements.bibliographyNewBtn?.focus();
+  });
 };
 
 const closeBibliographyPanel = () => {
   elements.bibliographyModal?.classList.add("hidden");
   elements.bibliographyOverlay?.classList.add("hidden");
+  restoreFocusableElement(bibliographyReturnFocus);
 };
 
 const readAuthorList = () => Array.from(document.querySelectorAll("#citationAuthorList .citation-author-row")).map((row) => ({
@@ -2034,6 +2199,227 @@ const readAuthorList = () => Array.from(document.querySelectorAll("#citationAuth
 const generateCitationKey = (authors, year) => {
   const family = String(authors?.[0]?.family || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
   return family ? `${family}${year || ""}`.slice(0, 24) : "";
+};
+
+const openDoiLookup = async () => {
+  const doi = prompt(t("citationDoiPrompt"));
+  if (!doi?.trim()) return;
+  setStatus(t("citationDoiLoading"), "info");
+  try {
+    const res = await fetch(`/api/bibliography/doi/${encodeURIComponent(doi.trim())}`);
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({}));
+      setStatus(error || t("citationDoiNotFound"), "error");
+      return;
+    }
+    const { item } = await res.json();
+    if (!item) { setStatus(t("citationDoiNotFound"), "error"); return; }
+    if (!item.id) {
+      item.id = generateCitationKey(item.author, item.issued?.["date-parts"]?.[0]?.[0]);
+    }
+    openCitationEditor(item, null);
+    setStatus(t("citationDoiFound"), "success");
+  } catch {
+    setStatus(t("citationDoiError"), "error");
+  }
+};
+
+// ── OpenAlex search (CIT-009) ─────────────────────────────────────────────────
+
+let _openAlexSearchDebounce = null;
+
+const openOpenAlexSearch = () => {
+  document.getElementById("zoteroSearchRow")?.classList.add("hidden");
+  const row = document.getElementById("openAlexSearchRow");
+  if (row) {
+    row.classList.toggle("hidden");
+    if (!row.classList.contains("hidden")) {
+      document.getElementById("openAlexQuery")?.focus();
+    }
+  }
+};
+
+const runOpenAlexSearch = async (q) => {
+  if (!q || q.length < 3) return;
+  const resultEl = document.getElementById("openAlexResults");
+  if (resultEl) resultEl.innerHTML = `<div class="search-loading"><i class="fa-solid fa-spinner fa-spin"></i></div>`;
+  try {
+    const res = await fetch(`/api/bibliography/openalex?q=${encodeURIComponent(q)}`);
+    if (!res.ok) {
+      if (resultEl) resultEl.innerHTML = `<p class="search-error">${escapeHtml(t("citationSearchError"))}</p>`;
+      return;
+    }
+    const { items } = await res.json();
+    if (!resultEl) return;
+    if (!items?.length) { resultEl.innerHTML = `<p>${escapeHtml(t("citationSearchEmpty"))}</p>`; return; }
+    resultEl.innerHTML = "";
+    items.forEach((item) => {
+      const year = item.issued?.["date-parts"]?.[0]?.[0] ?? "";
+      const authors = (item.author || []).map((a) => a.family).filter(Boolean).slice(0, 2).join(", ");
+      const row = document.createElement("div");
+      row.className = "search-result-row";
+      row.innerHTML = `
+        <div class="search-result-text">
+          <strong>${escapeHtml(item.title || "")}</strong>
+          <span>${escapeHtml(authors)}${year ? " \u00b7 " + year : ""}</span>
+        </div>
+        <button class="btn-sm" type="button">${escapeHtml(t("citationAdopt"))}</button>`;
+      row.querySelector("button").addEventListener("click", () => openCitationEditor(item, null));
+      resultEl.appendChild(row);
+    });
+  } catch {
+    if (resultEl) resultEl.innerHTML = `<p class="search-error">${escapeHtml(t("citationSearchError"))}</p>`;
+  }
+};
+
+// ── Zotero connector (CIT-008) ────────────────────────────────────────────────
+
+const getZoteroCredentials = () => ({
+  userId: sessionStorage.getItem("zoteroUserId") || "",
+  apiKey: sessionStorage.getItem("zoteroApiKey") || "",
+});
+
+const setZoteroCredentials = (userId, apiKey) => {
+  sessionStorage.setItem("zoteroUserId", userId);
+  sessionStorage.setItem("zoteroApiKey", apiKey);
+};
+
+const openZoteroSearch = () => {
+  document.getElementById("openAlexSearchRow")?.classList.add("hidden");
+  const row = document.getElementById("zoteroSearchRow");
+  if (row) {
+    row.classList.toggle("hidden");
+    if (!row.classList.contains("hidden")) {
+      const { userId, apiKey } = getZoteroCredentials();
+      const userIdEl = document.getElementById("zoteroUserId");
+      const apiKeyEl = document.getElementById("zoteroApiKey");
+      if (userIdEl) userIdEl.value = userId;
+      if (apiKeyEl) apiKeyEl.value = apiKey;
+      (userIdEl || apiKeyEl)?.focus();
+    }
+  }
+};
+
+const runZoteroSearch = async () => {
+  const userId = document.getElementById("zoteroUserId")?.value.trim();
+  const apiKey = document.getElementById("zoteroApiKey")?.value.trim();
+  if (!userId || !apiKey) { setStatus(t("citationZoteroCredsMissing"), "error"); return; }
+  setZoteroCredentials(userId, apiKey);
+  const q = document.getElementById("zoteroQuery")?.value.trim();
+  const resultEl = document.getElementById("zoteroResults");
+  if (resultEl) resultEl.innerHTML = `<div class="search-loading"><i class="fa-solid fa-spinner fa-spin"></i></div>`;
+  try {
+    const res = await fetch("/api/bibliography/zotero", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, apiKey, ...(q ? { q } : {}) }),
+    });
+    if (res.status === 403) { setStatus(t("citationZoteroInvalidKey"), "error"); if (resultEl) resultEl.innerHTML = ""; return; }
+    if (!res.ok) { setStatus(t("citationZoteroError"), "error"); if (resultEl) resultEl.innerHTML = ""; return; }
+    const { items } = await res.json();
+    if (!resultEl) return;
+    if (!items?.length) { resultEl.innerHTML = `<p>${escapeHtml(t("citationSearchEmpty"))}</p>`; return; }
+    resultEl.innerHTML = "";
+    items.forEach((item) => {
+      const year = item.issued?.["date-parts"]?.[0]?.[0] ?? "";
+      const authors = (item.author || []).map((a) => a.family).filter(Boolean).slice(0, 2).join(", ");
+      const row = document.createElement("div");
+      row.className = "search-result-row";
+      row.innerHTML = `
+        <div class="search-result-text">
+          <strong>${escapeHtml(item.title || "")}</strong>
+          <span>${escapeHtml(authors)}${year ? " \u00b7 " + year : ""}</span>
+        </div>
+        <button class="btn-sm" type="button">${escapeHtml(t("citationAdopt"))}</button>`;
+      row.querySelector("button").addEventListener("click", () => openCitationEditor(item, null));
+      resultEl.appendChild(row);
+    });
+  } catch {
+    setStatus(t("citationZoteroError"), "error");
+    if (resultEl) resultEl.innerHTML = "";
+  }
+};
+
+// ── Bibliography import / export (SCI-032) ────────────────────────────────────
+
+const downloadBlob = (content, filename, mimeType) => {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const cslItemToBibtex = (item) => {
+  const type = { "article-journal": "article", book: "book", chapter: "incollection", thesis: "phdthesis", "paper-conference": "inproceedings" }[item.type] || "misc";
+  const authors = (item.author || []).map((a) => [a.family, a.given].filter(Boolean).join(", ")).join(" and ");
+  const year = item.issued?.["date-parts"]?.[0]?.[0] ?? "";
+  const fields = [
+    authors ? `  author = {${authors}}` : null,
+    item.title ? `  title = {${item.title}}` : null,
+    year ? `  year = {${year}}` : null,
+    item["container-title"] ? `  journal = {${item["container-title"]}}` : null,
+    item.publisher ? `  publisher = {${item.publisher}}` : null,
+    item["publisher-place"] ? `  address = {${item["publisher-place"]}}` : null,
+    item.volume ? `  volume = {${item.volume}}` : null,
+    item.issue ? `  number = {${item.issue}}` : null,
+    item.page ? `  pages = {${item.page}}` : null,
+    item.DOI ? `  doi = {${item.DOI}}` : null,
+    item.URL ? `  url = {${item.URL}}` : null,
+    item.ISBN ? `  isbn = {${item.ISBN}}` : null,
+    item.note ? `  note = {${item.note}}` : null,
+  ].filter(Boolean);
+  return `@${type}{${item.id || "unknown"},\n${fields.join(",\n")}\n}`;
+};
+
+const parseBibtexToItems = (bibtex) => parseBibtexBibliographyItems(bibtex);
+
+const importBibliography = (file) => {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    let newItems = [];
+    try {
+      if (file.name.toLowerCase().endsWith(".json")) {
+        const parsed = JSON.parse(text);
+        newItems = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.items) ? parsed.items : []);
+      } else {
+        newItems = parseBibtexToItems(text);
+      }
+    } catch {
+      setStatus(t("bibImportError"), "error");
+      return;
+    }
+    if (!newItems.length) { setStatus(t("bibImportEmpty"), "error"); return; }
+    const existing = readBibliographyItems();
+    const existingKeys = new Set(existing.map((item) => item.id));
+    const importedKeys = new Set();
+    const uniqueNewItems = newItems
+      .map((item) => ({ ...item, id: String(item?.id || "").trim() }))
+      .filter((item) => item.id && !existingKeys.has(item.id) && !importedKeys.has(item.id) && importedKeys.add(item.id));
+    if (!uniqueNewItems.length) { setStatus(t("bibImportEmpty"), "error"); return; }
+    const merged = [...existing, ...uniqueNewItems];
+    writeBibliographyItems(merged);
+    renderBibliographyList();
+    updateCitationIndicator();
+    setStatus(t("bibImportSuccess").replace("{n}", String(uniqueNewItems.length)), "success");
+  };
+  reader.readAsText(file);
+};
+
+const exportBibliographyJson = () => {
+  const items = readBibliographyItems();
+  if (!items.length) { setStatus(t("bibExportEmpty"), "error"); return; }
+  downloadBlob(JSON.stringify(items, null, 2), "bibliography.json", "application/json");
+};
+
+const exportBibliographyBibtex = () => {
+  const items = readBibliographyItems();
+  if (!items.length) { setStatus(t("bibExportEmpty"), "error"); return; }
+  downloadBlob(items.map(cslItemToBibtex).join("\n\n"), "bibliography.bib", "text/plain");
 };
 
 const maybeAutofillCitationKey = () => {
@@ -2069,6 +2455,7 @@ const renderAuthorList = (authors = [{ family: "", given: "" }]) => {
 };
 
 const openCitationEditor = (item = null, index = null) => {
+  citationEditorReturnFocus = rememberFocusableElement();
   citationEditorIndex = index;
   citationEditorOriginal = item ? structuredClone(item) : null;
   document.getElementById("citationFieldType").value = item?.type || "article-journal";
@@ -2087,11 +2474,15 @@ const openCitationEditor = (item = null, index = null) => {
   elements.citationEditorTitle.textContent = getCitationEditorTitle();
   elements.citationEditorModal?.classList.remove("hidden");
   elements.citationEditorOverlay?.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    document.getElementById("citationFieldKey")?.focus();
+  });
 };
 
 const closeCitationEditor = () => {
   elements.citationEditorModal?.classList.add("hidden");
   elements.citationEditorOverlay?.classList.add("hidden");
+  restoreFocusableElement(citationEditorReturnFocus);
 };
 
 const saveCitationEditor = () => {
@@ -2346,7 +2737,7 @@ const saveStoredDemoReferencePasteIds = (idsByKey) => {
 };
 
 const ensureDemoReferencePastes = async () => {
-  const demoResponse = await fetch("/api/demo-reference-documents");
+  const demoResponse = await fetch(`/api/demo-reference-documents?locale=${encodeURIComponent(currentLocale)}`);
   if (!demoResponse.ok) {
     throw new Error(`HTTP ${demoResponse.status}`);
   }
@@ -2483,6 +2874,32 @@ const t = (key) => translations[currentLocale]?.[key] || translations.en?.[key] 
 const getTipsUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/tips.json" : "/tips-en.json";
 
 const getHelpUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/help.html" : "/help-en.html";
+
+const sendHomepageMarketingEvent = (target) => {
+  if (!target) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const payload = JSON.stringify({
+    surface: "homepage",
+    target,
+    path: window.location.pathname || "/",
+    utmSource: params.get("utm_source"),
+    utmMedium: params.get("utm_medium"),
+    utmCampaign: params.get("utm_campaign")
+  });
+
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon("/api/marketing/event", new Blob([payload], { type: "application/json" }));
+    return;
+  }
+
+  fetch("/api/marketing/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true
+  }).catch(() => {});
+};
 
 const updateHelpLinks = () => {
   const helpUrl = getHelpUrl();
@@ -4439,6 +4856,9 @@ const renderPreview = () => {
     refreshDynamicStyles(text);
   }
   elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(md.render(previewText)));
+  applyMarkdownTableLayouts(elements.preview, previewText);
+  applyLongUrlParagraphLayout(elements.preview);
+  applyReferenceSectionBreak(elements.preview);
 
   // SCI-011/012/013: Heading numbering and section cross-reference resolution
   const rawText = getMarkdown();
@@ -4448,6 +4868,10 @@ const renderPreview = () => {
     buildSectionRegistryFromDOM(elements.preview);
   }
   applySectionCrossRefs(elements.preview);
+
+  // SCI-018: Figure/table cross-reference resolution
+  const rawLang = parseFrontmatterString(rawText, "lang") || "de";
+  applyFigureTableCrossRefs(elements.preview, rawLang);
 
   // Zeige Korrekturvorschlag im Editor
   const suggestionEl = document.getElementById("editorSuggestion");
@@ -4510,12 +4934,19 @@ const renderCitationPreview = async () => {
     }
 
     elements.preview.innerHTML = sanitizeRenderedHtml(layoutPreprocessor.postProcessHTML(payload.html || ""));
+    applyMarkdownTableLayouts(elements.preview, layoutPreprocessor.process(stripDocumentFrontmatter(stripLayoutBlock(text))));
+    applyLongUrlParagraphLayout(elements.preview);
+    applyReferenceSectionBreak(elements.preview);
 
     // SCI-011/012/013: Pandoc already applies number-sections natively; headings carry
     // numbers in their text ("1. Einleitung"). Build registry from them and resolve
     // [@sec:] cross-refs that citeproc rendered as <span class="citation" data-cites="sec:...">.
     buildSectionRegistryFromPandocHTML(elements.preview);
     replacePandocSectionRefs(elements.preview);
+
+    // SCI-018: Figure/table cross-reference resolution (Pandoc path)
+    const rawLang = parseFrontmatterString(text, "lang") || "de";
+    applyFigureTableCrossRefs(elements.preview, rawLang);
 
     finalizePreviewRender();
     return true;
@@ -4571,6 +5002,14 @@ const parseFrontmatterBoolean = (text, key) => {
   return new RegExp(`(?:^|\\n)\\s*${key}\\s*:\\s*(true|yes)`, "i").test(fm);
 };
 
+// SCI-018: Read a string value from a frontmatter key.
+const parseFrontmatterString = (text, key) => {
+  const fm = extractDocumentFrontmatterBlock(text);
+  if (!fm) return null;
+  const m = fm.match(new RegExp(`(?:^|\n)\\s*${key}\\s*:\\s*([^\n]+)`, "i"));
+  return m ? m[1].trim().replace(/^["']|["']$/g, "") : null;
+};
+
 // SCI-012/013: Registry mapping section id → { displayTitle, number }
 // Rebuilt on every preview render.
 const sectionRegistry = new Map();
@@ -4588,7 +5027,7 @@ const applySectionCrossRefs = (container) => {
         const entry = sectionRegistry.get(id);
         if (!entry) return match;
         const label = entry.number
-          ? `Abschnitt\u202F${entry.number}`
+          ? `Abschnitt\u00a0${entry.number}`
           : entry.displayTitle;
         return `<a href="#${id}" class="section-ref">${label}</a>`;
       });
@@ -4601,6 +5040,76 @@ const applySectionCrossRefs = (container) => {
     Array.from(node.childNodes).forEach(walk);
   };
   walk(container);
+};
+
+// SCI-018: Resolve [@fig:id] and [@tbl:id] cross-references in the preview.
+// Replaces text patterns with clickable anchor links using the figure/table number.
+// Supports both markdown-it path (text nodes) and Pandoc path (span.citation[data-cites]).
+const applyFigureTableCrossRefs = (container, lang) => {
+  const figMap = new Map(layoutPreprocessor.figureRegistry.map(e => [e.id, e]));
+  const tblMap = new Map(layoutPreprocessor.tableRegistry.map(e => [e.id, e]));
+  if (!figMap.size && !tblMap.size) return;
+
+  const figLabel = lang === "en" ? "Figure" : "Abbildung";
+  const tblLabel = lang === "en" ? "Table" : "Tabelle";
+  const XREF_RE = /\[@(fig:[^\]]+|tbl:[^\]]+)\]/g;
+  const createRefLink = (id) => {
+    const isFig = id.startsWith("fig:");
+    const entry = isFig ? figMap.get(id) : tblMap.get(id);
+    if (!entry) return null;
+    const prefix = isFig ? figLabel : tblLabel;
+    const className = isFig ? "figure-ref" : "table-ref";
+    const a = document.createElement("a");
+    a.href = `#${id}`;
+    a.className = className;
+    a.textContent = `${prefix}\u00a0${entry.num}`;
+    return a;
+  };
+
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || "";
+      if (!XREF_RE.test(text)) return;
+      XREF_RE.lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      let changed = false;
+      let match;
+      while ((match = XREF_RE.exec(text)) !== null) {
+        const [fullMatch, id] = match;
+        if (match.index > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+        const link = createRefLink(id);
+        if (link) {
+          fragment.appendChild(link);
+          changed = true;
+        } else {
+          fragment.appendChild(document.createTextNode(fullMatch));
+        }
+        lastIndex = match.index + fullMatch.length;
+      }
+      if (!changed) return;
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      }
+      node.parentNode.replaceChild(fragment, node);
+      return;
+    }
+    const tag = node.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "PRE" || tag === "CODE" || tag === "A") return;
+    Array.from(node.childNodes).forEach(walk);
+  };
+  walk(container);
+
+  // Pandoc path: <span class="citation" data-cites="fig:id"> or "tbl:id"
+  container.querySelectorAll("span.citation[data-cites]").forEach(span => {
+    const cites = span.getAttribute("data-cites") || "";
+    if (!cites.startsWith("fig:") && !cites.startsWith("tbl:")) return;
+    const a = createRefLink(cites);
+    if (!a) return;
+    span.parentNode.replaceChild(a, span);
+  });
 };
 
 // SCI-011 Pandoc path: Build sectionRegistry from Pandoc-rendered headings that already
@@ -4631,7 +5140,7 @@ const replacePandocSectionRefs = (container) => {
     const entry = sectionRegistry.get(cites);
     if (!entry) return;
     const label = entry.number
-      ? `Abschnitt\u202F${entry.number}`
+      ? `Abschnitt\u00a0${entry.number}`
       : entry.displayTitle;
     const a = document.createElement("a");
     a.href = `#${cites}`;
@@ -5640,6 +6149,10 @@ const exportFile = async (format) => {
   });
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
+    if (format === "pdf" && paged) {
+      setStatus(`${t("exportFailed")}${errorText ? ": " : ""}${errorText}`, "error");
+      return false;
+    }
     const fallbackRes = await fetch(`/api/export/${format}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -5862,6 +6375,35 @@ const getPagedExportHtml = async ({ layoutCss, requirePagedOutput = false } = {}
     }
 
     const ppClone = printPreviewRoot.cloneNode(true);
+    const livePagesRoot = printPreviewRoot.querySelector('.pagedjs_pages');
+    const clonePagesRoot = ppClone.querySelector('.pagedjs_pages');
+
+    if (clonePagesRoot) {
+      // Export the actual page geometry, not the UI-fitted preview scale.
+      clonePagesRoot.style.zoom = '1';
+      clonePagesRoot.style.removeProperty('--print-preview-scale');
+      clonePagesRoot.style.removeProperty('transform');
+      clonePagesRoot.style.gap = '0';
+      clonePagesRoot.style.padding = '0';
+      clonePagesRoot.style.display = 'block';
+    }
+
+    if (livePagesRoot && clonePagesRoot) {
+      const livePages = Array.from(livePagesRoot.querySelectorAll('.pagedjs_page'));
+      const clonePages = Array.from(clonePagesRoot.querySelectorAll('.pagedjs_page'));
+      clonePages.forEach((page, index) => {
+        const livePage = livePages[index] || null;
+        const pageNumber = livePage?.getAttribute('data-page-number') || String(index + 1);
+        page.setAttribute('data-page-number', pageNumber);
+        page.querySelector('.md-export-page-number')?.remove();
+
+        const footerBox = page.querySelector('.pagedjs_margin-bottom-center .pagedjs_margin-content');
+        if (footerBox) {
+          footerBox.textContent = index === 0 ? '' : pageNumber;
+        }
+      });
+    }
+
     ppClone.querySelectorAll("script, iframe, object, embed, .footnotes a[href^='#fnref'], .footnotes a[role='doc-backlink'], .footnote-backref").forEach((el) => el.remove());
 
     const ppImgs = Array.from(ppClone.querySelectorAll("img"));
@@ -6109,6 +6651,135 @@ const stripMarkdown = (markdown) => markdown
   .replace(/\|/g, " ")
   .replace(/\n{3,}/g, "\n\n")
   .trim();
+
+const extractMarkdownTableLayouts = (markdown) => {
+  const lines = String(markdown || '').split(/\r?\n/);
+  const layouts = [];
+  let pendingLayout = null;
+
+  const readLayoutMarker = (line) => {
+    const commentMatch = line.match(/<!--\s*table:(\w+)\s*-->/i);
+    if (commentMatch) return commentMatch[1].toLowerCase();
+
+    const fenceMatch = line.match(/^[ \t]*:::\s*table\{layout=(\w+)\}\s*$/i);
+    if (fenceMatch) return fenceMatch[1].toLowerCase();
+
+    const tokenMatch = line.match(/\[\[MDLAYOUT:table;layout=(\w+)\]\]/i);
+    if (tokenMatch) return tokenMatch[1].toLowerCase();
+
+    return null;
+  };
+
+  const isMarkdownTableStart = (line, nextLine) => {
+    if (!/\|/.test(line) || !/\|/.test(nextLine || '')) {
+      return false;
+    }
+
+    return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+(?:\s*:?-{3,}:?\s*)?\|?\s*$/.test(nextLine || '');
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const layoutMarker = readLayoutMarker(line);
+    if (layoutMarker) {
+      pendingLayout = layoutMarker;
+      continue;
+    }
+
+    if (isMarkdownTableStart(line, lines[index + 1])) {
+      layouts.push(pendingLayout || 'default');
+      pendingLayout = null;
+
+      index += 1;
+      while (index + 1 < lines.length && /^\s*\|/.test(lines[index + 1])) {
+        index += 1;
+      }
+    }
+  }
+
+  return layouts;
+};
+
+const applyMarkdownTableLayouts = (root, markdown) => {
+  if (!root) return;
+
+  const tables = Array.from(root.querySelectorAll('table'));
+  if (!tables.length) return;
+
+  const layouts = extractMarkdownTableLayouts(markdown);
+  if (!layouts.length) return;
+
+  tables.forEach((table, index) => {
+    Array.from(table.classList).forEach((className) => {
+      if (className.startsWith('table-layout-')) {
+        table.classList.remove(className);
+      }
+    });
+
+    if (layouts[index] && layouts[index] !== 'default') {
+      table.dataset.layout = layouts[index];
+      table.classList.add(`table-layout-${layouts[index]}`);
+    } else {
+      delete table.dataset.layout;
+    }
+  });
+};
+
+const applyLongUrlParagraphLayout = (root) => {
+  if (!root) return;
+
+  Array.from(root.querySelectorAll('p')).forEach((paragraph) => {
+    const text = (paragraph.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!/https?:\/\/\S{40,}/i.test(text)) {
+      return;
+    }
+
+    paragraph.classList.add('url-break-paragraph');
+    paragraph.style.textAlign = 'left';
+    paragraph.style.textAlignLast = 'auto';
+    paragraph.style.wordSpacing = 'normal';
+  });
+};
+
+const applyReferenceSectionBreak = (root) => {
+  if (!root) return;
+
+  const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+  const bibliographyHeading = headings.find((heading) => {
+    const text = (heading.textContent || '').replace(/\s+/g, ' ').trim();
+    return /^(Literaturverzeichnis|References)$/i.test(text);
+  });
+  const referencesBlock = root.querySelector('#refs, .references');
+  const target = bibliographyHeading || referencesBlock;
+
+  if (!target) return;
+
+  const existingWrapper = target.closest('.reference-section-start.chapter-start');
+  if (existingWrapper) {
+    existingWrapper.dataset.breakBefore = 'page';
+    bibliographyHeading?.classList.add('reference-section-heading');
+    if (bibliographyHeading) {
+      bibliographyHeading.dataset.breakBefore = 'page';
+    }
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'chapter-start reference-section-start';
+  wrapper.dataset.breakBefore = 'page';
+
+  target.parentNode.insertBefore(wrapper, target);
+  wrapper.appendChild(target);
+
+  if (referencesBlock && referencesBlock !== target && referencesBlock.parentNode === wrapper.parentNode) {
+    wrapper.appendChild(referencesBlock);
+  }
+
+  bibliographyHeading?.classList.add('reference-section-heading');
+  if (bibliographyHeading) {
+    bibliographyHeading.dataset.breakBefore = 'page';
+  }
+};
 
 const resetEditor = () => {
   currentPasteId = null;
@@ -7702,7 +8373,18 @@ elements.settingsOverlay?.addEventListener("click", closeSettings);
 elements.citationIndicatorBtn?.addEventListener("click", openBibliographyPanel);
 elements.bibliographyClose?.addEventListener("click", closeBibliographyPanel);
 elements.bibliographyOverlay?.addEventListener("click", closeBibliographyPanel);
+elements.bibliographyDoiBtn?.addEventListener("click", openDoiLookup);
+elements.bibliographySearchBtn?.addEventListener("click", openOpenAlexSearch);
+elements.bibliographyZoteroBtn?.addEventListener("click", openZoteroSearch);
 elements.bibliographyNewBtn?.addEventListener("click", () => openCitationEditor());
+elements.bibliographyImportBtn?.addEventListener("click", () => elements.bibliographyImportFile?.click());
+elements.bibliographyImportFile?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (file) importBibliography(file);
+  e.target.value = "";
+});
+elements.bibliographyExportJsonBtn?.addEventListener("click", exportBibliographyJson);
+elements.bibliographyExportBibtexBtn?.addEventListener("click", exportBibliographyBibtex);
 elements.citationEditorClose?.addEventListener("click", closeCitationEditor);
 elements.citationEditorOverlay?.addEventListener("click", closeCitationEditor);
 elements.citationEditorCancel?.addEventListener("click", closeCitationEditor);
@@ -7712,6 +8394,14 @@ document.getElementById("citationAddAuthor")?.addEventListener("click", () => {
   maybeAutofillCitationKey();
 });
 document.getElementById("citationFieldYear")?.addEventListener("blur", maybeAutofillCitationKey);
+document.getElementById("openAlexQuery")?.addEventListener("input", (e) => {
+  clearTimeout(_openAlexSearchDebounce);
+  _openAlexSearchDebounce = setTimeout(() => runOpenAlexSearch(e.target.value.trim()), 600);
+});
+document.getElementById("zoteroSearchBtn")?.addEventListener("click", runZoteroSearch);
+document.getElementById("zoteroQuery")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") runZoteroSearch();
+});
 elements.layoutEditorClose?.addEventListener("click", closeLayoutEditor);
 elements.layoutEditorCancel?.addEventListener("click", closeLayoutEditor);
 elements.layoutEditorOverlay?.addEventListener("click", closeLayoutEditor);
@@ -8535,6 +9225,9 @@ elements.tipsOverlay?.addEventListener("click", closeTipsModal);
 elements.tipsModal?.addEventListener("pointerdown", clearTipsStartupAutoClose);
 elements.tipsModal?.addEventListener("mouseenter", clearTipsStartupAutoClose);
 elements.tipsModal?.addEventListener("keydown", clearTipsStartupAutoClose);
+elements.tipsIntroCard?.querySelectorAll("[data-track-target]").forEach((element) => {
+  element.addEventListener("click", () => sendHomepageMarketingEvent(element.getAttribute("data-track-target")));
+});
 elements.nextTipBtn?.addEventListener("click", displayRandomTip);
 elements.tipsDemoBtn?.addEventListener("click", loadDemoDocument);
 document.getElementById("mobileMenuDemoBtn")?.addEventListener("click", () => {
@@ -8785,6 +9478,16 @@ elements.foldersDeleteCurrentBtn?.addEventListener("click", async () => {
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (!elements.citationEditorModal?.classList.contains("hidden")) {
+      event.preventDefault();
+      closeCitationEditor();
+      return;
+    }
+    if (!elements.bibliographyModal?.classList.contains("hidden")) {
+      event.preventDefault();
+      closeBibliographyPanel();
+      return;
+    }
     closeNotFoundModal();
     closeFoldersOverview();
     closeLayoutEditor();
@@ -8954,7 +9657,14 @@ window.renderMarkdownToHtml = (text) => sanitizeRenderedHtml(md.render(String(te
 window.isCitationDocument = isCitationDocument;
 window.buildCitationPreviewMarkdown = buildCitationPreviewMarkdown;
 window.__mdTestApi = {
-  serializePreviewForExport
+  serializePreviewForExport,
+  buildSectionRegistryFromPandocHTML,
+  replacePandocSectionRefs,
+  applyFigureTableCrossRefs,
+  applyMarkdownTableLayouts,
+  applyLongUrlParagraphLayout,
+  applyReferenceSectionBreak,
+  parseFrontmatterString,
 };
 
 // Restore toggle states

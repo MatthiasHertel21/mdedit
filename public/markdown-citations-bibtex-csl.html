@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Write Markdown citations with BibTeX and CSL in the browser | mdedit.io</title>
-    <meta name="description" content="Write citation-heavy Markdown with embedded bibliography data, live preview, and PDF/DOCX export. mdedit.io turns BibTeX and CSL-style references into a usable browser workflow." />
+    <title>Write Markdown citations for PDF submission and DOCX review handoff | mdedit.io</title>
+    <meta name="description" content="Write citation-heavy Markdown with embedded bibliography data, keep references intact for supervisor DOCX review, and export clean PDF for submission. mdedit.io turns BibTeX and CSL references into a usable browser workflow." />
     <link rel="canonical" href="https://mdedit.io/markdown-citations-bibtex-csl/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="mdedit.io" />
-    <meta property="og:title" content="Write Markdown citations with BibTeX and CSL in the browser | mdedit.io" />
-    <meta property="og:description" content="Write citation-heavy Markdown with embedded bibliography data, live preview, and PDF/DOCX export in one browser workflow." />
+    <meta property="og:title" content="Write Markdown citations for PDF submission and DOCX review handoff | mdedit.io" />
+    <meta property="og:description" content="Write citation-heavy Markdown with embedded bibliography data, keep references intact for DOCX review, and export clean PDF in one browser workflow." />
     <meta property="og:url" content="https://mdedit.io/markdown-citations-bibtex-csl/" />
     <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Write Markdown citations with BibTeX and CSL in the browser | mdedit.io" />
-    <meta name="twitter:description" content="Write citation-heavy Markdown with embedded bibliography data, live preview, and PDF/DOCX export in one browser workflow." />
+    <meta name="twitter:title" content="Write Markdown citations for PDF submission and DOCX review handoff | mdedit.io" />
+    <meta name="twitter:description" content="Write citation-heavy Markdown with embedded bibliography data, keep references intact for DOCX review, and export clean PDF in one browser workflow." />
     <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
     <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
     <style>
@@ -82,25 +82,25 @@
         <div class="nav">
           <a href="/">Open app</a>
           <a href="/help-en.html#scientific">Citations help</a>
-          <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener">Reference document</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference-en.md" target="_blank" rel="noopener">Reference document</a>
         </div>
       </div>
 
       <section class="hero">
         <div class="hero-copy">
           <span class="eyebrow">Citations</span>
-          <h1>Write citation-heavy Markdown without breaking your writing flow</h1>
-          <p class="lead">mdedit.io turns BibTeX- and CSL-style citations from raw syntax into a usable editing workflow: add references, preview output, and export PDF or DOCX from the same document in the browser.</p>
+          <h1>Keep citations intact from Markdown draft to DOCX review and PDF submission</h1>
+          <p class="lead">mdedit.io turns BibTeX- and CSL-style citations from raw syntax into a usable writing workflow: add references, preview output, send review-ready DOCX to supervisors, and export clean PDF from the same document in the browser.</p>
           <div class="cta-row">
             <a class="cta" href="/" data-track-target="open-app">Try citations in mdedit.io</a>
             <a class="cta-secondary" href="/help-en.html#scientific" data-track-target="citations-guide">Open citations guide</a>
             <a class="cta-secondary" href="/sample-output.pdf" data-track-target="sample-pdf">View sample thesis PDF</a>
-            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference.md" target="_blank" rel="noopener" data-track-target="reference-example">View full reference example</a>
+            <a class="cta-secondary" href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference-en.md" target="_blank" rel="noopener" data-track-target="reference-example">View full reference example</a>
           </div>
         </div>
         <aside class="hero-proof">
           <h2>More than citation syntax</h2>
-          <p>Raw citation markup is only part of the job. You still need metadata, bibliography storage, preview feedback, and a final export path that does not split your document into separate tools.</p>
+          <p>Raw citation markup is only part of the job. You still need metadata, bibliography storage, preview feedback, and an export path that survives both Word-based review and final PDF submission without splitting the document into separate tools.</p>
           <pre><code>---
 citation-source: embedded
 reference-section-title: References
@@ -118,8 +118,8 @@ link-bibliography: true
             <p>Keep bibliography content inside the document workflow instead of relying on fragile local filesystem paths.</p>
           </article>
           <article class="card">
-            <h3>Preview plus export</h3>
-            <p>Check citation output before final export and use the same source document for PDF and DOCX delivery.</p>
+            <h3>Preview, review, and export</h3>
+            <p>Check citation output before export and use the same source document for review-ready DOCX and final PDF delivery.</p>
           </article>
           <article class="card">
             <h3>Reference-section control</h3>
@@ -162,7 +162,7 @@ citation workflows scale better.
           <article class="card"><h3>1. Add frontmatter</h3><p>Define citation mode and bibliography behavior in YAML frontmatter.</p></article>
           <article class="card"><h3>2. Add bibliography data</h3><p>Store references in an embedded bibliography block so they travel with the document.</p></article>
           <article class="card"><h3>3. Cite while writing</h3><p>Insert citation keys in the document and review them in live preview.</p></article>
-          <article class="card"><h3>4. Export with confidence</h3><p>Use the same document for PDF and DOCX export instead of maintaining separate reference paths.</p></article>
+          <article class="card"><h3>4. Export with confidence</h3><p>Use the same document for DOCX review handoff and PDF submission instead of maintaining separate reference paths.</p></article>
         </div>
       </section>
 
@@ -170,7 +170,7 @@ citation workflows scale better.
         <h2>Mini FAQ</h2>
         <div class="faq-grid">
           <article class="card"><h3>Is this just Pandoc syntax?</h3><p>No. mdedit.io wraps the syntax in an editor workflow with preview, metadata handling, and export paths.</p></article>
-          <article class="card"><h3>Can I use it for thesis references?</h3><p>Yes. The citations path is designed to support academic documents together with numbering and structured export.</p></article>
+          <article class="card"><h3>Can I use it for thesis references?</h3><p>Yes. The citations path is designed for academic documents where the same source needs both Word-compatible review handoff and structured PDF export.</p></article>
           <article class="card"><h3>Do I need a local BibTeX file?</h3><p>Not necessarily. mdedit.io supports embedded bibliography data as the document-bound default path.</p></article>
           <article class="card"><h3>Where is the full syntax reference?</h3><p>Use the scientific-documents section in the help page and the thesis reference document for the deeper workflow.</p></article>
         </div>

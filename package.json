@@ -1,6 +1,6 @@
 {
   "name": "mdedit.io",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "author": "Matthias Hertel",
   "homepage": "https://mdedit.io",
@@ -19,12 +19,16 @@
     "stats:search-console-sync": "node --env-file=.env scripts/search-console-sync.js",
     "stats:search-console-auth": "node scripts/gsc-auth-setup.js",
     "stats:index-check": "node scripts/gsc-index-check.js",
+    "smoke:stats": "node scripts/stats-smoke.js",
     "smoke:citations": "node scripts/citations-smoke.js",
     "smoke:reference-citations": "node scripts/reference-citations-smoke.js",
     "smoke:paged-parity": "node scripts/paged-preview-parity.js",
     "smoke:visual": "node scripts/visual-smoke.js",
+    "audit:layout": "node scripts/thesis-audit.js",
+    "audit:book": "node scripts/book-audit.js",
+    "audit:quickread": "node scripts/quickread-audit.js",
     "audit:prod": "npm audit --omit=dev",
-    "release:check": "npm run i18n:validate && npm run audit:prod && npm run smoke:reference-citations && npm run smoke:visual"
+    "release:check": "npm run i18n:validate && npm run audit:prod && npm run smoke:stats && npm run smoke:reference-citations && npm run smoke:visual"
   },
   "overrides": {
     "basic-ftp": "^5.2.3",

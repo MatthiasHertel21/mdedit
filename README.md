@@ -6,7 +6,7 @@
 
 **mdedit.io is a no-account Markdown editor for serious documents.**
 
-Write in Markdown, navigate long documents via outline, collaborate in the browser, and export print-ready PDF and DOCX files — without Word, LaTeX, or a desktop app.
+Write in Markdown, navigate long documents via outline, collaborate in the browser, and export print-ready PDF or review-ready DOCX for supervisor feedback — without Word, LaTeX, or a desktop app.
 
 > **[→ Try it now at mdedit.io](https://mdedit.io)**
 
@@ -17,6 +17,8 @@ Write in Markdown, navigate long documents via outline, collaborate in the brows
 ![mdedit.io PDF output screenshot](docs/assets/readme-pdf-output.png)
 
 **[→ Download sample PDF output](docs/examples/example-output.pdf)**
+
+For thesis and review workflows, the same Markdown source can also become a review-ready DOCX for Word comments and tracked changes.
 
 ---
 
@@ -39,9 +41,10 @@ Or run it locally after startup at `http://localhost:3210`.
 - **Live preview** side by side with the Markdown source
 - **Outline / tree navigation** for long structured documents
 - **Print-ready PDF export** with page layout controls
-- **DOCX export** for Word-compatible delivery
+- **DOCX export** for review-ready Word handoff and supervisor feedback
 - **Mermaid diagrams** and **KaTeX math** rendered inline
 - **Citations** via BibTeX / CSL with automatic reference lists
+- **Thesis workflow**: draft in Markdown, review in DOCX, submit as PDF
 - **AI assistance** for editing and document work (bring your own key)
 - **Lightweight collaboration** — share a permalink, edit together
 - **Self-hostable** with Docker, Apache 2.0 license
@@ -113,7 +116,7 @@ If you want the internal `/stats` page to show backlink, query, and search-posit
 npm run stats:marketing-snapshot -- --input docs/examples/marketing-stats.example.json
 ```
 
-By default this writes `data/marketing-stats.json`, which matches the default `/stats` lookup path. You can override the source label or target path with `--source` and `--output`.
+By default this writes to `MARKETING_STATS_FILE` when set, otherwise to `DATA_DIR/marketing-stats.json` when `DATA_DIR` is configured in `.env`, and otherwise falls back to `data/marketing-stats.json`. That keeps the documented npm flow aligned with the `/stats` lookup path. You can still override the source label or target path with `--source` and `--output`.
 
 ### Option 2: Direct Node.js start
 

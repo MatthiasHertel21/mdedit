@@ -80,12 +80,16 @@ export class LayoutPreprocessor {
     const protectedMarkdown = protectMarkdownCode(stripEmbeddedBibliographyBlocks(markdown));
     let processed = protectedMarkdown.text;
 
+    // Strip author comments before any other processing
+    processed = this.stripAuthorComments(processed);
+
     // Process all command types
     processed = this.processPageBreaks(processed);
     processed = this.processColumnBreaks(processed);
     processed = this.processColumns(processed);
     processed = this.processChapters(processed);
     processed = this.processSections(processed);
+    processed = this.processTableIdMarkers(processed);
     processed = this.processTableMarkers(processed);
     processed = this.normalizeImageIdAttributes(processed);
     processed = this.processImageMarkers(processed);
@@ -93,8 +97,58 @@ export class LayoutPreprocessor {
     processed = this.processListOfTables(processed);
     processed = this.processTitlePage(processed);
     processed = this.processBlankPages(processed);
+    processed = this.processScientificContainers(processed);
+    processed = this.processAppendix(processed);
 
     return protectedMarkdown.restore(processed);
+  }
+
+  /**
+   * Strip author comments: %% ... %% (inline or multiline)
+   * These are editorial notes that should not appear in preview or export.
+   */
+  stripAuthorComments(markdown) {
+    return String(markdown || '')
+      // Multiline and inline: %% ... %%
+      .replace(/%%[\s\S]*?%%/g, '')
+      // Leftover lone %%-starting lines (unclosed blocks)
+      .replace(/^%%[^\n]*$/gm, '');
+  }
+
+  /**
+   * Scientific containers
+   * Supports: ::: definition [title] ... :::
+   * Types: definition, theorem, proof, remark, example, lemma, corollary, proposition
+   */
+  processScientificContainers(markdown) {
+    const TYPE_PATTERN = 'definition|theorem|proof|remark|example|lemma|corollary|proposition';
+    const blockRe = new RegExp(
+      `(^|\\n)([ \\t]*:::[ \\t]*(${TYPE_PATTERN})(?:[ \\t]+([^\\n]*))?\\n[\\s\\S]*?\\n[ \\t]*:::[ \\t]*(?=\\n|$))`,
+      'gi'
+    );
+    return markdown.replace(blockRe, (match, prefix, block, type, title) => {
+      const trimTitle = (title || '').trim();
+      // Extract inner content (between opening ::: type and closing :::)
+      const innerMatch = block.match(/^[ \t]*:::[ \t]*[\w]+(?:[ \t]+[^\n]*)?\n([\s\S]*)\n[ \t]*:::[ \t]*$/);
+      const inner = innerMatch ? innerMatch[1] : '';
+      const open = createLayoutToken('sci-container-open', {
+        type: type.toLowerCase(),
+        ...(trimTitle ? { title: trimTitle } : {})
+      });
+      const close = createLayoutToken('sci-container-close', {});
+      return `${prefix}${open}\n\n${inner}\n\n${close}`;
+    });
+  }
+
+  /**
+   * Appendix mode
+   * Supports: <!-- appendix --> or ::: appendix
+   * Headings after this marker are numbered Anhang A, B, C ...
+   */
+  processAppendix(markdown) {
+    return markdown
+      .replace(/<!--\s*appendix\s*-->/gi, createLayoutToken('appendix'))
+      .replace(/^[ \t]*:::\s*appendix\s*$/gim, createLayoutToken('appendix'));
   }
 
   /**
@@ -218,19 +272,38 @@ export class LayoutPreprocessor {
    * Table layout markers
    * Supports: <!-- table:compact --> or ::: table{layout=compact}
    */
+  /**
+   * Table ID markers
+   * Supports: <!-- tbl: #tbl:id -->
+   */
+  processTableIdMarkers(markdown) {
+    return markdown.replace(
+      /<!--\s*tbl:\s*#(tbl:[^\s>]+)\s*-->/gi,
+      (match, tblId) => createLayoutToken('tbl-id', { tblId }) + '\n\n'
+    );
+  }
+
   processTableMarkers(markdown) {
     let result = markdown;
 
     // HTML comment syntax: <!-- table:compact -->
     result = result.replace(
       /<!--\s*table:(\w+)\s*-->/gi,
-      (match, layout) => createLayoutToken('table', { layout })
+      (match, layout) => `${createLayoutToken('table', { layout })}\n\n`
     );
 
     // ::: syntax: ::: table{layout=compact}
     result = result.replace(
       /^[ 	]*:::\s*table\{layout=(\w+)\}\s*$/gim,
-      (match, layout) => createLayoutToken('table', { layout })
+      (match, layout) => `${createLayoutToken('table', { layout })}\n`
+    );
+
+    // Closing fence for ::: table{...} blocks. Once the opening fence has been
+    // converted into a layout token, the trailing ::: is only syntactic noise and
+    // can prevent Pandoc from keeping the token as its own block before the table.
+    result = result.replace(
+      /(^|\n)(\s*\|[^\n]*\n(?:\s*\|[^\n]*\n)+)\s*:::\s*(?=\n|$)/g,
+      (match, prefix, tableBlock) => `${prefix}${tableBlock}`
     );
 
     return result;
@@ -281,15 +354,21 @@ export class LayoutPreprocessor {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
+    this.rehydrateLayoutComments(doc);
     this.hydrateLayoutTokens(doc);
     this.wrapColumnBlocks(doc);
     this.wrapTitlePageContent(doc);
     // Must run before hydrateTableOfContents so title-page headings are tagged
     this.applyTitlePageFixes(doc);
 
+    // Scientific containers — must run before figures/tables
+    this.wrapScientificContainers(doc);
+
     // Figures and table captions — must run before list building
     this.applyFigures(doc);
     this.applyTableCaptions(doc);
+    // Mermaid captions — runs after applyFigures so figureCounter is already set
+    this.applyMermaidCaptions(doc);
 
     this.applyPageBreakMarkers(doc);
 
@@ -300,13 +379,22 @@ export class LayoutPreprocessor {
 
     // Build figure/table lists from registered entries
     this.hydrateListsOfFiguresAndTables(doc);
+    this.wrapDisplayMathBlocks(doc);
 
     // Ensure the first body section starts on a new page after all front-matter
     // navigation elements (TOC, LoF, LoT).
     this.applyFrontMatterPageBreaks(doc);
 
     this.applyChapterMarkers(doc);
+
+    // Appendix mode — must run after chapters so heading IDs are settled
+    this.applyAppendixMode(doc);
+
     this.applyFlowGuards(doc);
+
+    // Convert Pandoc footnotes into Paged.js footnotes for print output so the
+    // call stays anchored at the sentence and the note is emitted on the same page.
+    this.applyPagedFootnotes(doc);
 
     // Apply table layouts
     this.applyTableLayouts(doc);
@@ -352,6 +440,36 @@ export class LayoutPreprocessor {
       '.math-block'
     ].join(', ');
 
+    const wrapChapterTarget = (target, marker = null) => {
+      if (!target || target.closest('.chapter-start')) {
+        marker?.remove();
+        return null;
+      }
+
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'chapter-start';
+      // Set data-break-before directly so Paged.js reads it during fragmentation.
+      // Paged.js uses dataset.breakBefore (not CSS break-before) when explicit
+      // polisherStylesheets are passed, because processBreaks only runs on those
+      // stylesheets and never sees the inline <style> block from styledHTML.
+      wrapper.dataset.breakBefore = 'page';
+
+      if (marker) {
+        marker.replaceWith(wrapper);
+      } else {
+        target.parentNode.insertBefore(wrapper, target);
+      }
+
+      wrapper.appendChild(target);
+
+      const firstContent = wrapper.nextElementSibling;
+      if (firstContent?.matches(keepWithHeadingSelector)) {
+        wrapper.appendChild(firstContent);
+      }
+
+      return wrapper;
+    };
+
     doc.querySelectorAll('.chapter-marker').forEach((marker) => {
       let target = marker.nextElementSibling;
       while (target && target.classList.contains('chapter-marker')) {
@@ -363,19 +481,22 @@ export class LayoutPreprocessor {
         return;
       }
 
-      const wrapper = doc.createElement('div');
-      wrapper.className = 'chapter-start';
-      // Set data-break-before directly so Paged.js reads it during fragmentation.
-      // Paged.js uses dataset.breakBefore (not CSS break-before) when explicit
-      // polisherStylesheets are passed, because processBreaks only runs on those
-      // stylesheets and never sees the inline <style> block from styledHTML.
-      wrapper.dataset.breakBefore = 'page';
-      marker.replaceWith(wrapper);
-      wrapper.appendChild(target);
+      wrapChapterTarget(target, marker);
+    });
 
-      const firstContent = wrapper.nextElementSibling;
-      if (firstContent?.matches(keepWithHeadingSelector)) {
-        wrapper.appendChild(firstContent);
+    // Scientific thesis documents use H2 for top-level body chapters. For the
+    // later numbered chapters we only need an explicit page break, not an extra
+    // wrapper, otherwise the additional container shifts too much surrounding
+    // flow and creates false extra-break regressions.
+    const numberedBodyChapters = Array.from(doc.querySelectorAll('h2')).filter((heading) => {
+      if (heading.closest('.chapter-start, .title-page, .table-of-contents, .md-columns, .md-column')) return false;
+      const text = (heading.textContent || '').trim();
+      return /^\d+\./.test(text);
+    });
+
+    numberedBodyChapters.slice(2).forEach((heading) => {
+      if (!heading.dataset.breakBefore) {
+        heading.dataset.breakBefore = 'page';
       }
     });
 
@@ -447,6 +568,22 @@ export class LayoutPreprocessor {
         markKeepWithNextBlock(heading, intro, next);
         nodes.push(next);
         wrapSequence(nodes, 'keep-with-next-table');
+      } else if (next.tagName === 'FIGURE') {
+        const followingTable = next.nextElementSibling;
+        if (followingTable?.tagName === 'TABLE') {
+          const bodyRowCount = followingTable.querySelectorAll('tbody tr').length || followingTable.querySelectorAll('tr').length;
+          if (bodyRowCount <= 8) {
+            followingTable.classList.add('table-keep-together');
+          }
+          markKeepWithNextBlock(heading, intro, next);
+          next.dataset.breakAfter = 'avoid';
+          next.classList.add('keep-with-next-block-target');
+          followingTable.dataset.breakBefore = 'avoid';
+          followingTable.dataset.previousBreakAfter = 'avoid';
+          followingTable.classList.add('keep-with-next-block-target');
+          nodes.push(next, followingTable);
+          wrapSequence(nodes, 'keep-with-following-objects');
+        }
       } else if (next.tagName === 'PRE') {
         markKeepWithNextBlock(heading, intro, next);
         nodes.push(next);
@@ -551,6 +688,10 @@ export class LayoutPreprocessor {
         marker.className = 'table-layout-marker';
         marker.dataset.layout = token.attrs.layout || 'default';
         break;
+      case 'tbl-id':
+        marker.className = 'tbl-id-marker';
+        if (token.attrs.tblId) marker.dataset.tblId = token.attrs.tblId;
+        break;
       case 'title-page':
         marker.className = 'title-page-marker';
         if (token.attrs.start === 'true') marker.dataset.start = 'true';
@@ -558,6 +699,17 @@ export class LayoutPreprocessor {
         break;
       case 'blank-page':
         marker.className = 'blank-page-marker';
+        break;
+      case 'sci-container-open':
+        marker.className = 'sci-container-open';
+        marker.dataset.type = token.attrs.type || 'definition';
+        if (token.attrs.title) marker.dataset.title = token.attrs.title;
+        break;
+      case 'sci-container-close':
+        marker.className = 'sci-container-close';
+        break;
+      case 'appendix':
+        marker.className = 'appendix-marker';
         break;
       case 'list-of-figures':
         marker.className = 'list-of-figures-placeholder';
@@ -579,6 +731,58 @@ export class LayoutPreprocessor {
     }
 
     return marker;
+  }
+
+  /**
+   * Convert Pandoc-preserved layout HTML comment nodes to [[MDLAYOUT:...]] token
+   * paragraph elements so that hydrateLayoutTokens can process them normally.
+   * This is needed because Pandoc passes <!-- columns:N ... --> comments through as
+   * Comment nodes, which querySelectorAll('*') in hydrateLayoutTokens cannot reach.
+   * Called before hydrateLayoutTokens in postProcessHTML.
+   */
+  rehydrateLayoutComments(doc) {
+    const walk = (node) => {
+      const children = Array.from(node.childNodes);
+      children.forEach((child) => {
+        if (child.nodeType === Node.COMMENT_NODE) {
+          const text = (child.textContent || '').trim();
+          let token = null;
+
+          // <!-- columns:N gap:Xpt rule:Y -->
+          const colOpen = text.match(/^columns:(\d+)(?:\s+gap:(\S+))?(?:\s+rule:(true|false))?$/i);
+          if (colOpen) {
+            token = createLayoutToken('columns-open', {
+              count: colOpen[1],
+              gap: colOpen[2] || '20pt',
+              rule: colOpen[3] === 'true',
+            });
+          } else if (/^\/columns$/i.test(text)) {
+            // <!-- /columns -->
+            token = createLayoutToken('columns-close');
+          } else if (/^column-break$/i.test(text)) {
+            // <!-- column-break -->
+            token = createLayoutToken('column-break');
+          } else {
+            // <!-- page-break [type] -->
+            const pbMatch = text.match(/^page-break(?:\s+(odd|even|right|left))?$/i);
+            if (pbMatch) {
+              token = createLayoutToken('page-break', pbMatch[1] ? { break: pbMatch[1] } : {});
+            }
+          }
+
+          if (token) {
+            const p = doc.createElement('p');
+            p.textContent = token;
+            child.parentNode.replaceChild(p, child);
+            // Do not recurse into the new element
+          }
+        } else {
+          walk(child);
+        }
+      });
+    };
+
+    walk(doc.body);
   }
 
   hydrateLayoutTokens(doc) {
@@ -763,15 +967,26 @@ export class LayoutPreprocessor {
     markers.forEach(marker => {
       const layout = marker.dataset.layout;
       let nextElement = marker.nextElementSibling;
+      let table = null;
 
-      // Find the next table
-      while (nextElement && nextElement.tagName !== 'TABLE') {
+      // Find the next table, even if a keep-with-next wrapper was inserted.
+      while (nextElement && !table) {
+        if (nextElement.tagName === 'TABLE') {
+          table = nextElement;
+          break;
+        }
+
+        table = nextElement.querySelector('table');
+        if (table) {
+          break;
+        }
+
         nextElement = nextElement.nextElementSibling;
       }
 
-      if (nextElement && nextElement.tagName === 'TABLE') {
-        nextElement.dataset.layout = layout;
-        nextElement.classList.add(`table-layout-${layout}`);
+      if (table) {
+        table.dataset.layout = layout;
+        table.classList.add(`table-layout-${layout}`);
       }
     });
   }
@@ -918,16 +1133,34 @@ export class LayoutPreprocessor {
       processed.add(img);
 
       figureNum++;
-      const semanticId = /^fig:/.test(figure.id || '') ? figure.id : '';
+      // SCI-040: Pandoc preserves <!-- img: #fig:id ... --> comments as HTML comment
+      // nodes. The markdown-it path converts them to [MDLAYOUT:img;...] tokens first,
+      // but in the Pandoc path they arrive as raw Comment nodes. Extract the semantic
+      // ID from a preceding comment so that figure cross-references can be resolved.
+      let commentFigId = '';
+      let prevNode = figure.previousSibling;
+      while (prevNode && prevNode.nodeType === Node.TEXT_NODE && /^\s*$/.test(prevNode.textContent)) {
+        prevNode = prevNode.previousSibling;
+      }
+      if (prevNode?.nodeType === Node.COMMENT_NODE) {
+        const commentText = prevNode.textContent || '';
+        const m = commentText.match(/(?:^|\s)#(fig:[^\s>]+)/i);
+        if (m) { commentFigId = m[1]; prevNode.remove(); }
+      }
+      const semanticId = commentFigId || (/^fig:/.test(figure.id || '') ? figure.id : '');
       const figureId = semanticId || `figure-${figureNum}`;
       figure.id = figureId;
       figure.classList.add('md-figure', 'md-figure--center');
 
       // Use existing <figcaption> text (Pandoc mirrors the alt text), or fall back to alt
       const figcaption = figure.querySelector('figcaption');
-      const captionText = figcaption
+      const rawCaptionText = figcaption
         ? figcaption.textContent.trim().replace(/\s+/g, ' ')
         : (img.getAttribute('alt') || '').replace(/\s+/g, ' ');
+      // Strip leading "Abbildung N:"/"Figure N:" prefix to avoid double-label when the
+      // alt text was written with an explicit prefix (e.g. "Abbildung 1: Caption text").
+      const captionPrefixMatch = rawCaptionText.match(/^(?:Abbildung|Abb\.|Figure|Fig\.)\s*\d*\s*:?\s*(.+)/i);
+      const captionText = captionPrefixMatch ? captionPrefixMatch[1].trim() : rawCaptionText;
 
       this.figureRegistry.push({ id: figureId, num: figureNum, caption: captionText });
 
@@ -1062,8 +1295,27 @@ export class LayoutPreprocessor {
       if (!match) return;
 
       tableNum++;
-      const tableId = `table-${tableNum}`;
+      const idMarker = prev.previousElementSibling?.classList.contains('tbl-id-marker')
+        ? prev.previousElementSibling : null;
+      // SCI-040: Pandoc preserves <!-- tbl: #tbl:id --> as a preceding Comment node.
+      // Check both the element-level idMarker (markdown-it path) and a preceding
+      // comment node (Pandoc path) so that table cross-references can be resolved.
+      let commentTblId = '';
+      if (!idMarker) {
+        let prevSib = prev.previousSibling;
+        while (prevSib && prevSib.nodeType === Node.TEXT_NODE && /^\s*$/.test(prevSib.textContent)) {
+          prevSib = prevSib.previousSibling;
+        }
+        if (prevSib?.nodeType === Node.COMMENT_NODE) {
+          const commentText = prevSib.textContent || '';
+          const m = commentText.match(/(?:^|\s)#(tbl:[^\s>]+)/i);
+          if (m) { commentTblId = m[1]; prevSib.remove(); }
+        }
+      }
+      const semanticId = idMarker?.dataset?.tblId || commentTblId || '';
+      const tableId = semanticId || `table-${tableNum}`;
       table.id = tableId;
+      if (idMarker) idMarker.remove();
       const captionText = match[1].trim();
       this.tableRegistry.push({ id: tableId, num: tableNum, caption: captionText });
 
@@ -1077,8 +1329,180 @@ export class LayoutPreprocessor {
     });
   }
 
-  buildFigureList(doc) {
-    if (this.figureRegistry.length === 0) return null;
+  /**
+   * Wrap scientific container tokens into semantic <div> elements.
+   * Supports: definition, theorem, proof, remark, example, lemma, corollary, proposition
+   */
+  wrapScientificContainers(doc) {
+    const counter = {};
+
+    Array.from(doc.querySelectorAll('.sci-container-open')).forEach((start) => {
+      const type = start.dataset.type || 'definition';
+      counter[type] = (counter[type] || 0) + 1;
+      const num = counter[type];
+
+      const wrapper = doc.createElement('div');
+      wrapper.className = `sci-container sci-container--${type}`;
+      wrapper.dataset.num = String(num);
+
+      let sibling = start.nextSibling;
+      while (sibling) {
+        const next = sibling.nextSibling;
+        if (
+          sibling.nodeType === Node.ELEMENT_NODE &&
+          sibling.classList.contains('sci-container-close')
+        ) {
+          sibling.remove();
+          break;
+        }
+        wrapper.appendChild(sibling);
+        sibling = next;
+      }
+
+      // Prepend label header (e.g. "Definition 1")
+      const label = doc.createElement('div');
+      label.className = 'sci-container-label';
+      const labelName = start.dataset.title
+        ? `${type.charAt(0).toUpperCase() + type.slice(1)} ${num}: ${start.dataset.title}`
+        : `${type.charAt(0).toUpperCase() + type.slice(1)} ${num}`;
+      label.textContent = labelName;
+      wrapper.insertBefore(label, wrapper.firstChild);
+
+      start.replaceWith(wrapper);
+    });
+
+    doc.querySelectorAll('.sci-container-close').forEach((el) => el.remove());
+  }
+
+  /**
+   * Apply appendix mode: headings after <!-- appendix --> are numbered A, B, C …
+   */
+  applyAppendixMode(doc) {
+    const marker = doc.querySelector('.appendix-marker');
+    if (!marker) return;
+
+    let appendixIndex = 0;
+    let sibling = marker.nextElementSibling;
+
+    while (sibling) {
+      const next = sibling.nextElementSibling;
+      // Find h2 elements (top-level appendix sections)
+      const headings = sibling.matches('h2') ? [sibling] : Array.from(sibling.querySelectorAll('h2'));
+      headings.forEach((h) => {
+        const letter = String.fromCharCode(65 + appendixIndex); // A, B, C …
+        appendixIndex++;
+        h.classList.add('appendix-heading');
+        // Prefix the heading text
+        const existing = h.textContent.trim();
+        h.textContent = `${letter}: ${existing}`;
+        // Keep existing id for TOC links
+      });
+      sibling = next;
+    }
+
+    // Also handle the case where the marker is followed by h2 siblings (no wrapper)
+    marker.remove();
+  }
+
+  /**
+   * Detect mermaid block captions from preceding paragraphs.
+   * Pattern: "Abbildung N: Title {#fig:id}" before ```mermaid block
+   * Wraps in <figure id="fig:id"> with <figcaption>.
+   * Runs after applyFigures so figureCounter is already set.
+   */
+  applyMermaidCaptions(doc) {
+    Array.from(doc.querySelectorAll('pre')).forEach((pre) => {
+      const code = pre.querySelector('code');
+      if (!code || !code.className.includes('language-mermaid')) return;
+
+      // Walk backwards to find caption paragraph (skipping markers)
+      let prev = pre.previousElementSibling;
+      while (prev && prev.tagName !== 'P' && (
+        prev.classList.contains('table-layout-marker') ||
+        prev.classList.contains('page-break') ||
+        prev.classList.contains('chapter-marker') ||
+        prev.dataset.mdLayoutToken
+      )) {
+        prev = prev.previousElementSibling;
+      }
+      if (!prev || prev.tagName !== 'P') return;
+
+      const rawText = prev.textContent.trim().replace(/\s+/g, ' ');
+      const match = rawText.match(/^(?:Abbildung|Abb\.|Figure|Fig\.)\s*\d*\s*:?\s*(.+?)(?:\s*\{#([\w:./-]+)\})?\s*$/i);
+      if (!match) return;
+
+      const captionText = match[1].trim();
+      const figId = match[2] || null;
+
+      this.figureRegistry = this.figureRegistry || [];
+      const figureNum = this.figureRegistry.length + 1;
+      const resolvedId = figId || `figure-${figureNum}`;
+
+      this.figureRegistry.push({ id: resolvedId, num: figureNum, caption: captionText });
+
+      const figure = doc.createElement('figure');
+      figure.id = resolvedId;
+      figure.className = 'md-figure md-figure--center md-figure--mermaid';
+
+      if (pre.parentNode) {
+        pre.parentNode.insertBefore(figure, pre);
+      }
+      figure.appendChild(pre);
+
+      const fc = doc.createElement('figcaption');
+      fc.innerHTML = `<span class="figure-label">Abb.\u00a0${figureNum}:</span> ${captionText}`;
+      figure.appendChild(fc);
+
+      prev.remove();
+    });
+  }
+
+  /**
+   * Transform Pandoc footnotes to Paged.js float:footnote format.
+   * Pandoc outputs <section class="footnotes"><ol><li id="fn1">...</li></ol></section>.
+   * Paged.js needs <span class="footnote"> near the inline reference.
+   */
+  applyPagedFootnotes(doc) {
+    const section = doc.querySelector('section.footnotes, div.footnotes, .footnotes');
+    if (!section) return;
+
+    // Build map: fnId → inner HTML of <li> (minus backref link)
+    const footnoteMap = new Map();
+    section.querySelectorAll('li[id]').forEach((li) => {
+      const id = li.getAttribute('id');
+      const clone = li.cloneNode(true);
+      clone.querySelectorAll('a.footnote-backref, a[role="doc-backlink"]').forEach((a) => a.remove());
+      footnoteMap.set(id, clone.innerHTML.trim());
+    });
+
+    // Replace each visible footnote reference with the floated note placeholder.
+    // Keeping the original <sup>/<a> marker alongside the float can let the call
+    // detach from the sentence near page or column boundaries.
+    doc.querySelectorAll('a.footnote-ref[href], sup > a[href^="#fn"]').forEach((ref) => {
+      const href = ref.getAttribute('href') || '';
+      const fnId = href.replace(/^#/, '');
+      const content = footnoteMap.get(fnId);
+      if (!content) return;
+
+      const span = doc.createElement('span');
+      span.className = 'footnote';
+      // Pandoc wraps footnote text in <p>; a <p> inside <span> is invalid HTML and
+      // causes browser auto-correction that breaks Paged.js float:footnote placement.
+      // Unwrap a single wrapping <p> to keep the span valid.
+      const tempFn = doc.createElement('div');
+      tempFn.innerHTML = content;
+      const fnChildren = Array.from(tempFn.childNodes);
+      const singleP = fnChildren.length === 1 && fnChildren[0].nodeName === 'P';
+      span.innerHTML = singleP ? fnChildren[0].innerHTML : content;
+
+      const marker = ref.closest('sup') || ref;
+      marker.replaceWith(span);
+    });
+
+    section.remove();
+  }
+
+  buildFigureList(doc) {    if (this.figureRegistry.length === 0) return null;
     const nav = doc.createElement('nav');
     nav.className = 'list-of-figures';
     const ol = doc.createElement('ol');
@@ -1113,11 +1537,32 @@ export class LayoutPreprocessor {
     return nav;
   }
 
+  wrapFrontMatterList(placeholder, list, sectionClass) {
+    if (!placeholder || !list) return list;
+    const doc = placeholder.ownerDocument;
+    const heading = placeholder.previousElementSibling;
+    const wrapper = doc.createElement('section');
+    wrapper.className = sectionClass;
+
+    const anchor = heading && /^H[1-6]$/.test(heading.tagName)
+      ? heading
+      : placeholder;
+
+    anchor.parentNode.insertBefore(wrapper, anchor);
+    if (heading && /^H[1-6]$/.test(heading.tagName)) {
+      wrapper.appendChild(heading);
+    }
+    wrapper.appendChild(list);
+    placeholder.remove();
+    return wrapper;
+  }
+
   hydrateListsOfFiguresAndTables(doc) {
     doc.querySelectorAll('.list-of-figures-placeholder').forEach((el, index) => {
       const list = this.buildFigureList(doc);
       if (list) {
-        el.replaceWith(index === 0 ? list : list.cloneNode(true));
+        const nextList = index === 0 ? list : list.cloneNode(true);
+        this.wrapFrontMatterList(el, nextList, 'list-of-figures-section');
       } else {
         el.remove();
       }
@@ -1125,10 +1570,27 @@ export class LayoutPreprocessor {
     doc.querySelectorAll('.list-of-tables-placeholder').forEach((el, index) => {
       const list = this.buildTableList(doc);
       if (list) {
-        el.replaceWith(index === 0 ? list : list.cloneNode(true));
+        const nextList = index === 0 ? list : list.cloneNode(true);
+        this.wrapFrontMatterList(el, nextList, 'list-of-tables-section');
       } else {
         el.remove();
       }
+    });
+  }
+
+  wrapDisplayMathBlocks(doc) {
+    doc.querySelectorAll('.math-block, .katex-display, p > math[display="block"]').forEach((node) => {
+      const mathNode = node.matches('math[display="block"]') ? node.parentElement : node;
+      if (!mathNode || mathNode.closest('.math-keep-together')) return;
+      const previous = mathNode.previousElementSibling;
+      if (!previous || previous.tagName !== 'P') return;
+      if (!(previous.textContent || '').trim()) return;
+
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'math-keep-together';
+      previous.parentNode.insertBefore(wrapper, previous);
+      wrapper.appendChild(previous);
+      wrapper.appendChild(mathNode);
     });
   }
 
@@ -1136,10 +1598,21 @@ export class LayoutPreprocessor {
     // Find the last front-matter navigation element (TOC, LoF, LoT).
     // The first block-level element that follows it should start on a new page
     // so that body chapters do not run onto the same page as the index pages.
-    const frontMatterNavs = Array.from(
-      doc.querySelectorAll('.table-of-contents, .list-of-figures, .list-of-tables')
-    );
+    const frontMatterSelector = '.table-of-contents, .list-of-figures-section, .list-of-tables-section, .list-of-figures, .list-of-tables';
+    const frontMatterNavs = Array.from(doc.querySelectorAll(frontMatterSelector))
+      .filter((node) => !node.parentElement?.closest(frontMatterSelector));
     if (!frontMatterNavs.length) return;
+
+    const toc = doc.querySelector('.table-of-contents');
+    if (toc) {
+      let supplementalNav = toc.nextElementSibling;
+      while (supplementalNav && !supplementalNav.matches?.('.list-of-figures-section, .list-of-tables-section, .list-of-figures, .list-of-tables')) {
+        supplementalNav = supplementalNav.nextElementSibling;
+      }
+      if (supplementalNav && !supplementalNav.dataset.breakBefore) {
+        supplementalNav.dataset.breakBefore = 'page';
+      }
+    }
 
     const last = frontMatterNavs[frontMatterNavs.length - 1];
     let next = last.nextElementSibling;
@@ -1156,8 +1629,9 @@ export class LayoutPreprocessor {
     // Remove marker divs that are no longer needed
     // (but keep them if they have styling applied)
     doc.querySelectorAll(
-      '.table-layout-marker, .md-columns-token-start, .md-columns-token-end, ' +
-      '.chapter-marker, .image-layout-marker, .list-of-figures-placeholder, .list-of-tables-placeholder'
+      '.table-layout-marker, .tbl-id-marker, .md-columns-token-start, .md-columns-token-end, ' +
+      '.chapter-marker, .image-layout-marker, .list-of-figures-placeholder, .list-of-tables-placeholder, ' +
+      '.sci-container-open, .sci-container-close, .appendix-marker, .blank-page-marker'
     ).forEach(el => el.remove());
   }
 

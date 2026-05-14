@@ -3,25 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-    <title>mdedit.io — Markdown editor with PDF/DOCX export</title>
-    <meta name="description" content="Write, preview and export Markdown documents in your browser. mdedit.io supports outlines, Mermaid, KaTeX, AI, collaboration and PDF/DOCX export." />
+    <title>mdedit.io — Markdown editor for PDF submission and DOCX review handoff</title>
+    <meta name="description" content="Write, preview and export Markdown documents in your browser. mdedit.io supports outlines, citations, Mermaid, KaTeX, PDF submission, and review-ready DOCX handoff for serious documents." />
     <meta name="keywords" content="markdown editor, browser markdown, PDF export, DOCX export, Mermaid, KaTeX, scientific writing, thesis, live preview, open source, self-hosted, no account" />
     <link rel="canonical" href="https://mdedit.io/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="mdedit.io" />
-    <meta property="og:title" content="mdedit.io — Markdown editor with PDF/DOCX export" />
-    <meta property="og:description" content="Write, preview and export Markdown documents in your browser. Supports outlines, Mermaid, KaTeX, AI, collaboration and PDF/DOCX export." />
+    <meta property="og:title" content="mdedit.io — Markdown editor for PDF submission and DOCX review handoff" />
+    <meta property="og:description" content="Write, preview and export Markdown documents in your browser. Supports outlines, citations, Mermaid, KaTeX, PDF submission, and review-ready DOCX handoff." />
     <meta property="og:url" content="https://mdedit.io/" />
     <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="mdedit.io — Markdown editor with live preview, layout control, and PDF/DOCX export" />
+    <meta property="og:image:alt" content="mdedit.io — Markdown editor with live preview, PDF submission, and DOCX review handoff" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="mdedit.io — Markdown editor with PDF/DOCX export" />
-    <meta name="twitter:description" content="Write, preview and export Markdown documents in your browser. Supports outlines, Mermaid, KaTeX, AI, collaboration and PDF/DOCX export." />
+    <meta name="twitter:title" content="mdedit.io — Markdown editor for PDF submission and DOCX review handoff" />
+    <meta name="twitter:description" content="Write, preview and export Markdown documents in your browser. Supports outlines, citations, Mermaid, KaTeX, PDF submission, and review-ready DOCX handoff." />
     <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
-    <meta name="twitter:image:alt" content="mdedit.io — Markdown editor with live preview, layout control, and PDF/DOCX export" />
+    <meta name="twitter:image:alt" content="mdedit.io — Markdown editor with live preview, PDF submission, and DOCX review handoff" />
     <meta name="application-name" content="mdedit.io" />
     <meta name="theme-color" content="#0089cf" />
     <script type="application/ld+json">
@@ -33,7 +32,7 @@
         "applicationSubCategory": "Document Editor",
         "operatingSystem": "Web",
         "url": "https://mdedit.io/",
-        "description": "mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, Mermaid diagrams, KaTeX math, AI assistance, real-time collaboration, and professional PDF/DOCX export. Self-hostable and open source.",
+        "description": "mdedit.io is a no-account browser-based Markdown editor for serious documents: live preview, outline tree, layout control, citations, Mermaid diagrams, KaTeX math, AI assistance, print-ready PDF submission, and review-ready DOCX handoff. Self-hostable and open source.",
         "featureList": [
           "No account required",
           "Live Markdown preview",
@@ -44,7 +43,7 @@
           "AI writing assistant",
           "Real-time collaboration",
           "PDF export",
-          "DOCX export",
+          "Review-ready DOCX handoff",
           "Scientific document mode with citations",
           "Print-oriented paged preview",
           "Self-hostable via Docker",
@@ -55,7 +54,7 @@
           "price": "0",
           "priceCurrency": "EUR"
         },
-        "softwareVersion": "0.2.2",
+        "softwareVersion": "0.2.3",
         "author": {
           "@type": "Person",
           "name": "Matthias Hertel",
@@ -225,11 +224,17 @@
                     </button>
                     <button id="previewDocxBtn" class="share-menu-item" title="Word herunterladen" aria-label="Word herunterladen" data-i18n-title="downloadWord" data-i18n-aria="downloadWord">
                       <i class="fa-solid fa-file-word"></i>
-                      <span data-i18n="downloadWord">Word herunterladen</span>
+                      <span class="share-menu-label">
+                        <span data-i18n="downloadWord">Word herunterladen</span>
+                        <small class="share-menu-hint" data-i18n="downloadWordHint">Review &amp; Betreuer-Feedback</small>
+                      </span>
                     </button>
                     <button id="sharePdfBtn" class="share-menu-item" title="PDF herunterladen" aria-label="PDF herunterladen" data-i18n-title="downloadPdf" data-i18n-aria="downloadPdf">
                       <i class="fa-solid fa-file-pdf"></i>
-                      <span data-i18n="downloadPdf">PDF herunterladen</span>
+                      <span class="share-menu-label">
+                        <span data-i18n="downloadPdf">PDF herunterladen</span>
+                        <small class="share-menu-hint" data-i18n="downloadPdfHint">Druck &amp; Abgabe</small>
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -412,6 +417,7 @@
     <div id="tipsOverlay" class="modal-overlay hidden"></div>
     <div id="tipsModal" class="modal hidden">
       <div class="modal-header">
+        <span class="tips-beta-badge" data-i18n="tipsBetaBadge">Public Beta</span>
         <div class="tips-header-intro">
           <img class="tips-header-logo" src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
           <div class="tips-header-copy">
@@ -425,33 +431,23 @@
       </div>
       <div class="modal-body">
         <section id="tipsIntroCard" class="tips-intro-card" aria-label="mdedit.io intro">
-          <div class="tips-hero-row">
-            <div class="tips-hero-copy">
-              <span class="tips-beta-badge" data-i18n="tipsBetaBadge">Public Beta</span>
-              <div class="tips-title-row">
-                <div class="tips-brand-row">
-                  <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
-                </div>
-                <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">A no-account Markdown editor for longer documents</h3>
-              </div>
+          <div class="tips-title-row">
+            <div class="tips-brand-row">
+              <img class="tips-brand-lockup" src="/static/brand/mdedit-logo.png" alt="mdedit.io" />
             </div>
+            <h3 class="tips-intro-title" data-i18n="tipsIntroTitle">Markdown for serious documents.</h3>
           </div>
-          <p class="tips-intro-lead" data-i18n="tipsIntroLead">Write in Markdown and export print-ready pages without needing Word, LaTeX, or a desktop publishing tool.</p>
-          <ul class="tips-feature-list" aria-label="Core features">
-            <li data-i18n="tipsFeaturePrintBullet">Print-ready output without Word or LaTeX: lay out your text with page preview, headers, and margins.</li>
-            <li data-i18n="tipsFeatureMarkupBullet">Complex content with tables, formulas, images, and Mermaid diagrams.</li>
-            <li data-i18n="tipsFeatureWorkflowBullet">Fast teamwork: send one link and edit together.</li>
-          </ul>
-          <div class="tips-cta-row">
-            <button id="tipsDemoBtn" class="tips-cta-btn" type="button" data-i18n="tipsDemoCta">Open demo document</button>
-            <button id="tipsStartBtn" class="tips-cta-btn is-preferred" type="button" data-i18n="tipsStartCta">Start writing</button>
-            <a id="tipsFeedbackLink" class="tips-cta-btn" href="https://github.com/MatthiasHertel21/mdedit/issues/new/choose" target="_blank" rel="noopener noreferrer" data-i18n="tipsFeedbackCta">Give feedback</a>
-          </div>
+          <p class="tips-intro-lead" data-i18n="tipsIntroLead">Write in Markdown, send review-ready DOCX for feedback, and export print-ready PDF without needing Word as the source format or a LaTeX toolchain.</p>
           <div class="tips-guide-links" aria-label="Focused product guides">
             <span class="tips-guide-links-label">Explore focused guides:</span>
             <a class="tips-guide-link" href="/thesis-writing/" target="_blank" rel="noopener">Thesis writing</a>
             <a class="tips-guide-link" href="/self-hosted-markdown-editor/" target="_blank" rel="noopener">Self-hosting</a>
             <a class="tips-guide-link" href="/markdown-citations-bibtex-csl/" target="_blank" rel="noopener">Citations</a>
+          </div>
+          <div class="tips-cta-row">
+            <button id="tipsDemoBtn" class="tips-cta-btn" type="button" data-i18n="tipsDemoCta">Open demo document</button>
+            <button id="tipsStartBtn" class="tips-cta-btn is-preferred" type="button" data-i18n="tipsStartCta">Start writing</button>
+            <a id="tipsFeedbackLink" class="tips-cta-btn" href="https://github.com/MatthiasHertel21/mdedit/issues/new/choose" target="_blank" rel="noopener noreferrer" data-i18n="tipsFeedbackCta">Give feedback</a>
           </div>
         </section>
         <div id="randomTipContainer" class="tips-content" aria-live="polite">
@@ -1139,6 +1135,9 @@
       <div class="modal-header">
         <h2 id="bibliographyTitle" data-i18n="citationBibliography">Bibliografie</h2>
         <div class="modal-header-actions">
+          <button id="bibliographyDoiBtn" class="btn-secondary" type="button" data-i18n="citationDoiSearch">DOI suchen</button>
+          <button id="bibliographySearchBtn" class="btn-secondary" type="button" data-i18n="citationSearch">Suchen</button>
+          <button id="bibliographyZoteroBtn" class="btn-secondary" type="button" data-i18n="citationZoteroSearch">Zotero</button>
           <button id="bibliographyNewBtn" class="btn-secondary" type="button" data-i18n="citationNewSource">Neue Quelle</button>
         </div>
         <button id="bibliographyClose" class="icon" type="button" aria-label="Schließen" data-i18n-aria="close">
@@ -1146,7 +1145,27 @@
         </button>
       </div>
       <div class="modal-body bibliography-modal-body">
+        <div id="openAlexSearchRow" class="bibliography-search hidden">
+          <input id="openAlexQuery" type="search" class="setting-input" data-i18n-placeholder="citationSearchPlaceholder" placeholder="Titel oder Autor suchen …" />
+          <div id="openAlexResults" class="search-results"></div>
+        </div>
+        <div id="zoteroSearchRow" class="bibliography-search hidden">
+          <div class="zotero-credentials">
+            <input id="zoteroUserId" type="text" class="setting-input" data-i18n-placeholder="citationZoteroUserIdPlaceholder" placeholder="Zotero User ID" />
+            <input id="zoteroApiKey" type="password" class="setting-input" data-i18n-placeholder="citationZoteroApiKeyPlaceholder" placeholder="API Key" />
+            <button id="zoteroSearchBtn" class="btn-sm" type="button" data-i18n="search">Suchen</button>
+          </div>
+          <input id="zoteroQuery" type="search" class="setting-input" data-i18n-placeholder="citationSearchPlaceholder" placeholder="Suchbegriff (optional)" />
+          <div id="zoteroResults" class="search-results"></div>
+        </div>
         <div id="bibliographyList" class="bibliography-list"></div>
+      </div>
+      <div class="modal-footer bibliography-modal-footer">
+        <input type="file" id="bibliographyImportFile" accept=".bib,.json" hidden />
+        <button id="bibliographyImportBtn" class="btn-sm" type="button" data-i18n="bibImport">Importieren</button>
+        <span class="bibliography-footer-spacer"></span>
+        <button id="bibliographyExportJsonBtn" class="btn-sm" type="button" data-i18n="bibExportJson">JSON</button>
+        <button id="bibliographyExportBibtexBtn" class="btn-sm" type="button" data-i18n="bibExportBibtex">BibTeX</button>
       </div>
     </div>
 
@@ -2879,6 +2898,13 @@
     <script src="/static/vendor/codemirror/addon/hint/show-hint.min.js"></script>
     <script src="/static/vendor/codemirror/addon/fold/foldcode.min.js"></script>
     <script src="/static/vendor/codemirror/addon/fold/foldgutter.min.js"></script>
-    <script type="module" src="/app.js?v=20260509-figures"></script>
+    <script type="module" src="/app.js?v=20260514-pdf-hotfix"></script>
+    <!-- crawler-visible nav: links to landing pages (not shown to users) -->
+    <nav aria-label="Product guides" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
+      <a href="/thesis-writing/">Thesis Writing with mdedit.io</a>
+      <a href="/self-hosted-markdown-editor/">Self-hosted Markdown Editor</a>
+      <a href="/markdown-citations-bibtex-csl/">Markdown Citations with BibTeX and CSL</a>
+      <a href="/help-en.html">Help</a>
+    </nav>
   </body>
 </html>

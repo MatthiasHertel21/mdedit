@@ -7,15 +7,14 @@
 
 @page {
   size: A4;
-  margin: 2.1cm 2.1cm 2.5cm 2.5cm;
+  margin: 25mm;
 
-  @bottom-right {
+  @bottom-center {
     content: counter(page);
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 9pt;
     color: #555;
     font-variant-numeric: tabular-nums;
-    border-top: 0.5pt solid #ccc;
     padding-top: 3pt;
     vertical-align: top;
   }
@@ -23,21 +22,9 @@
 
 /* First page: suppress footer on all margin boxes */
 @page :first {
-  margin-top: 2.1cm;
-  @bottom-left  { content: none; border: none; }
+  @bottom-left   { content: none; border: none; }
   @bottom-center { content: none; border: none; }
-  @bottom-right { content: none; border: none; }
-}
-
-/* Left and right pages: Balanced margins */
-@page :left {
-  margin-left: 2.5cm;
-  margin-right: 2.1cm;
-}
-
-@page :right {
-  margin-left: 2.5cm;
-  margin-right: 2.1cm;
+  @bottom-right  { content: none; border: none; }
 }
 
 /* ===== TITLE PAGE ===== */
@@ -332,6 +319,7 @@
   text-align-last: auto;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
+  color-adjust: exact;
 }
 
 /* Pandoc syntax-highlighted code: <div class="sourceCode"><pre class="sourceCode ..."> */
@@ -345,6 +333,7 @@
   page-break-inside: avoid;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
+  color-adjust: exact;
 }
 
 .print-content div.sourceCode pre {
@@ -382,6 +371,15 @@
   page-break-inside: auto;
   border-top: 1.5pt solid #222;
   border-bottom: 1.5pt solid #222;
+}
+
+.print-content table caption {
+  caption-side: top;
+  text-align: left;
+  margin-top: 0;
+  margin-bottom: 6pt;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .print-content thead {
@@ -731,6 +729,55 @@
   color: #222;
 }
 
+/* ===== SCIENTIFIC CONTAINERS ===== */
+
+.print-content .sci-container {
+  margin: 12pt 0 12pt 0;
+  padding: 8pt 12pt 8pt 14pt;
+  border-left: 3pt solid #ccc;
+  background: #f9f9f9;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .sci-container-label {
+  font-weight: 700;
+  font-size: 9.5pt;
+  margin-bottom: 4pt;
+  color: #222;
+}
+
+.print-content .sci-container--definition { border-left-color: #3b82f6; }
+.print-content .sci-container--theorem    { border-left-color: #7c3aed; }
+.print-content .sci-container--lemma      { border-left-color: #7c3aed; }
+.print-content .sci-container--corollary  { border-left-color: #7c3aed; }
+.print-content .sci-container--proposition{ border-left-color: #7c3aed; }
+.print-content .sci-container--proof      { border-left-color: #059669; background: #f0fdf4; }
+.print-content .sci-container--remark     { border-left-color: #d97706; background: #fffbeb; }
+.print-content .sci-container--example    { border-left-color: #0891b2; background: #f0f9ff; }
+
+/* ===== FOOTNOTES (Paged.js float) ===== */
+
+.print-content .footnote {
+  float: footnote;
+  font-size: 8.5pt;
+  line-height: 1.4;
+  text-align: left;
+  hyphens: auto;
+}
+
+.print-content .footnote p {
+  margin: 0;
+  font-size: inherit;
+}
+
+/* ===== APPENDIX HEADINGS ===== */
+
+.print-content .appendix-heading {
+  break-before: page;
+  page-break-before: always;
+}
+
 /* ===== TABLE CAPTIONS ===== */
 
 .print-content table caption {
@@ -754,6 +801,24 @@
 .print-content .list-of-figures,
 .print-content .list-of-tables {
   margin: 0;
+}
+
+.print-content .list-of-figures-section,
+.print-content .list-of-tables-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .list-of-figures-section > h1,
+.print-content .list-of-figures-section > h2,
+.print-content .list-of-figures-section > h3,
+.print-content .list-of-figures-section > h4,
+.print-content .list-of-tables-section > h1,
+.print-content .list-of-tables-section > h2,
+.print-content .list-of-tables-section > h3,
+.print-content .list-of-tables-section > h4 {
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .print-content .list-of-figures ol,
@@ -867,6 +932,31 @@
 .print-content .katex-display + p {
   break-before: avoid-page;
   page-break-before: avoid;
+}
+
+.print-content .math-keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content .math-keep-together > p {
+  break-after: avoid;
+  page-break-after: avoid;
+  margin-bottom: 10pt;
+}
+
+.print-content .math-keep-together > .math-block,
+.print-content .math-keep-together > .katex-display {
+  break-before: avoid-page;
+  page-break-before: avoid;
+  margin-top: 0;
+}
+
+.print-content .math-keep-together > p:last-child {
+  break-before: avoid-page;
+  page-break-before: avoid;
+  margin-top: 0;
+  text-align: center;
 }
 
 /* ===== SPECIAL ELEMENTS ===== */
@@ -996,17 +1086,33 @@
 .print-content .references,
 .print-content #refs {
   text-align: left;
+  text-align-last: auto;
   hyphens: auto;
   overflow-wrap: anywhere;
 }
 
 .print-content .csl-entry {
   text-align: left;
+  text-align-last: auto;
   hyphens: auto;
   overflow-wrap: anywhere;
   margin-bottom: 0.45em;
   padding-left: 1.5em;
   text-indent: -1.5em;
+}
+
+.print-content.keep-with-following-objects,
+.print-content .keep-with-following-objects {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-content.keep-with-following-objects > figure,
+.print-content.keep-with-following-objects > table,
+.print-content .keep-with-following-objects > figure,
+.print-content .keep-with-following-objects > table {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .print-content a.footnote-ref {

@@ -30,13 +30,33 @@ const filterArg = process.argv.find(a => a.startsWith('--filter='))?.slice(9)
 
 // ─── Chromium ────────────────────────────────────────────────────────────────
 
+const resolveCommandPath = (command) => {
+  if (!command || command.includes('/')) return command || null;
+  const result = spawnSync('which', [command], { encoding: 'utf8' });
+  if (result.status !== 0) return null;
+  const resolved = String(result.stdout || '').split(/\r?\n/)[0].trim();
+  return resolved || null;
+};
+
 const resolveChromium = () => {
   const candidates = [
-    process.env.CHROMIUM_BIN, 'chromium', 'chromium-browser',
-    'google-chrome', 'google-chrome-stable'
+    process.env.CHROMIUM_BIN,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.BROWSER_EXECUTABLE_PATH,
+    'chromium',
+    'chromium-browser',
+    'google-chrome',
+    'google-chrome-stable',
+    '/snap/bin/chromium',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable'
   ].filter(Boolean);
   for (const cmd of candidates) {
-    if (spawnSync(cmd, ['--version'], { stdio: 'ignore' }).status === 0) return cmd;
+    if (spawnSync(cmd, ['--version'], { stdio: 'ignore' }).status === 0) {
+      return resolveCommandPath(cmd) || cmd;
+    }
   }
   return null;
 };
@@ -361,6 +381,28 @@ const SUITES = [
       assert(!/Tab\.(\u00a0|&nbsp;)1\s+:/.test(result), 'Colon must not have space before it');
     }),
 
+    check('TAB-11', '<!-- tbl: #tbl:id --> assigns semantic id to table', async (page) => {
+      const md = '<!-- tbl: #tbl:vergleich -->\nTabelle 2: Vergleich der Optionen.\n\n| Option | Wert |\n|---|---|\n| Rand | 2 cm |';
+      const result = await evalPreprocessorMd(page, md);
+      assert(result.includes('id="tbl:vergleich"'), 'Expected semantic table id');
+      assert(result.includes('<caption'), 'Expected <caption> element');
+      assert(!result.includes('class="tbl-id-marker"'), 'tbl-id-marker should be cleaned up');
+    }),
+
+    check('TAB-12', 'Table without <!-- tbl: --> marker gets fallback id table-N', async (page) => {
+      const md = 'Tabelle 1: Ohne ID.\n\n| A | B |\n|---|---|\n| x | y |';
+      const result = await evalPreprocessorMd(page, md);
+      assert(result.includes('id="table-1"'), 'Expected fallback id table-1');
+      assert(!result.includes('tbl:'), 'No semantic id without marker');
+    }),
+
+    check('TAB-13', 'Mixed: first table has semantic id, second gets fallback', async (page) => {
+      const md = '<!-- tbl: #tbl:eins -->\nTabelle 1: Eins.\n\n| A |\n|---|\n| a |\n\nTabelle 2: Zwei.\n\n| B |\n|---|\n| b |';
+      const result = await evalPreprocessorMd(page, md);
+      assert(result.includes('id="tbl:eins"'), 'Expected semantic id on first table');
+      assert(result.includes('id="table-2"'), 'Expected fallback id on second table');
+    }),
+
   ]),
 
   suite('directories', [
@@ -520,6 +562,41 @@ const SUITES = [
 
   ]),
 
+  suite('preview-crossrefs', [
+
+    check('XREF-01', 'Table cross-reference keeps escaped text as text in the live preview', async (page) => {
+      const md = '<!-- tbl: #tbl:test -->\nTabelle 1: Test.\n\n| A | B |\n|---|---|\n| x | y |\n\nEntity &lt;safe&gt; [@tbl:test]';
+      await setPreviewMarkdown(page, md);
+      await page.waitForFunction(
+        () => Boolean(document.querySelector('#preview .table-ref')),
+        { timeout: 30000 }
+      );
+      const result = await page.evaluate(() => {
+        const preview = document.querySelector('#preview');
+        return {
+          html: preview ? preview.innerHTML : '',
+          safeTagCount: preview ? preview.querySelectorAll('safe').length : -1,
+          refText: preview ? preview.querySelector('.table-ref')?.textContent || '' : ''
+        };
+      });
+      assert(result.refText === 'Tabelle\u00a01', `Expected table link text "Tabelle\u00a01", got "${result.refText}"`);
+      assert(result.safeTagCount === 0, 'Escaped text must remain text, not become a <safe> element');
+      assert(result.html.includes('Entity &lt;safe&gt;'), 'Escaped text should remain escaped in preview HTML');
+    }),
+
+    check('XREF-02', 'Figure cross-reference uses the frontmatter language label', async (page) => {
+      const md = '---\nlang: en\n---\n\n<!-- img: #fig:schema -->\n\n![Figure 1: Diagram](x.png)\n\nSee [@fig:schema].';
+      await setPreviewMarkdown(page, md);
+      await page.waitForFunction(
+        () => Boolean(document.querySelector('#preview .figure-ref')),
+        { timeout: 30000 }
+      );
+      const result = await page.evaluate(() => document.querySelector('#preview .figure-ref')?.textContent || '');
+      assert(result === 'Figure\u00a01', `Expected figure link text "Figure\u00a01", got "${result}"`);
+    }),
+
+  ]),
+
 ];
 
 // ─── Browser helpers ──────────────────────────────────────────────────────────
@@ -544,6 +621,14 @@ async function evalPreprocessor(page, html) {
     lp.resetCounters();
     return lp.postProcessHTML(htmlStr);
   }, html);
+}
+
+async function setPreviewMarkdown(page, md) {
+  await page.evaluate((mdStr) => {
+    const cmHost = document.querySelector('.CodeMirror');
+    if (!cmHost || !cmHost.CodeMirror) throw new Error('CodeMirror not found on page');
+    cmHost.CodeMirror.setValue(mdStr);
+  }, md);
 }
 
 function assert(condition, message) {

@@ -1,22 +1,45 @@
+import { documentLayout } from './document-layout.js';
+
 /**
  * Layout CSS Generator
  * Generates CSS from layout configuration
  */
 
 export class LayoutCSSGenerator {
+  pruneNullish(value) {
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.pruneNullish(entry));
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    return Object.entries(value).reduce((acc, [key, entry]) => {
+      if (entry === undefined || entry === null) {
+        return acc;
+      }
+      acc[key] = this.pruneNullish(entry);
+      return acc;
+    }, {});
+  }
+
   /**
    * Generate complete CSS from layout configuration
    */
   generate(layout) {
+    const effectiveLayout = documentLayout.deepMerge(
+      documentLayout.getDefaultLayout(),
+      this.pruneNullish(layout || {})
+    );
     const css = [];
 
-    css.push(this.generatePageCSS(layout));
-    css.push(this.generateHeaderFooterCSS(layout));
-    css.push(this.generateTypographyCSS(layout));
-    css.push(this.generateTableCSS(layout));
-    css.push(this.generateImageCSS(layout));
-    css.push(this.generateSpacingCSS(layout));
-    css.push(this.generateColumnsCSS(layout));
+    css.push(this.generatePageCSS(effectiveLayout));
+    css.push(this.generateHeaderFooterCSS(effectiveLayout));
+    css.push(this.generateTypographyCSS(effectiveLayout));
+    css.push(this.generateTableCSS(effectiveLayout));
+    css.push(this.generateImageCSS(effectiveLayout));
+    css.push(this.generateSpacingCSS(effectiveLayout));
+    css.push(this.generateColumnsCSS(effectiveLayout));
 
     return css.join('\n\n');
   }
@@ -382,9 +405,9 @@ ${selector} th {
   ${name === 'scientific' ? `font-size: calc(${tLayout.fontSize} * 0.9);` : 'line-height: inherit;'}
   vertical-align: top;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
-  hyphens: manual;
+  hyphens: auto;
   ${tLayout.headerBorderBottom ? `border-bottom: ${tLayout.headerBorderBottom.width} solid ${tLayout.headerBorderBottom.color};` : ''}
 }
 
@@ -398,9 +421,9 @@ ${selector} td {
   font-weight: normal;
   vertical-align: top;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
-  hyphens: manual;
+  hyphens: auto;
 }`;
 
       // Scientific tables: Booktabs-style rules via cell borders (more reliable

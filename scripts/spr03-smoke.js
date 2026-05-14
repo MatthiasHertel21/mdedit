@@ -7,14 +7,38 @@
  *   BASE_URL=http://127.0.0.1:3211 node scripts/spr03-smoke.js
  */
 import puppeteer from "puppeteer-core";
+import fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 
 const baseUrl = process.env.BASE_URL || "http://localhost:3210";
-const pasteId =
-  process.env.PASTE_ID || "10a407c9-fd33-4db3-9b24-b2f8a6894a78";
+const fixturePath = process.env.MARKDOWN_PATH || path.join("docs", "examples", "masterthesis-reference.md");
 
 function assert(condition, message) {
   if (!condition) throw new Error(`FAIL: ${message}`);
+}
+
+async function createSharedPaste(markdown) {
+  const createResponse = await fetch(`${baseUrl}/api/pastes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markdown }),
+  });
+  assert(createResponse.ok, `Creating paste failed with status ${createResponse.status}`);
+  const created = await createResponse.json();
+  assert(created?.id, "Creating paste did not return an id");
+  const sessionCookie = createResponse.headers.get("set-cookie");
+
+  const shareResponse = await fetch(`${baseUrl}/api/pastes/${created.id}/share`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(sessionCookie ? { Cookie: sessionCookie } : {}),
+    },
+    body: JSON.stringify({ shared: true }),
+  });
+  assert(shareResponse.ok, `Sharing paste failed with status ${shareResponse.status}`);
+  return created.id;
 }
 
 function resolveChromium() {
@@ -51,6 +75,8 @@ const browser = await puppeteer.launch({
 
 try {
   const page = await browser.newPage();
+  const markdown = fs.readFileSync(fixturePath, "utf8");
+  const pasteId = process.env.PASTE_ID || await createSharedPaste(markdown);
   const url = `${baseUrl}/${pasteId}`;
   console.log(`Navigating to ${url}`);
   await page.goto(url, { waitUntil: "networkidle0", timeout: 30000 });

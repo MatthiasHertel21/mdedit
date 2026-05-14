@@ -504,10 +504,94 @@
     "example": "## Methodik {#sec:methodik}\n\nWie in [@sec:methodik] beschrieben …"
   },
   {
+    "id": 75,
+    "category": "markdown",
+    "title": "Semantische Abbildungs-ID und Querverweise",
+    "text": "Vergib einer Abbildung eine typisierte ID mit `{#fig:id}` direkt nach dem Bild oder per `<!-- img: #fig:id -->` Marker. Verweise im Text mit `[@fig:id]` — die Vorschau erzeugt daraus einen klickbaren Link, z. B. *Abbildung 2*.",
+    "example": "<!-- img: #fig:schema align=center -->\n\n![Systemübersicht](schema.png)\n\nWie in [@fig:schema] dargestellt …"
+  },
+  {
+    "id": 76,
+    "category": "markdown",
+    "title": "Semantische Tabellen-ID und Querverweise",
+    "text": "Vergib einer Tabelle eine typisierte ID mit `<!-- tbl: #tbl:id -->` direkt vor der Tabellenunterschrift. Verweise im Text mit `[@tbl:id]` — die Vorschau erzeugt daraus einen klickbaren Link, z. B. *Tabelle 1*.",
+    "example": "<!-- tbl: #tbl:ergebnisse -->\nTabelle 1: Messergebnisse im Überblick.\n\n| Metrik | Wert |\n|---|---|\n| Genauigkeit | 94 % |\n\nSiehe [@tbl:ergebnisse] für Details."
+  },
+  {
     "id": 74,
     "category": "features",
     "title": "Zitationen und Bibliografie",
     "text": "Setze `citation-source: embedded` im Frontmatter und lege BibTeX-Einträge in einem Fenced-Code-Block am Dokumentende ab. Zitationen im Text wie `[@Key2024]` werden automatisch aufgelöst.",
     "example": "---\ncitation-source: embedded\n---\n\nNach [@Autor2024] gilt …\n\n``` bibtex\n@article{Autor2024,\n  author = {Autor, A.},\n  title  = {Titel},\n  year   = {2024}\n}\n```"
+  },
+  {
+    "id": 77,
+    "category": "features",
+    "title": "Bibliografie-Panel",
+    "text": "Bei Dokumenten mit eingebetteten Quellen erscheint ein Buch-Symbol im Editor-Header. Klick darauf öffnet das Bibliografie-Panel mit einer Übersicht aller Quellen. Dort können Quellen hinzugefügt, bearbeitet, gelöscht und per Klick an der Cursorposition eingefügt werden.",
+    "example": "---\ncitation-source: embedded\n---\n\nSiehe [@Mueller2024]."
+  },
+  {
+    "id": 78,
+    "category": "features",
+    "title": "Bibliografie-Block im Editor ausblenden",
+    "text": "Ein großer `mdedit-bibliography`-Block belegt viel Platz im Editor. In den Einstellungen (Editor-Tab) lässt er sich zu einem einzeiligen Platzhalter einfalten — der Inhalt bleibt erhalten und der Block ist weiterhin über das Bibliografie-Panel zugänglich.",
+    "example": null
+  },
+  {
+    "id": 79,
+    "category": "features",
+    "title": "Wissenschaftliche Container (Theorem, Definition, Proof)",
+    "text": "Mit `:::theorem`, `:::definition`, `:::proof`, `:::remark` und `:::example` lassen sich semantische Container erzeugen. Optional kann ein Titel angegeben werden: `:::theorem Hauptsatz der Analysis`. Der Container wird in Preview und PDF automatisch nummeriert und visuell abgesetzt.",
+    "example": ":::definition Gleichmäßige Stetigkeit\n\nEine Funktion $f$ heißt gleichmäßig stetig auf $I$, wenn...\n\n:::"
+  },
+  {
+    "id": 80,
+    "category": "features",
+    "title": "Appendix-Modus",
+    "text": "Mit `<!-- appendix -->` an beliebiger Stelle im Dokument werden alle nachfolgenden `##`-Überschriften automatisch als Anhang A, B, C … bezeichnet. Im PDF beginnt jeder Anhang auf einer neuen Seite.",
+    "example": "## Fazit\n\n<!-- appendix -->\n\n## Messrohdaten\n\n(Inhalt Anhang A)"
+  },
+  {
+    "id": 81,
+    "category": "features",
+    "title": "Autor-Kommentare (unsichtbar im Export)",
+    "text": "Text zwischen `%%` und `%%` wird in Preview und Export vollständig unterdrückt. Ideal für Notizen, TODOs und redaktionelle Hinweise, die im Enddokument nicht erscheinen sollen.",
+    "example": "%% TODO: Quellen prüfen, Absatz kürzen %%\n\nDieser Absatz erscheint normal."
+  },
+  {
+    "id": 82,
+    "category": "features",
+    "title": "Mermaid-Diagramme mit Caption und ID",
+    "text": "Ein Absatz direkt vor einem Mermaid-Block im Format `Abbildung N: Titel {#fig:id}` wird als Abbildungsunterschrift erkannt. Das Diagramm erhält einen `<figure>`-Wrapper mit automatischer Nummerierung und kann über `@fig:id` referenziert werden.",
+    "example": "Abbildung 1: Systemübersicht {#fig:overview}\n\n```mermaid\ngraph LR\n  A --> B\n```"
+  },
+  {
+    "id": 83,
+    "category": "citations",
+    "title": "Bibliografie direkt im Dokument einbetten",
+    "text": "Mit `citation-source: embedded` im Frontmatter liest mdedit.io die Literatur direkt aus einem `mdedit-bibliography`-Block. Der Block akzeptiert BibTeX oder CSL-JSON. So ist die Bibliografie Teil des Markdown-Dokuments — kein separates .bib-File nötig.",
+    "example": "---\ncitation-source: embedded\n---\n\nSiehe [@doe2024].\n\n```mdedit-bibliography\n@book{doe2024,\n  author={Doe, Jane},\n  title={Beispiel},\n  year={2024}\n}\n```"
+  },
+  {
+    "id": 84,
+    "category": "citations",
+    "title": "DOI-Lookup: Metadaten automatisch abrufen",
+    "text": "Im Bibliografie-Modal den Button 'DOI suchen' klicken und einen DOI eingeben (z. B. `10.1000/xyz`). mdedit.io ruft die Metadaten von Crossref ab und legt die Quelle automatisch an — kein manuelles Eintippen nötig.",
+    "example": "DOI: 10.1038/s41586-020-2649-2\n→ Eintrag wird automatisch aus Crossref importiert."
+  },
+  {
+    "id": 85,
+    "category": "citations",
+    "title": "Zotero-Connector: Bibliothek direkt importieren",
+    "text": "Im Bibliografie-Modal den Button 'Zotero' klicken, Zotero User-ID und API-Key eingeben und nach Quellen suchen. Ausgewählte Treffer landen direkt im eingebetteten Block. Die Zugangsdaten bleiben im Browser (sessionStorage) und werden nicht an den Server übertragen.",
+    "example": "Zotero User ID: 12345678\nAPI Key: AbCdEfGhIjKlMnOpQrStUvWx\n→ Quellen aus deiner Zotero-Bibliothek suchen und übernehmen."
+  },
+  {
+    "id": 86,
+    "category": "citations",
+    "title": "Bibliografie importieren und exportieren",
+    "text": "Im Bibliografie-Modal können .bib- (BibTeX) und .json-Dateien (CSL-JSON) importiert werden — Duplikate (gleicher Schlüssel) werden dabei übersprungen. Mit den Buttons 'JSON' und 'BibTeX' lässt sich der aktuelle Block als Datei herunterladen.",
+    "example": "Import: bestehende.bib → Einträge werden gemergt\nExport JSON: bibliography.json\nExport BibTeX: bibliography.bib"
   }
 ]

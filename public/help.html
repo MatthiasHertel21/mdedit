@@ -614,7 +614,7 @@ siehe auch [@sec:daten].</code></pre>
           <p>Die Vorschau ersetzt <code>[@sec:id]</code> durch einen klickbaren Link mit der aufgelösten Abschnittsnummer, z. B. <em>Abschnitt 2.1</em>.</p>
 
           <h3>Zitationen und Bibliografie</h3>
-          <p>Wenn <code>citation-source: embedded</code> gesetzt ist, wird das Literaturverzeichnis automatisch aus dem Dokument geparst:</p>
+          <p>Wenn <code>citation-source: embedded</code> gesetzt ist, liest mdedit.io die Bibliografie direkt aus einem <code>mdedit-bibliography</code>-Block. Der Block akzeptiert BibTeX oder CSL-JSON:</p>
           <pre><code>---
 citation-source: embedded
 number-sections: true
@@ -624,15 +624,35 @@ number-sections: true
 
 Nach [@Autor2024] gilt …
 
-## Literaturverzeichnis
-
-``` bibtex
+```mdedit-bibliography
 @article{Autor2024,
   author = {Autor, A.},
   title  = {Titel},
   year   = {2024}
 }
 ```</code></pre>
+          <p>Alternativ kann der Block auch ein CSL-JSON-Array enthalten. Mit <code>#refs</code> wird die Referenzsektion explizit an der gewuenschten Stelle eingesetzt.</p>
+
+          <h3>Bibliografie-Modal: Quellen verwalten</h3>
+          <p>Über das Bibliografie-Icon in der Werkzeugleiste öffnet sich ein Modal zum Verwalten aller Quellen im eingebetteten Block.</p>
+          <table class="compact-table">
+            <thead><tr><th>Funktion</th><th>Beschreibung</th></tr></thead>
+            <tbody>
+              <tr><td><strong>DOI suchen</strong></td><td>DOI eingeben → Crossref-Metadaten werden automatisch abgerufen und als neue Quelle eingetragen.</td></tr>
+              <tr><td><strong>Suchen (OpenAlex)</strong></td><td>Titel oder Autor suchen → öffentliche Literaturdatenbank, kein Account nötig.</td></tr>
+              <tr><td><strong>Zotero</strong></td><td>Zotero User-ID und API-Key eingeben → Quellen aus der eigenen Zotero-Bibliothek importieren. Zugangsdaten bleiben im Browser (sessionStorage).</td></tr>
+              <tr><td><strong>Neue Quelle</strong></td><td>Quelle manuell mit Formular anlegen.</td></tr>
+              <tr><td><strong>Importieren</strong></td><td>.bib (BibTeX) oder .json (CSL-JSON) Datei öffnen → Einträge werden in den Block gemergt (keine Duplikate).</td></tr>
+              <tr><td><strong>JSON / BibTeX</strong></td><td>Den aktuellen Block als CSL-JSON- oder BibTeX-Datei herunterladen.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>PDF vs. DOCX Export im wissenschaftlichen Workflow</h3>
+          <p>mdedit.io exportiert wissenschaftliche Dokumente in zwei Formaten mit unterschiedlichem Zweck:</p>
+          <ul>
+            <li><strong>PDF (Paged-Preview):</strong> Drucknahe Ausgabe für Abgabe und Archivierung. Layout, Seitenränder und Typografie werden exakt übernommen.</li>
+            <li><strong>DOCX (Word):</strong> Editierbares Review-Format für Betreuer-Feedback und Track-Changes-Kommentierung. Überschriften, Fließtext, Listen, Tabellen, Zitationen und Literaturverzeichnis bleiben vollständig editierbar. Mermaid-Diagramme und komplexe Layouts sind Best-Effort.</li>
+          </ul>
         </section>
 
         <section id="layout">
@@ -1400,7 +1420,7 @@ siehe auch [@sec:daten].</code></pre>
                 <p>Die Vorschau ersetzt <code>[@sec:id]</code> durch einen klickbaren Link mit der aufgelösten Abschnittsnummer, z. B. <em>Abschnitt 2.1</em>.</p>
 
                 <h3>Zitationen und Bibliografie</h3>
-                <p>Wenn <code>citation-source: embedded</code> gesetzt ist, wird das Literaturverzeichnis automatisch aus dem Dokument geparst:</p>
+                <p>Wenn <code>citation-source: embedded</code> gesetzt ist, liest mdedit.io die Bibliografie direkt aus einem <code>mdedit-bibliography</code>-Block. Der Block akzeptiert BibTeX oder CSL-JSON:</p>
                 <pre><code>---
 citation-source: embedded
 number-sections: true
@@ -1410,15 +1430,90 @@ number-sections: true
 
 Nach [@Autor2024] gilt …
 
-## Literaturverzeichnis
-
-``` bibtex
+```mdedit-bibliography
 @article{Autor2024,
   author = {Autor, A.},
   title  = {Titel},
   year   = {2024}
 }
 ```</code></pre>
+                <p>Alternativ kann der Block auch ein CSL-JSON-Array enthalten. Mit <code>#refs</code> wird die Referenzsektion explizit an der gewuenschten Stelle eingesetzt.</p>
+
+                <h3>Bibliografie-Modal: Quellen verwalten</h3>
+                <p>Über das Bibliografie-Icon in der Werkzeugleiste öffnet sich ein Modal zum Verwalten aller Quellen im eingebetteten Block.</p>
+                <table class="compact-table">
+                  <thead><tr><th>Funktion</th><th>Beschreibung</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>DOI suchen</strong></td><td>DOI eingeben → Crossref-Metadaten werden automatisch abgerufen und als neue Quelle eingetragen.</td></tr>
+                    <tr><td><strong>Suchen (OpenAlex)</strong></td><td>Titel oder Autor suchen → öffentliche Literaturdatenbank, kein Account nötig.</td></tr>
+                    <tr><td><strong>Zotero</strong></td><td>Zotero User-ID und API-Key eingeben → Quellen aus der eigenen Zotero-Bibliothek importieren. Zugangsdaten bleiben im Browser (sessionStorage).</td></tr>
+                    <tr><td><strong>Neue Quelle</strong></td><td>Quelle manuell mit Formular anlegen.</td></tr>
+                    <tr><td><strong>Importieren</strong></td><td>.bib (BibTeX) oder .json (CSL-JSON) Datei öffnen → Einträge werden in den Block gemergt (keine Duplikate).</td></tr>
+                    <tr><td><strong>JSON / BibTeX</strong></td><td>Den aktuellen Block als CSL-JSON- oder BibTeX-Datei herunterladen.</td></tr>
+                  </tbody>
+                </table>
+
+                <h3>PDF vs. DOCX Export im wissenschaftlichen Workflow</h3>
+                <p>mdedit.io exportiert wissenschaftliche Dokumente in zwei Formaten mit unterschiedlichem Zweck:</p>
+                <ul>
+                  <li><strong>PDF (Paged-Preview):</strong> Drucknahe Ausgabe für Abgabe und Archivierung. Layout, Seitenränder und Typografie werden exakt übernommen.</li>
+                  <li><strong>DOCX (Word):</strong> Editierbares Review-Format für Betreuer-Feedback und Track-Changes-Kommentierung. Überschriften, Fließtext, Listen, Tabellen, Zitationen und Literaturverzeichnis bleiben vollständig editierbar. Mermaid-Diagramme und komplexe Layouts sind Best-Effort.</li>
+                </ul>
+
+                <h3>Wissenschaftliche Container</h3>
+                <p>Semantische Umgebungen für Theoreme, Definitionen, Beweise und ähnliche Strukturen. Die Syntax nutzt Pandoc-Fenced-Divs mit einem Typnamen und optionalem Titel:</p>
+                <pre><code>::: theorem Hauptsatz der Analysis
+Sei $f$ stetig differenzierbar auf $[a,b]$, dann gilt …
+:::
+
+::: definition
+Eine Menge $M$ heißt **kompakt**, wenn …
+:::
+
+::: proof
+Aus der Kompaktheit folgt …
+:::</code></pre>
+                <p>Unterstützte Typen: <code>theorem</code>, <code>definition</code>, <code>proof</code>, <code>remark</code>, <code>example</code>, <code>lemma</code>, <code>corollary</code>, <code>proposition</code>. Container werden in Vorschau und PDF nummeriert und visuell abgesetzt.</p>
+
+                <h3>Anhang-Modus</h3>
+                <p>Mit <code>&lt;!-- appendix --&gt;</code> oder <code>::: appendix</code> an beliebiger Stelle im Dokument werden alle nachfolgenden <code>##</code>-Überschriften automatisch als Anhang A, B, C … nummeriert. Im PDF beginnt jeder Anhang auf einer neuen Seite:</p>
+                <pre><code>## Fazit
+
+&lt;!-- appendix --&gt;
+
+## Messrohdaten
+
+(Inhalt Anhang A)
+
+## Interviewtranskripte
+
+(Inhalt Anhang B)</code></pre>
+
+                <h3>Mermaid-Diagramme mit Bildunterschrift</h3>
+                <p>Eine Bildunterschrift und eine Figure-ID können direkt im Mermaid-Codeblock als Kommentare angegeben werden:</p>
+                <pre><code>```mermaid
+%% caption: Systemarchitektur Überblick
+%% id: fig:architektur
+flowchart LR
+  A[Client] --> B[Server]
+  B --> C[Datenbank]
+```</code></pre>
+                <p>Im PDF wird das Diagramm als nummerierte Abbildung gesetzt. Mit <code>[@fig:architektur]</code> kann im Text darauf verwiesen werden.</p>
+
+                <h3>Fußnoten im PDF</h3>
+                <p>Standard-Markdown-Fußnoten werden im PDF als echte Seitenfußnoten gesetzt — Paged.js platziert sie automatisch am unteren Seitenrand der richtigen Seite:</p>
+                <pre><code>Dieser Sachverhalt ist umstritten.[^1]
+
+[^1]: Vgl. dazu ausführlich Müller (2023), S. 45–48.</code></pre>
+
+                <h3>Autor-Kommentare</h3>
+                <p>Text zwischen <code>%%</code> wird als interner Autorenkommentar behandelt und in Vorschau und Export vollständig entfernt. Geeignet für Arbeitsnotizen, TODOs und Redaktionshinweise:</p>
+                <pre><code>%% TODO: Abschnitt noch ausformulieren %%
+
+Der fertige Absatz steht hier.
+
+%% REVIEW: Zitat prüfen — Seitenzahl fehlt %%</code></pre>
+                <p>Einzelzeilen-Kommentare ohne schließendes <code>%%</code> werden ebenfalls entfernt.</p>
               </section>
 
               <section id="layout">
