@@ -44,6 +44,8 @@ async function createSharedPaste(markdown) {
 function resolveChromium() {
   const candidates = [
     process.env.CHROMIUM_BIN,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.BROWSER_EXECUTABLE_PATH,
     "chromium",
     "chromium-browser",
     "google-chrome",
@@ -52,11 +54,16 @@ function resolveChromium() {
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
     "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
   ].filter(Boolean);
   for (const c of candidates) {
+    if (c.startsWith("/")) {
+      if (spawnSync("test", ["-x", c]).status === 0) return c;
+      continue;
+    }
+    if (spawnSync(c, ["--version"], { stdio: "ignore" }).status !== 0) continue;
     const r = spawnSync("which", [c], { encoding: "utf8" });
     if (r.status === 0) return r.stdout.trim();
-    if (c.startsWith("/") && spawnSync("test", ["-x", c]).status === 0) return c;
   }
   return null;
 }

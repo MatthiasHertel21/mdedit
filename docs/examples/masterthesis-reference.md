@@ -456,7 +456,7 @@ $$
 \int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
 $$
 
-Zusätzlich bleibt eine Anmerkung als Satz- und Exportprobe erhalten. Die Anmerkung prüft, ob Lauftext und Zusatzhinweis in der Ausgabe stabil lesbar bleiben.
+**Anmerkung:** Diese Anmerkung ersetzt echte Fußnoten und Endnoten, solange der PDF-Pfad diese nicht zuverlässig seiten- und dokumentgerecht setzt.
 
 ### A.5 Mehrspaltenprobe
 
@@ -484,8 +484,8 @@ id: example-masterthesis
 base: scientific
 citationStyle: author-date
 requiredSections:
-  - abstract
-  - references
+    - abstract
+    - references
 ```
 
 Zusätzlich dient eine lange URL als Umbruchprobe im Lauftext:

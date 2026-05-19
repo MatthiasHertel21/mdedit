@@ -13,6 +13,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versions fo
 - Direct download URLs for shared pastes (`/:id/raw`, `/:id/pdf`, `/:id/docx`)
 - Link-copy buttons in share menu
 - Sample PDF output linked from README
+- Embedded `mdedit-bibliography` block as document-bound bibliography source (CSL-JSON and BibTeX)
+- Server-side proxy routes for DOI lookup (Crossref), OpenAlex search, and Zotero connector
+- DOI lookup button in the bibliography modal
+- OpenAlex search with debounced input in the bibliography modal
+- Zotero connector with sessionStorage-only credentials in the bibliography modal
+- Bibliography import (`.bib` / `.json`) and export (CSL-JSON / BibTeX) via File API
+
+### Changed
+- **BREAKING:** Filesystem `bibliography:` frontmatter paths are no longer supported. Migrate documents to use an embedded `mdedit-bibliography` code block instead.
 
 ### Fixed
 - List spacing and hanging indent in Paged.js output

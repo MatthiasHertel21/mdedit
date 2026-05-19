@@ -12,6 +12,21 @@ data/*.sqlite-shm
 data/*.sqlite-wal
 data/.cookie_secret
 data/.stats_token
+data/marketing-stats.json
+data/nginx-stats.json
+data/reference.docx
+
+# Temp/debug files
+cookies.txt
+nginx_config_dump.txt
+audit_output.txt
+last_audit_full.txt
+output.html
+paste_payload.json
+analyze_export.cjs
+analyze_export.js
+measure-payload.js
+validate_bib.cjs
 assets/
 data/assets/
 !docs/assets/

@@ -68,6 +68,22 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 };
 
+const escapeHtmlAttr = (text) => String(text || "")
+  .replace(/&/g, "&amp;")
+  .replace(/"/g, "&quot;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;");
+
+const getFootnoteKindFromMeta = (meta = {}) => {
+  const label = String(meta?.label || "").trim();
+  return /^end(?:note)?[-:]/i.test(label) ? "endnote" : "page-footnote";
+};
+
+const getFootnoteNumberFromMeta = (meta = {}) => {
+  const numericId = Number(meta?.id);
+  return Number.isFinite(numericId) ? String(numericId + 1) : "";
+};
+
 export const sanitizeRenderedHtml = (html) => {
   const template = document.createElement("template");
   template.innerHTML = String(html || "");
@@ -284,7 +300,47 @@ export const buildMarkdownIt = (settings) => {
     usePlugin(markdownItMultimdTable, { multiline: true, rowspan: true, headerless: true });
   }
 
-  if (settings.footnotes) usePlugin(markdownItFootnote);
+  if (settings.footnotes) {
+    usePlugin(markdownItFootnote);
+
+    const defaultFootnoteRef = instance.renderer.rules.footnote_ref;
+    const defaultFootnoteOpen = instance.renderer.rules.footnote_open;
+
+    if (typeof defaultFootnoteRef === "function") {
+      instance.renderer.rules.footnote_ref = (tokens, idx, options, env, renderer) => {
+        const token = tokens[idx];
+        const kind = getFootnoteKindFromMeta(token?.meta);
+        const number = getFootnoteNumberFromMeta(token?.meta);
+        const label = String(token?.meta?.label || "").trim();
+        const attrs = [
+          `data-footnote-kind="${kind}"`,
+          number ? `data-footnote-number="${escapeHtmlAttr(number)}"` : "",
+          label ? `data-footnote-label="${escapeHtmlAttr(label)}"` : ""
+        ].filter(Boolean).join(" ");
+        const html = defaultFootnoteRef(tokens, idx, options, env, renderer);
+        return html
+          .replace('<sup class="footnote-ref"', `<sup class="footnote-ref" ${attrs}`)
+          .replace('<a href="#', `<a ${attrs} href="#`);
+      };
+    }
+
+    if (typeof defaultFootnoteOpen === "function") {
+      instance.renderer.rules.footnote_open = (tokens, idx, options, env, renderer) => {
+        const token = tokens[idx];
+        const kind = getFootnoteKindFromMeta(token?.meta);
+        const number = getFootnoteNumberFromMeta(token?.meta);
+        const label = String(token?.meta?.label || "").trim();
+        const attrs = [
+          `data-footnote-kind="${kind}"`,
+          number ? `data-footnote-number="${escapeHtmlAttr(number)}"` : "",
+          label ? `data-footnote-label="${escapeHtmlAttr(label)}"` : "",
+          number ? `value="${escapeHtmlAttr(number)}"` : ""
+        ].filter(Boolean).join(" ");
+        const html = defaultFootnoteOpen(tokens, idx, options, env, renderer);
+        return html.replace('class="footnote-item"', `class="footnote-item" ${attrs}`);
+      };
+    }
+  }
   if (settings.deflist) usePlugin(markdownItDeflist);
   if (settings.emoji) usePlugin(markdownItEmoji);
   if (settings.sub) usePlugin(markdownItSub);

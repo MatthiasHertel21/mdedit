@@ -484,17 +484,17 @@ export class LayoutPreprocessor {
       wrapChapterTarget(target, marker);
     });
 
-    // Scientific thesis documents use H2 for top-level body chapters. For the
-    // later numbered chapters we only need an explicit page break, not an extra
-    // wrapper, otherwise the additional container shifts too much surrounding
-    // flow and creates false extra-break regressions.
+    // Scientific thesis documents use H2 for top-level body chapters. From the
+    // second numbered chapter onward we only need an explicit page break, not
+    // an extra wrapper, otherwise the additional container shifts too much
+    // surrounding flow and creates false extra-break regressions.
     const numberedBodyChapters = Array.from(doc.querySelectorAll('h2')).filter((heading) => {
       if (heading.closest('.chapter-start, .title-page, .table-of-contents, .md-columns, .md-column')) return false;
       const text = (heading.textContent || '').trim();
       return /^\d+\./.test(text);
     });
 
-    numberedBodyChapters.slice(2).forEach((heading) => {
+    numberedBodyChapters.slice(1).forEach((heading) => {
       if (!heading.dataset.breakBefore) {
         heading.dataset.breakBefore = 'page';
       }
@@ -1466,40 +1466,80 @@ export class LayoutPreprocessor {
     const section = doc.querySelector('section.footnotes, div.footnotes, .footnotes');
     if (!section) return;
 
-    // Build map: fnId → inner HTML of <li> (minus backref link)
+    // Build map only for page footnotes. Endnotes stay in the document-end list.
     const footnoteMap = new Map();
     section.querySelectorAll('li[id]').forEach((li) => {
       const id = li.getAttribute('id');
+      const kind = String(li.dataset.footnoteKind || '').trim().toLowerCase();
+      const number = String(li.dataset.footnoteNumber || '').trim();
+      const label = String(li.dataset.footnoteLabel || '').trim();
+
+      if (kind === 'endnote') {
+        li.classList.add('endnote-item');
+        if (number) {
+          li.setAttribute('value', number);
+        }
+        return;
+      }
+
       const clone = li.cloneNode(true);
       clone.querySelectorAll('a.footnote-backref, a[role="doc-backlink"]').forEach((a) => a.remove());
-      footnoteMap.set(id, clone.innerHTML.trim());
+      footnoteMap.set(id, {
+        content: clone.innerHTML.trim(),
+        number,
+        label
+      });
+      li.remove();
     });
 
     // Replace each visible footnote reference with the floated note placeholder.
     // Keeping the original <sup>/<a> marker alongside the float can let the call
     // detach from the sentence near page or column boundaries.
     doc.querySelectorAll('a.footnote-ref[href], sup > a[href^="#fn"]').forEach((ref) => {
+      const marker = ref.closest('sup') || ref;
+      const kind = String(marker.dataset.footnoteKind || ref.dataset.footnoteKind || '').trim().toLowerCase();
+      if (kind === 'endnote') {
+        return;
+      }
+
       const href = ref.getAttribute('href') || '';
       const fnId = href.replace(/^#/, '');
-      const content = footnoteMap.get(fnId);
-      if (!content) return;
+      const entry = footnoteMap.get(fnId);
+      if (!entry?.content) return;
 
       const span = doc.createElement('span');
       span.className = 'footnote';
+      span.dataset.footnoteKind = 'page-footnote';
+      if (entry.number) {
+        span.dataset.footnoteNumber = entry.number;
+      }
+      if (entry.label) {
+        span.dataset.footnoteLabel = entry.label;
+      }
       // Pandoc wraps footnote text in <p>; a <p> inside <span> is invalid HTML and
       // causes browser auto-correction that breaks Paged.js float:footnote placement.
       // Unwrap a single wrapping <p> to keep the span valid.
       const tempFn = doc.createElement('div');
-      tempFn.innerHTML = content;
+      tempFn.innerHTML = entry.content;
       const fnChildren = Array.from(tempFn.childNodes);
       const singleP = fnChildren.length === 1 && fnChildren[0].nodeName === 'P';
-      span.innerHTML = singleP ? fnChildren[0].innerHTML : content;
+      span.innerHTML = singleP ? fnChildren[0].innerHTML : entry.content;
 
-      const marker = ref.closest('sup') || ref;
       marker.replaceWith(span);
     });
 
-    section.remove();
+    const remainingItems = section.querySelectorAll('li[id]');
+    if (!remainingItems.length) {
+      const separator = section.previousElementSibling;
+      if (separator?.matches('hr, .footnotes-sep')) {
+        separator.remove();
+      }
+      section.remove();
+      return;
+    }
+
+    section.dataset.footnoteKind = 'endnotes';
+    section.classList.add('endnotes');
   }
 
   buildFigureList(doc) {    if (this.figureRegistry.length === 0) return null;

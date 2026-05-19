@@ -593,5 +593,12 @@
     "title": "Import and export bibliography",
     "text": "In the bibliography modal you can import .bib (BibTeX) and .json (CSL JSON) files — duplicate keys are skipped. Use the 'JSON' and 'BibTeX' buttons to download the current block as a file.",
     "example": "Import: existing.bib → entries are merged\nExport JSON: bibliography.json\nExport BibTeX: bibliography.bib"
+  },
+  {
+    "id": 87,
+    "category": "markdown",
+    "title": "Page footnote or endnote",
+    "text": "Normal footnote labels such as `[^1]` or `[^note]` become page footnotes in PDF. Labels starting with `end-` or `endnote-` stay as endnotes at the end of the document.",
+    "example": "Text with a page footnote[^1] and an endnote[^end-source].\n\n[^1]: This note lands at the bottom of the page.\n[^end-source]: This note stays in the document-end endnotes block."
   }
 ]

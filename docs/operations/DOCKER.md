@@ -68,6 +68,7 @@ Beispiel für Nginx:
 server {
     listen 80;
     server_name md.example.com;
+    client_max_body_size 16m;
     
     location / {
         proxy_pass http://localhost:3210;
@@ -82,6 +83,8 @@ server {
     }
 }
 ```
+
+Fuer PDF-Exporte sollte der Reverse Proxy mindestens `client_max_body_size 16m;` setzen, damit paged Preview HTML nicht an einer zu kleinen Request-Grenze scheitert.
 
 ## Umgebungsvariablen
 
@@ -98,6 +101,39 @@ server {
 # Rebuild und Neustart
 docker compose build
 docker compose up -d
+```
+
+## Host Guardrails
+
+Fuer produktionsnahe Hosts sollte jeder dauerhaft laufende Compose-Service explizite
+Ressourcengrenzen tragen. Der Minimalstandard auf diesem Host ist:
+
+- `mem_reservation` und `mem_limit` pro Dienst
+- `pids_limit` fuer Anwendungs- und Proxy-Container
+- `init: true` fuer lang laufende App-Container
+- zur Lastdaempfung begrenzte Parallelitaet bei Exports (`MAX_CONCURRENT_EXPORTS=2` fuer mdedit)
+
+Schneller Betriebscheck:
+
+```bash
+bash scripts/host-ops-check.sh
+```
+
+Der Check zeigt:
+
+- Host-RAM und Swap
+- laufende Container
+- Container ohne harte Memory-/PID-Grenzen
+- aktuelle Top-Docker-Memory-Consumer
+- `fail2ban`-Status fuer `sshd`
+- effektive SSH-Haertung
+
+Wenn ein Host-Absturz oder OOM vermutet wird, zuerst diese drei Checks fahren:
+
+```bash
+bash scripts/host-ops-check.sh
+journalctl -b -1 -n 200 --no-pager
+sudo fail2ban-client status sshd
 ```
 
 ## Backup

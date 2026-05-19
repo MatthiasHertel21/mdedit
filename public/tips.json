@@ -593,5 +593,12 @@
     "title": "Bibliografie importieren und exportieren",
     "text": "Im Bibliografie-Modal können .bib- (BibTeX) und .json-Dateien (CSL-JSON) importiert werden — Duplikate (gleicher Schlüssel) werden dabei übersprungen. Mit den Buttons 'JSON' und 'BibTeX' lässt sich der aktuelle Block als Datei herunterladen.",
     "example": "Import: bestehende.bib → Einträge werden gemergt\nExport JSON: bibliography.json\nExport BibTeX: bibliography.bib"
+  },
+  {
+    "id": 87,
+    "category": "markdown",
+    "title": "Seitenfußnote oder Endnote",
+    "text": "Normale Fußnotenlabels wie `[^1]` oder `[^note]` werden im PDF zu Seitenfußnoten. Labels mit `end-` oder `endnote-` bleiben als Endnoten am Dokumentende stehen.",
+    "example": "Text mit Seitenfußnote[^1] und Endnote[^end-quelle].\n\n[^1]: Diese Notiz landet am Seitenende.\n[^end-quelle]: Diese Notiz bleibt als Endnote am Dokumentende."
   }
 ]

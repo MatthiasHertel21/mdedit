@@ -124,15 +124,6 @@ export class LayoutCSSGenerator {
       css += `
 }`;
 
-      if (header.hideOnFirstPage) {
-        css += `
-
-@page :first {
-  @top-left { content: none; }
-  @top-center { content: none; }
-  @top-right { content: none; }
-}`;
-      }
     }
 
     if (footer.enabled) {
@@ -170,16 +161,30 @@ export class LayoutCSSGenerator {
 
       css += `
 }`;
+    }
 
-      if (footer.hideOnFirstPage) {
+    // Consolidated @page :first suppression block.
+    // Must appear after both header and footer sections so all margin-box
+    // suppressions are written to a single rule — two separate @page :first
+    // blocks cause rendering anomalies in Paged.js 0.4.3 (regression in v0.2.3).
+    if ((header.enabled && header.hideOnFirstPage) || (footer.enabled && footer.hideOnFirstPage)) {
+      css += `
+
+@page :first {`;
+      if (header.enabled && header.hideOnFirstPage) {
         css += `
-
-@page :first {
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }`;
+      }
+      if (footer.enabled && footer.hideOnFirstPage) {
+        css += `
   @bottom-left { content: none; }
   @bottom-center { content: none; }
-  @bottom-right { content: none; }
-}`;
+  @bottom-right { content: none; }`;
       }
+      css += `
+}`;
     }
 
     if (header.enabled && headerOffset !== '0') {
@@ -333,9 +338,12 @@ export class LayoutCSSGenerator {
 }
 
 /* Links */
-.print-content a {
-  color: ${links.color};
-  text-decoration: underline;
+.print-content a,
+.print-content a.section-ref,
+.print-content a.figure-ref,
+.print-content a.table-ref {
+  color: inherit;
+  text-decoration: none;
 }`;
 
     if (links.showUrls) {
@@ -623,6 +631,16 @@ ${selector} caption + tbody {
   page-break-before: avoid;
 }
 
+.print-content .md-columns {
+  break-inside: avoid-page;
+  page-break-inside: avoid;
+}
+
+.print-content .md-column {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .print-content table.table-keep-together,
 .print-content .keep-with-next-table table {
   break-inside: avoid-page;
@@ -766,15 +784,26 @@ ${selector} caption + tbody {
   text-align: left;
   hyphens: auto;
   overflow-wrap: anywhere;
+  line-height: 1.38;
 }
 
 .print-content .csl-entry {
   text-align: left;
   hyphens: auto;
   overflow-wrap: anywhere;
-  margin-bottom: 0.45em;
-  padding-left: 1.5em;
-  text-indent: -1.5em;
+  margin-bottom: 0.65em;
+  padding-left: 8mm;
+  text-indent: -8mm;
+  line-height: 1.38;
+}
+
+.print-content .references a,
+.print-content #refs a,
+.print-content .csl-entry a {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .print-content a.footnote-ref {

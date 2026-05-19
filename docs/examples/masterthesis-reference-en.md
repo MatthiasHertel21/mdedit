@@ -448,7 +448,7 @@ Table 6: Typical tasks before submission.
 | Export DOCX for supervision | optional |
 :::
 
-### A.4 Mathematics and note specimen
+### A.4 Mathematics, page-footnote, and endnote specimen
 
 The formula $E = mc^2$ serves as an inline test. The following block works as a display-math test:
 
@@ -456,7 +456,13 @@ $$
 \int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
 $$
 
-In addition, a short note remains as a typesetting and export specimen. It checks whether running text and the extra remark stay legible in output.
+In addition, a page footnote remains directly in the running text as a typesetting and export specimen.[^page-thesis-note]
+
+A separate document-end note also remains so the export path covers both note modes in the same reference document.[^end-thesis-note]
+
+[^page-thesis-note]: This page footnote checks whether the note stays attached to the sentence and lands cleanly at the bottom of the page in paged preview and PDF.
+
+[^end-thesis-note]: This document-end note deliberately stays in the endnotes block at the end of the document and checks that page footnotes and endnotes stay separated.
 
 ### A.5 Multi-column specimen
 

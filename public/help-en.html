@@ -557,8 +557,8 @@ $$</code></pre>
             <tbody>
               <tr>
                 <td>Footnotes</td>
-                <td><code>Text[^1]</code> and <code>[^1]: Footnote</code></td>
-                <td>Sources, explanations, and annotations.</td>
+                <td><code>Text[^1]</code> and <code>[^1]: page footnote</code>; <code>Text[^end-note]</code> and <code>[^end-note]: endnote</code></td>
+                <td>Page footnotes in PDF or endnotes at the end of the document.</td>
               </tr>
               <tr>
                 <td>Definition lists</td>
@@ -716,10 +716,14 @@ flowchart LR
           <p>In the PDF the diagram is placed as a numbered figure. Use <code>[@fig:architecture]</code> to cross-reference it in the text.</p>
 
           <h3>Footnotes in PDF</h3>
-          <p>Standard Markdown footnotes are placed as true page footnotes in the PDF — Paged.js automatically positions them at the bottom of the correct page:</p>
+          <p>Standard Markdown footnotes are placed as true page footnotes in the PDF. Labels starting with <code>end-</code> or <code>endnote-</code> stay in the endnotes block at the end of the document instead:</p>
           <pre><code>This claim is disputed.[^1]
 
-[^1]: See Müller (2023), pp. 45–48 for an extended discussion.</code></pre>
+This additional source note should deliberately remain an endnote.[^end-source-note]
+
+[^1]: See Müller (2023), pp. 45–48 for an extended discussion.
+[^end-source-note]: This note stays in the document-end endnotes block.</code></pre>
+          <p>Short rule: normal labels such as <code>[^1]</code> or <code>[^note]</code> become page footnotes; labels such as <code>[^end-note]</code> or <code>[^endnote-1]</code> remain endnotes.</p>
 
           <h3>Author comments</h3>
           <p>Text between <code>%%</code> is treated as an internal author comment and stripped entirely from both preview and export. Useful for working notes, TODOs, and editorial remarks:</p>

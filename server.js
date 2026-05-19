@@ -4030,9 +4030,9 @@ ${html}
 
     if (exitCode !== 0 && markdown && typeof markdown === "string") {
       const mdPath = path.join(tmpDir, "input.md");
-      let markdownForExport = citationSpec?.isCitationDocument
-        ? citationSpec.normalizedMarkdown
-        : rewriteMarkdownResourcePathsForPandoc(markdown);
+      let markdownForExport = citationSpec?.normalizedMarkdown
+        || rewriteMarkdownResourcePathsForPandoc(markdown);
+      const pandocFromArg = citationSpec?.pandocFromArg || `--from=${scientificPandocReader}`;
       if (format === "pdf") {
         markdownForExport = stripPandocTitleBlockMetadata(markdownForExport);
       }
@@ -4040,7 +4040,7 @@ ${html}
       app.log.info("Trying markdown export as fallback");
       let result = await runPandoc(
         mdPath,
-        citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm+header_attributes",
+        pandocFromArg,
         citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
       );
 
@@ -4059,7 +4059,7 @@ ${html}
           pdfEngine = fallbackEngine;
           result = await runPandoc(
             mdPath,
-            citationSpec?.isCitationDocument ? citationSpec.pandocFromArg : "--from=gfm+header_attributes",
+            pandocFromArg,
             citationSpec?.isCitationDocument ? citationSpec.pandocArgs : []
           );
         }

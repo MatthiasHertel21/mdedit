@@ -170,6 +170,12 @@ export const buildPagedRenderContract = ({
           </html>
         `;
 
+  // float:footnote must be registered with the Paged.js polisher so the Footnotes
+  // handler fires. print.css is never passed to the polisher, so the rule must be
+  // duplicated here. Without it, this.footnotes stays {} and processFootnotes()
+  // does nothing — footnote spans remain inline in the body text.
+  const hardcodedFootnoteRules = '.print-content .footnote { float: footnote; }';
+
   // Hardcoded break rules that must reach the Paged.js chunker but are defined in
   // print.css (not in safeLayoutCSS), so extractBreakRules() would miss them.
   // The chunker only uses polisher-registered CSS for fragmentation decisions.
@@ -194,6 +200,7 @@ export const buildPagedRenderContract = ({
     extractAtPageRules(safeLayoutCSS),
     extractBreakRules(safeLayoutCSS),
     hardcodedBreakRules,
+    hardcodedFootnoteRules,
     debugPageRules
   ].filter(Boolean).join('\n');
 

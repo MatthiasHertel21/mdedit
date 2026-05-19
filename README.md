@@ -153,8 +153,9 @@ Point both domains to the same server:
 
 ```nginx
 server {
-  listen 80;
-  server_name mdedit.io www.mdedit.io;
+   listen 80;
+   server_name mdedit.io www.mdedit.io;
+   client_max_body_size 16m;
 
   location / {
     proxy_pass http://127.0.0.1:3210;
@@ -165,6 +166,8 @@ server {
   }
 }
 ```
+
+Set `client_max_body_size` to at least `16m` when PDF export should accept full paged-preview payloads through nginx.
 
 ## Notes
 

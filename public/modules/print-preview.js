@@ -9,6 +9,45 @@ import { layoutPreprocessor } from './layout-preprocessor.js';
 import { sanitizeRenderedHtml } from './markdown-renderer.js';
 import { buildPagedRenderContract } from './paged-render-contract.js';
 
+/**
+ * Cross-references Pandoc footnote IDs (fn1, fn2, …) with their original
+ * Markdown labels to set data-footnote-kind on <li> and <sup> elements
+ * before applyPagedFootnotes runs.
+ *
+ * Pandoc numbers footnotes sequentially in order of first inline appearance
+ * in the source. We replicate that ordering to map fnN → original label,
+ * then classify via the same /^end(?:note)?[-:]/i rule used by the renderer.
+ */
+function annotateFootnoteKindsFromMarkdown(html, markdown) {
+  const seen = new Set();
+  const orderedLabels = [];
+  const refRe = /\[\^([^\]]+)\]/g;
+  let m;
+  while ((m = refRe.exec(markdown)) !== null) {
+    const label = m[1];
+    if (!seen.has(label)) {
+      seen.add(label);
+      orderedLabels.push(label);
+    }
+  }
+  if (!orderedLabels.length) return html;
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  orderedLabels.forEach((label, i) => {
+    const n = i + 1;
+    const kind = /^end(?:note)?[-:]/i.test(label) ? 'endnote' : 'page-footnote';
+    const li = doc.getElementById(`fn${n}`);
+    if (li) li.dataset.footnoteKind = kind;
+    const ref = doc.getElementById(`fnref${n}`);
+    if (ref) {
+      ref.dataset.footnoteKind = kind;
+      const sup = ref.closest('sup');
+      if (sup) sup.dataset.footnoteKind = kind;
+    }
+  });
+  return doc.documentElement.outerHTML;
+}
+
 export class PrintPreview {
   constructor() {
     this.isActive = false;
@@ -119,7 +158,8 @@ export class PrintPreview {
       return null;
     }
 
-    const processedHtml = layoutPreprocessor.postProcessHTML(payload.html);
+    const annotatedHtml = annotateFootnoteKindsFromMarkdown(payload.html, markdown);
+    const processedHtml = layoutPreprocessor.postProcessHTML(annotatedHtml);
     const sanitized = sanitizeRenderedHtml(processedHtml);
 
     // SCI-039: Resolve [@sec:] cross-references for print output.

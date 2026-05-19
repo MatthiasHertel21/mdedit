@@ -9,6 +9,10 @@
   size: A4;
   margin: 25mm;
 
+  @bottom-left {
+    content: none;
+  }
+
   @bottom-center {
     content: counter(page);
     font-family: Georgia, 'Times New Roman', serif;
@@ -17,6 +21,10 @@
     font-variant-numeric: tabular-nums;
     padding-top: 3pt;
     vertical-align: top;
+  }
+
+  @bottom-right {
+    content: none;
   }
 }
 
@@ -486,8 +494,8 @@
 /* ===== LINKS ===== */
 
 .print-content a {
-  color: #000;
-  text-decoration: underline;
+  color: inherit;
+  text-decoration: none;
 }
 
 .print-content a[href^="http"]:after {
@@ -575,6 +583,12 @@
   column-break-before: always;
 }
 
+/* Keep intro paragraph attached to following column block */
+.print-content p:has(+ .md-columns) {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
 /* Map preview columns to print columns */
 .print-content .md-columns {
   display: flex;
@@ -583,8 +597,8 @@
   gap: 1.5cm;
   margin: 8pt 0;
   position: relative;
-  break-inside: auto;
-  page-break-inside: auto;
+  break-inside: avoid-page;
+  page-break-inside: avoid;
 }
 
 .print-content .md-columns[data-rule="true"]::before {
@@ -601,8 +615,8 @@
 .print-content .md-column {
   flex: 1 1 0%;
   min-width: 0;
-  break-inside: auto;
-  page-break-inside: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
   padding: 0;
   margin: 0;
   background: none;
@@ -801,10 +815,20 @@
 .print-content .list-of-figures,
 .print-content .list-of-tables {
   margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .print-content .list-of-figures-section,
 .print-content .list-of-tables-section {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -989,9 +1013,10 @@
 
 .print-content .table-of-contents {
   margin: 24pt 0;
-  padding: 18pt;
-  background: #f9f9f9;
-  border: 1pt solid #ddd;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -1089,6 +1114,7 @@
   text-align-last: auto;
   hyphens: auto;
   overflow-wrap: anywhere;
+  line-height: 1.38;
 }
 
 .print-content .csl-entry {
@@ -1096,9 +1122,19 @@
   text-align-last: auto;
   hyphens: auto;
   overflow-wrap: anywhere;
-  margin-bottom: 0.45em;
-  padding-left: 1.5em;
-  text-indent: -1.5em;
+  margin-bottom: 0.65em;
+  padding-left: 8mm;
+  text-indent: -8mm;
+  line-height: 1.38;
+}
+
+.print-content .references a,
+.print-content #refs a,
+.print-content .csl-entry a {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .print-content.keep-with-following-objects,
@@ -1167,6 +1203,41 @@
 
 .print-content .footnotes a[href^="#fnref"],
 .print-content .footnotes a[role="doc-backlink"] {
+  display: none !important;
+}
+
+/* ===== ENDNOTES (document-end note section) ===== */
+
+.print-content .endnotes {
+  margin-top: 28pt;
+  padding: 0;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-top: 1.5pt solid #000;
+  padding-top: 10pt;
+  font-size: 9.5pt;
+  break-before: avoid-page;
+}
+
+.print-content .endnotes ol {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.print-content .endnotes li {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 4pt;
+}
+
+.print-content .endnotes li p {
+  margin: 0;
+}
+
+.print-content .endnotes a[href^="#fnref"],
+.print-content .endnotes a[role="doc-backlink"] {
   display: none !important;
 }
 

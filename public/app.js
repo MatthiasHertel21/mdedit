@@ -6126,6 +6126,13 @@ const createOrUpdatePaste = async () => {
   }
 };
 
+const MAX_PROXY_SAFE_PAGED_EXPORT_BYTES = 14 * 1024 * 1024;
+
+const isRequestEntityTooLargeResponse = (response, errorText = "") => {
+  if (response?.status === 413) return true;
+  return /request entity too large|\b413\b/i.test(String(errorText || ""));
+};
+
 const exportFile = async (format) => {
   const markdown = getMarkdown();
   if (!markdown.trim()) {
@@ -6142,28 +6149,50 @@ const exportFile = async (format) => {
   const paged = format === "pdf"
     ? Boolean(printPreview?.isActive || previewPreset === "scientific" || previewPreset === "document")
     : Boolean(printPreview?.isActive);
-  const res = await fetch(`/api/export/${format}`, {
+  const pagedPayload = { markdown, html, paged };
+  const pagedRequestBody = JSON.stringify(pagedPayload);
+  const markdownOnlyRequestBody = JSON.stringify({ markdown });
+  const pagedRequestBytes = new TextEncoder().encode(pagedRequestBody).length;
+  const shouldSkipPagedRequest = format === "pdf"
+    && paged
+    && pagedRequestBytes > MAX_PROXY_SAFE_PAGED_EXPORT_BYTES;
+
+  let res = await fetch(`/api/export/${format}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ markdown, html, paged })
+    body: shouldSkipPagedRequest ? markdownOnlyRequestBody : pagedRequestBody
   });
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
-    if (format === "pdf" && paged) {
+    const shouldRetryMarkdownOnly = format === "pdf"
+      && paged
+      && !shouldSkipPagedRequest
+      && isRequestEntityTooLargeResponse(res, errorText);
+
+    if (shouldRetryMarkdownOnly) {
+      res = await fetch(`/api/export/${format}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: markdownOnlyRequestBody
+      });
+    } else if (format === "pdf" && paged) {
       setStatus(`${t("exportFailed")}${errorText ? ": " : ""}${errorText}`, "error");
       return false;
+    } else {
+      res = await fetch(`/api/export/${format}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: markdownOnlyRequestBody
+      });
     }
-    const fallbackRes = await fetch(`/api/export/${format}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markdown })
-    });
-    if (!fallbackRes.ok) {
-      const fallbackText = await fallbackRes.text().catch(() => "");
+
+    if (!res.ok) {
+      const fallbackText = await res.text().catch(() => "");
       setStatus(`${t("exportFailed")}${fallbackText || errorText ? ": " : ""}${fallbackText || errorText}`, "error");
       return false;
     }
-    const fallbackBlob = await fallbackRes.blob();
+
+    const fallbackBlob = await res.blob();
     const fallbackUrl = URL.createObjectURL(fallbackBlob);
     const fallbackLink = document.createElement("a");
     fallbackLink.href = fallbackUrl;

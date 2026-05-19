@@ -536,8 +536,8 @@ $$</code></pre>
             <tbody>
               <tr>
                 <td>Fußnoten</td>
-                <td><code>Text[^1]</code> und <code>[^1]: Fußnote</code></td>
-                <td>Quellen, Erläuterungen und Anmerkungen.</td>
+                <td><code>Text[^1]</code> und <code>[^1]: Seitenfußnote</code>; <code>Text[^end-note]</code> und <code>[^end-note]: Endnote</code></td>
+                <td>Seitenfußnoten im PDF oder Endnoten am Dokumentende.</td>
               </tr>
               <tr>
                 <td>Definition Lists</td>
@@ -1342,8 +1342,8 @@ Nach [@Autor2024] gilt …
                   <tbody>
                     <tr>
                       <td>Fußnoten</td>
-                      <td><code>Text[^1]</code> und <code>[^1]: Fußnote</code></td>
-                      <td>Quellen, Erläuterungen und Anmerkungen.</td>
+                      <td><code>Text[^1]</code> und <code>[^1]: Seitenfußnote</code>; <code>Text[^end-note]</code> und <code>[^end-note]: Endnote</code></td>
+                      <td>Seitenfußnoten im PDF oder Endnoten am Dokumentende.</td>
                     </tr>
                     <tr>
                       <td>Definition Lists</td>
@@ -1501,10 +1501,14 @@ flowchart LR
                 <p>Im PDF wird das Diagramm als nummerierte Abbildung gesetzt. Mit <code>[@fig:architektur]</code> kann im Text darauf verwiesen werden.</p>
 
                 <h3>Fußnoten im PDF</h3>
-                <p>Standard-Markdown-Fußnoten werden im PDF als echte Seitenfußnoten gesetzt — Paged.js platziert sie automatisch am unteren Seitenrand der richtigen Seite:</p>
+                <p>Standard-Markdown-Fußnoten werden im PDF als echte Seitenfußnoten gesetzt. Labels mit <code>end-</code> oder <code>endnote-</code> bleiben dagegen als Endnoten im Dokumentendblock stehen:</p>
                 <pre><code>Dieser Sachverhalt ist umstritten.[^1]
 
-[^1]: Vgl. dazu ausführlich Müller (2023), S. 45–48.</code></pre>
+Diese ergänzende Quellenbemerkung soll bewusst als Endnote stehen.[^end-quellenhinweis]
+
+[^1]: Vgl. dazu ausführlich Müller (2023), S. 45–48.
+[^end-quellenhinweis]: Diese Notiz bleibt als Endnote am Dokumentende erhalten.</code></pre>
+                <p>Kurzregel: normale Labels wie <code>[^1]</code> oder <code>[^note]</code> werden zu Seitenfußnoten; Labels wie <code>[^end-note]</code> oder <code>[^endnote-1]</code> bleiben Endnoten.</p>
 
                 <h3>Autor-Kommentare</h3>
                 <p>Text zwischen <code>%%</code> wird als interner Autorenkommentar behandelt und in Vorschau und Export vollständig entfernt. Geeignet für Arbeitsnotizen, TODOs und Redaktionshinweise:</p>
