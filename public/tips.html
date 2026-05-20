@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>mdedit.io Tips — Markdown editor tips, shortcuts, and diagram examples</title>
+    <meta name="description" content="86 tips for mdedit.io: Markdown syntax, keyboard shortcuts, Mermaid diagram examples, citation and bibliography workflow, and editor feature reference." />
+    <link rel="canonical" href="https://mdedit.io/tips/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="mdedit.io Tips — Markdown editor tips, shortcuts, and diagram examples" />
+    <meta property="og:description" content="86 tips for mdedit.io: Markdown syntax, keyboard shortcuts, Mermaid diagram examples, citation and bibliography workflow, and editor feature reference." />
+    <meta property="og:url" content="https://mdedit.io/tips/" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="mdedit.io Tips — Markdown editor tips, shortcuts, and diagram examples" />
+    <meta name="twitter:description" content="86 tips for mdedit.io: Markdown syntax, keyboard shortcuts, Mermaid diagram examples, citation and bibliography workflow, and editor feature reference." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6fbfe;
+        --panel: #ffffff;
+        --text: #173042;
+        --muted: #5d7383;
+        --border: #dfe9ef;
+        --primary: #0d5c84;
+        --accent: #0089cf;
+        --accent-light: #dff3fd;
+        --shadow: 0 10px 30px rgba(23,48,66,0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(circle at top, #fafdff 0%, var(--bg) 55%, #eef6fb 100%);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef8fd;
+        color: #0e5579;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 0.9em;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 14px 16px;
+        overflow-x: auto;
+        border-radius: 12px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 12px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+      }
+      pre code { padding: 0; background: transparent; color: inherit; font-size: inherit; }
+      .shell { max-width: 1200px; margin: 0 auto; padding: 24px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+      .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--text); font-weight: 700; font-size: 16px; }
+      .brand img { width: 38px; height: 38px; }
+      .nav { display: flex; flex-wrap: wrap; gap: 10px; }
+      .nav a, .cta, .cta-secondary {
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 10px 16px; border-radius: 999px; border: 1px solid transparent;
+        font-weight: 600; font-size: 14px;
+      }
+      .nav a, .cta-secondary { background: rgba(255,255,255,0.75); border-color: var(--border); color: var(--text); }
+      .cta { background: var(--accent); color: #fff; box-shadow: 0 10px 20px rgba(0,137,207,0.22); }
+      .hero { display: grid; grid-template-columns: 1.3fr 0.9fr; gap: 22px; margin-bottom: 32px; }
+      .hero-copy, .hero-nav {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 22px; box-shadow: var(--shadow); padding: 28px;
+      }
+      .eyebrow {
+        display: inline-block; margin-bottom: 10px; padding: 6px 10px;
+        border-radius: 999px; background: var(--accent-light); color: var(--primary);
+        font-size: 13px; font-weight: 700;
+      }
+      h1 { margin: 0 0 12px; font-size: 36px; line-height: 1.1; color: #12364c; }
+      .lead { margin: 0; font-size: 17px; color: var(--muted); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+      .hero-nav h2 { margin: 0 0 16px; font-size: 17px; color: var(--primary); }
+      .cat-nav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .cat-nav li a {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);
+        background: #f8fcff; color: var(--text); font-weight: 500; font-size: 14px;
+      }
+      .cat-nav li a:hover { background: var(--accent-light); border-color: var(--accent); text-decoration: none; }
+      .cnt { font-size: 12px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+      .cat-section { margin-bottom: 40px; }
+      .cat-header {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 18px; padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow);
+      }
+      .cat-header h2 { margin: 0 0 6px; color: var(--primary); font-size: 22px; display: flex; align-items: center; gap: 10px; }
+      .cat-count { font-size: 13px; font-weight: 600; color: #fff; background: var(--accent); border-radius: 999px; padding: 2px 10px; }
+      .cat-desc { margin: 0; color: var(--muted); font-size: 15px; }
+      .tip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+      .tip {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 16px; padding: 18px 20px;
+        box-shadow: 0 2px 8px rgba(23,48,66,0.04);
+      }
+      .tip h3 { margin: 0 0 8px; font-size: 15px; color: var(--primary); }
+      .tip p { margin: 0; font-size: 14px; color: var(--text); }
+      .tip pre { font-size: 12px; }
+      .cta-section {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 22px; padding: 32px; text-align: center;
+        box-shadow: var(--shadow); margin-bottom: 32px;
+      }
+      .cta-section h2 { margin: 0 0 10px; color: var(--primary); }
+      .cta-section p { margin: 0 0 20px; color: var(--muted); }
+      .cta-section .cta-row { justify-content: center; }
+      @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
+      @media (max-width: 600px) { .shell { padding: 16px; } .tip-grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <img src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <span>mdedit.io</span>
+        </a>
+        <nav class="nav" aria-label="Main navigation">
+          <a href="/">Open app</a>
+          <a href="/help-en.html">Help</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+
+      <section class="hero" aria-label="Tips overview">
+        <div class="hero-copy">
+          <span class="eyebrow">Tips &amp; Reference</span>
+          <h1>86 tips for writing serious documents in mdedit.io</h1>
+          <p class="lead">Markdown syntax, keyboard shortcuts, Mermaid diagram examples, citation and bibliography workflow — a full reference for everyone using mdedit.io for structured and academic writing.</p>
+          <div class="cta-row">
+            <a class="cta" href="/" data-track-target="open-app">Open mdedit.io</a>
+            <a class="cta-secondary" href="/help-en.html" data-track-target="help">Full documentation</a>
+            <a class="cta-secondary" href="/thesis-writing/" data-track-target="thesis">Thesis writing guide</a>
+          </div>
+        </div>
+        <aside class="hero-nav" aria-label="Category navigation">
+          <h2>Jump to category</h2>
+          <ul class="cat-nav">
+            <li><a href="#markdown">Markdown Syntax <span class="cnt">30</span></a></li>
+            <li><a href="#features">Editor Features <span class="cnt">33</span></a></li>
+            <li><a href="#mermaid">Mermaid Diagrams <span class="cnt">10</span></a></li>
+            <li><a href="#citations">Citations &amp; Bibliography <span class="cnt">4</span></a></li>
+            <li><a href="#shortcuts">Keyboard Shortcuts <span class="cnt">9</span></a></li>
+          </ul>
+        </aside>
+      </section>
+
+    <section class="cat-section" id="markdown">
+      <div class="cat-header">
+        <h2>Markdown Syntax <span class="cat-count">30</span></h2>
+        <p class="cat-desc">Formatting, tables, footnotes, math, figures, and extended syntax for structured documents.</p>
+      </div>
+      <div class="tip-grid">
+      <article class="tip" id="tip-1">
+        <h3>Table alignment</h3>
+        <p>Use <code>:---</code> for left-aligned, <code>:---:</code> for centered, and <code>---:</code> for right-aligned cells in tables.</p>
+        <pre><code>| Left | Center | Right |
+|:-----|:------:|------:|
+| A    |   B    |     C |</code></pre>
+      </article>
+      <article class="tip" id="tip-3">
+        <h3>Insert footnotes</h3>
+        <p>Create footnotes with <code>[^1]</code> in the text and <code>[^1]: footnote text</code> at the end.</p>
+        <pre><code>This is some text[^1].
+
+[^1]: This is the footnote.</code></pre>
+      </article>
+      <article class="tip" id="tip-5">
+        <h3>Task lists</h3>
+        <p>Create interactive checklists with <code>- [ ]</code> for open and <code>- [x]</code> for done.</p>
+        <pre><code>- [ ] Todo
+- [x] Done</code></pre>
+      </article>
+      <article class="tip" id="tip-6">
+        <h3>Emoji shortcuts</h3>
+        <p>Use <code>:smile:</code>, <code>:heart:</code>, <code>:rocket:</code> for quick emojis.</p>
+        <pre><code>:smile: :heart: :rocket: :+1:</code></pre>
+      </article>
+      <article class="tip" id="tip-7">
+        <h3>Columns layout</h3>
+        <p>Create a two-column layout with <code>:::: columns</code> and <code>:::</code> for each column.</p>
+        <pre><code>:::: columns
+::: column
+Left column
+:::
+::: column
+Right column
+:::
+::::</code></pre>
+      </article>
+      <article class="tip" id="tip-8">
+        <h3>Admonitions</h3>
+        <p>Emphasize important content with <code>::: note</code>, <code>::: warning</code>, <code>::: danger</code>, or <code>::: success</code>.</p>
+        <pre><code>::: warning
+Caution: Important note!
+:::</code></pre>
+      </article>
+      <article class="tip" id="tip-10">
+        <h3>Definition lists</h3>
+        <p>Create structured definitions with <code>Term
+: Definition</code>.</p>
+        <pre><code>Markdown
+: Lightweight markup language
+
+HTML
+: Hypertext Markup Language</code></pre>
+      </article>
+      <article class="tip" id="tip-11">
+        <h3>Superscript &amp; subscript</h3>
+        <p>Use <code>^superscript^</code> and <code>~subscript~</code> for formulas.</p>
+        <pre><code>H~2~O and E=mc^2^</code></pre>
+      </article>
+      <article class="tip" id="tip-12">
+        <h3>Highlight text</h3>
+        <p>Highlight important text with <code>==highlighted text==</code>.</p>
+        <pre><code>This is ==very important==!</code></pre>
+      </article>
+      <article class="tip" id="tip-13">
+        <h3>Abbreviations</h3>
+        <p>Define abbreviations with <code>*[HTML]: Hypertext Markup Language</code> at the end of the document.</p>
+        <pre><code>HTML is great!
+
+*[HTML]: Hypertext Markup Language</code></pre>
+      </article>
+      <article class="tip" id="tip-15">
+        <h3>Page break</h3>
+        <p>Insert <code>---pb---</code> to force a page break for PDF export.</p>
+        <pre><code>Page 1
+
+---pb---
+
+Page 2</code></pre>
+      </article>
+      <article class="tip" id="tip-17">
+        <h3>KaTeX math</h3>
+        <p>Use <code>$inline$</code> for inline formulas and <code>$$block$$</code> for multi-line formulas.</p>
+        <pre><code>Einstein: $E=mc^2$
+
+$$\sum_{i=1}^n x_i$$</code></pre>
+      </article>
+      <article class="tip" id="tip-18">
+        <h3>Mermaid diagrams</h3>
+        <p>Create flowcharts, sequence diagrams, and more with Mermaid syntax.</p>
+        <pre><code>```mermaid
+graph TD
+  A[Start] --&gt; B[End]
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-20">
+        <h3>Add attributes</h3>
+        <p>Add CSS classes and IDs with <code>{.class #id}</code>.</p>
+        <pre><code>## Heading {.important #section1}
+
+Text {style=&quot;color: red;&quot;}</code></pre>
+      </article>
+      <article class="tip" id="tip-22">
+        <h3>Table of contents</h3>
+        <p>Insert <code>[[toc]]</code> to automatically generate a table of contents.</p>
+        <pre><code>[[toc]]
+
+## Chapter 1
+## Chapter 2</code></pre>
+      </article>
+      <article class="tip" id="tip-23">
+        <h3>Typographic replacements</h3>
+        <p>Automatic conversion: <code>...</code> → …, <code>--</code> → –, <code>--&gt;</code> → →, <code>(c)</code> → ©</p>
+        <pre><code>This is a test... (c) 2026</code></pre>
+      </article>
+      <article class="tip" id="tip-25">
+        <h3>Code with syntax highlighting</h3>
+        <p>Use triple backticks with language: ```javascript for highlighted code.</p>
+        <pre><code>```javascript
+const x = 42;
+console.log(x);
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-27">
+        <h3>Links with title</h3>
+        <p>Add tooltips to links: <code>[Text](url &quot;Tooltip&quot;)</code>.</p>
+        <pre><code>[Google](https://google.com &quot;Search engine&quot;)</code></pre>
+      </article>
+      <article class="tip" id="tip-29">
+        <h3>Nested blockquotes</h3>
+        <p>Use multiple <code>&gt;</code> for nested quotes.</p>
+        <pre><code>&gt; Quote level 1
+&gt;&gt; Quote level 2
+&gt;&gt;&gt; Quote level 3</code></pre>
+      </article>
+      <article class="tip" id="tip-32">
+        <h3>Create a table</h3>
+        <p>Create tables with pipes <code>|</code> and dashes <code>-</code> for the header row.</p>
+        <pre><code>| Column 1 | Column 2 |
+|----------|----------|
+| Value A  | Value B  |
+| Value C  | Value D  |</code></pre>
+      </article>
+      <article class="tip" id="tip-66">
+        <h3>Image alignment and width</h3>
+        <p>Use <code>&lt;!-- img: align=right width=40% --&gt;</code> directly before an image to control alignment (<code>left</code>, <code>right</code>, <code>center</code>) and width. Right-aligned images are wrapped by text.</p>
+        <pre><code>&lt;!-- img: align=right width=45% --&gt;
+![Figure 1: My diagram](image.png)
+
+This text flows to the left of the image.</code></pre>
+      </article>
+      <article class="tip" id="tip-67">
+        <h3>Auto-numbered figure captions</h3>
+        <p>If an image's alt text starts with <code>Figure N:</code>, it is automatically numbered and receives a figure caption. The entry also appears in the list of figures.</p>
+        <pre><code>![Figure 1: System overview with data pipeline](schema.png)</code></pre>
+      </article>
+      <article class="tip" id="tip-68">
+        <h3>Image frames and visual effects</h3>
+        <p>Image markers support <code>frame</code> for a subtle border, <code>shadow</code> for a drop shadow, and <code>filter=grayscale</code> or <code>filter=sepia</code> for color effects.</p>
+        <pre><code>&lt;!-- img: align=center width=70% frame shadow --&gt;
+![Figure 2: With frame and shadow](image.png)</code></pre>
+      </article>
+      <article class="tip" id="tip-69">
+        <h3>Insert a list of figures</h3>
+        <p>Use <code>&lt;!-- list-of-figures --&gt;</code> at the desired location to automatically generate a list of all numbered figures.</p>
+        <pre><code>&lt;!-- list-of-figures --&gt;
+
+# List of Figures</code></pre>
+      </article>
+      <article class="tip" id="tip-70">
+        <h3>Insert a list of tables</h3>
+        <p>Use <code>&lt;!-- list-of-tables --&gt;</code> to generate a list of tables. Tables are automatically detected when preceded by a paragraph like <code>Table 1: My table</code>.</p>
+        <pre><code>**Table 1: Layout overview.**
+
+| Area | Status |
+|---|---|
+| Margins | ☑ |</code></pre>
+      </article>
+      <article class="tip" id="tip-71">
+        <h3>Auto-detected table captions</h3>
+        <p>A paragraph immediately before a table that begins with <code>Table N:</code> is automatically recognized as a table caption, numbered, and added to the list of tables.</p>
+        <pre><code>Table 2: Comparison of layout options.
+
+| Option | Value |
+|---|---|
+| Margin | 2.1 cm |</code></pre>
+      </article>
+      <article class="tip" id="tip-73">
+        <h3>Section IDs and cross-references</h3>
+        <p>Assign a typed ID to a heading with <code>{#sec:id}</code> and reference it in the text with <code>[@sec:id]</code>. The preview resolves the reference into a clickable link, e.g. *Section 2.1*.</p>
+        <pre><code>## Methodology {#sec:methodology}
+
+As described in [@sec:methodology] …</code></pre>
+      </article>
+      <article class="tip" id="tip-75">
+        <h3>Semantic figure IDs and cross-references</h3>
+        <p>Assign a typed ID to a figure using <code>{#fig:id}</code> directly after the image or with an <code>&lt;!-- img: #fig:id --&gt;</code> marker. Reference it in the text with <code>[@fig:id]</code> — the preview turns this into a clickable link, e.g. *Figure 2*.</p>
+        <pre><code>&lt;!-- img: #fig:schema align=center --&gt;
+
+![System overview](schema.png)
+
+As shown in [@fig:schema] …</code></pre>
+      </article>
+      <article class="tip" id="tip-76">
+        <h3>Semantic table IDs and cross-references</h3>
+        <p>Assign a typed ID to a table using <code>&lt;!-- tbl: #tbl:id --&gt;</code> directly before the table caption. Reference it in the text with <code>[@tbl:id]</code> — the preview turns this into a clickable link, e.g. *Table 1*.</p>
+        <pre><code>&lt;!-- tbl: #tbl:results --&gt;
+Table 1: Measurement results overview.
+
+| Metric | Value |
+|---|---|
+| Accuracy | 94 % |
+
+See [@tbl:results] for details.</code></pre>
+      </article>
+      <article class="tip" id="tip-87">
+        <h3>Page footnote or endnote</h3>
+        <p>Normal footnote labels such as <code>[^1]</code> or <code>[^note]</code> become page footnotes in PDF. Labels starting with <code>end-</code> or <code>endnote-</code> stay as endnotes at the end of the document.</p>
+        <pre><code>Text with a page footnote[^1] and an endnote[^end-source].
+
+[^1]: This note lands at the bottom of the page.
+[^end-source]: This note stays in the document-end endnotes block.</code></pre>
+      </article>
+      </div>
+    </section>
+
+    <section class="cat-section" id="features">
+      <div class="cat-header">
+        <h2>Editor Features <span class="cat-count">33</span></h2>
+        <p class="cat-desc">Preview modes, layout control, AI assistant, real-time collaboration, folders, and document organisation.</p>
+      </div>
+      <div class="tip-grid">
+      <article class="tip" id="tip-4">
+        <h3>Preview presets</h3>
+        <p>Switch between <strong>Scientific</strong>, <strong>Compact</strong>, <strong>Literary</strong>, and <strong>Document</strong>.
+
+- <strong>Document</strong> uses layout rules directly from your Markdown file
+- otherwise it falls back to the default document layout from settings
+- ideal for print-like preview and PDF export</p>
+      </article>
+      <article class="tip" id="tip-9">
+        <h3>Outline tree</h3>
+        <p>Use the <strong>outline tree view</strong> to move quickly through large documents.
+
+Tip: It is especially useful for long documents with many headings and sub-sections.</p>
+      </article>
+      <article class="tip" id="tip-14">
+        <h3>Page view</h3>
+        <p>Enable <strong>page view</strong> for a print-like preview with visible page breaks.
+
+It uses document layout rules instead of the normal screen presets, so it is the best final check before PDF export.</p>
+      </article>
+      <article class="tip" id="tip-16">
+        <h3>Auto-save</h3>
+        <p>Your documents are saved automatically — no fear of data loss!</p>
+      </article>
+      <article class="tip" id="tip-19">
+        <h3>Export formats</h3>
+        <p>Export your documents as PDF or DOCX — Mermaid diagrams are converted automatically.</p>
+      </article>
+      <article class="tip" id="tip-21">
+        <h3>Pin the sidebar</h3>
+        <p>Use the pin function to keep the sidebar always open.</p>
+      </article>
+      <article class="tip" id="tip-24">
+        <h3>Multilingual</h3>
+        <p>The app supports German and English — switch in the settings.</p>
+      </article>
+      <article class="tip" id="tip-26">
+        <h3>Document history</h3>
+        <p>All saved documents remain in the history — search them with the search box.</p>
+      </article>
+      <article class="tip" id="tip-28">
+        <h3>Startup tips</h3>
+        <p>Enable or disable startup tips in the settings.</p>
+      </article>
+      <article class="tip" id="tip-30">
+        <h3>Resize panes</h3>
+        <p>Drag the divider between the editor and preview to adjust the size.</p>
+      </article>
+      <article class="tip" id="tip-34">
+        <h3>Custom preview styles</h3>
+        <p>Define your own CSS styles in the settings under 'Custom Styles' to tailor preview and export.</p>
+      </article>
+      <article class="tip" id="tip-45">
+        <h3>Disable tips</h3>
+        <p>You can disable tips in the settings if you no longer want to see them.</p>
+      </article>
+      <article class="tip" id="tip-46">
+        <h3>Expand sidebar</h3>
+        <p>Click the sidebar to expand it and see your document history. Click again to minimize it.</p>
+      </article>
+      <article class="tip" id="tip-47">
+        <h3>Reorder files</h3>
+        <p>Use drag &amp; drop in the sidebar to change the order of your documents.</p>
+      </article>
+      <article class="tip" id="tip-48">
+        <h3>Delete files</h3>
+        <p>Hover over a document in the history and click the delete X to remove it.</p>
+      </article>
+      <article class="tip" id="tip-49">
+        <h3>Outline via double-click</h3>
+        <p>Double-click a document card in the sidebar to show the outline (table of contents).</p>
+      </article>
+      <article class="tip" id="tip-50">
+        <h3>Organize folders</h3>
+        <p>Click the folder name above the history to open the folders overview and move documents between folders.</p>
+      </article>
+      <article class="tip" id="tip-52">
+        <h3>Sort documents in folders</h3>
+        <p>In the folders overview you can drag and drop to reorder documents within a folder or move them between folders.</p>
+      </article>
+      <article class="tip" id="tip-53">
+        <h3>Edit folder names</h3>
+        <p>Double-click a folder name in the overview to edit it inline. The default folder cannot be renamed.</p>
+      </article>
+      <article class="tip" id="tip-54">
+        <h3>Create a new folder</h3>
+        <p>Click the '+' icon in the folders overview to create a new folder to organize your documents.</p>
+      </article>
+      <article class="tip" id="tip-56">
+        <h3>Control document layouts globally</h3>
+        <p>In settings you can allow or disable document-local layout blocks globally. When disabled, the Document option also disappears from layout selectors.</p>
+      </article>
+      <article class="tip" id="tip-57">
+        <h3>Default layout for documents</h3>
+        <p>Choose whether new document layouts should start from Scientific, Compact, or Literary defaults.</p>
+      </article>
+      <article class="tip" id="tip-58">
+        <h3>Hide the layout block</h3>
+        <p>You can hide the layout block in the editor while document-local layouts are allowed, keeping the Markdown cleaner without losing print rules.</p>
+      </article>
+      <article class="tip" id="tip-64">
+        <h3>Visual layout editor</h3>
+        <p>The layout editor (palette icon in preview, or Ctrl+Shift+L) lets you set page size, fonts, margins, and columns with a few clicks.</p>
+      </article>
+      <article class="tip" id="tip-65">
+        <h3>Real-time collaboration</h3>
+        <p>Share a document via a collaboration link and write together with others. Cursors and changes are synchronized in real time.</p>
+      </article>
+      <article class="tip" id="tip-72">
+        <h3>Automatic section numbering</h3>
+        <p>Add <code>number-sections: true</code> to the YAML frontmatter to automatically number headings in decimal form (1, 1.1, 1.1.1 …).</p>
+        <pre><code>---
+number-sections: true
+---
+
+## Introduction
+
+### Background</code></pre>
+      </article>
+      <article class="tip" id="tip-74">
+        <h3>Citations and bibliography</h3>
+        <p>Set <code>citation-source: embedded</code> in the frontmatter and place BibTeX entries in a fenced code block at the end of the document. Citations like <code>[@Key2024]</code> are resolved automatically.</p>
+        <pre><code>---
+citation-source: embedded
+---
+
+As shown by [@Author2024] …
+
+``` bibtex
+@article{Author2024,
+  author = {Author, A.},
+  title  = {Title},
+  year   = {2024}
+}
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-77">
+        <h3>Bibliography panel</h3>
+        <p>Documents with embedded sources show a book icon in the editor header. Click it to open the bibliography panel with an overview of all sources. From there you can add, edit, delete, and insert sources at the cursor position.</p>
+        <pre><code>---
+citation-source: embedded
+---
+
+See [@Mueller2024].</code></pre>
+      </article>
+      <article class="tip" id="tip-78">
+        <h3>Collapse the bibliography block in the editor</h3>
+        <p>A large <code>mdedit-bibliography</code> block can take up a lot of space in the editor. In settings (Editor tab) you can collapse it to a single placeholder line — the content is preserved and the block remains accessible via the bibliography panel.</p>
+      </article>
+      <article class="tip" id="tip-79">
+        <h3>Scientific containers (Theorem, Definition, Proof)</h3>
+        <p>Use <code>:::theorem</code>, <code>:::definition</code>, <code>:::proof</code>, <code>:::remark</code>, and <code>:::example</code> to create semantic containers. An optional title can follow the type: <code>:::theorem Mean Value Theorem</code>. Containers are automatically numbered and visually styled in preview and PDF.</p>
+        <pre><code>:::definition Uniform Continuity
+
+A function $f$ is uniformly continuous on $I$ if...
+
+:::</code></pre>
+      </article>
+      <article class="tip" id="tip-80">
+        <h3>Appendix mode</h3>
+        <p>Place <code>&lt;!-- appendix --&gt;</code> anywhere in your document to switch all following <code>##</code> headings into appendix sections labeled A, B, C … In the PDF each appendix starts on a new page.</p>
+        <pre><code>## Conclusion
+
+&lt;!-- appendix --&gt;
+
+## Raw Data
+
+(Content of Appendix A)</code></pre>
+      </article>
+      <article class="tip" id="tip-81">
+        <h3>Author comments (hidden in export)</h3>
+        <p>Text between <code>%%</code> and <code>%%</code> is completely stripped from preview and export. Ideal for notes, TODOs, and editorial remarks that should not appear in the final document.</p>
+        <pre><code>%% TODO: verify sources %%
+
+This paragraph appears normally.</code></pre>
+      </article>
+      <article class="tip" id="tip-82">
+        <h3>Mermaid diagrams with caption and ID</h3>
+        <p>A paragraph directly before a Mermaid block in the format <code>Figure N: Title {#fig:id}</code> is detected as a figure caption. The diagram is wrapped in a <code>&lt;figure&gt;</code> element with automatic numbering and can be referenced via <code>@fig:id</code>.</p>
+        <pre><code>Figure 1: System overview {#fig:overview}
+
+```mermaid
+graph LR
+  A --&gt; B
+```</code></pre>
+      </article>
+      </div>
+    </section>
+
+    <section class="cat-section" id="mermaid">
+      <div class="cat-header">
+        <h2>Mermaid Diagrams <span class="cat-count">10</span></h2>
+        <p class="cat-desc">Flowcharts, sequence diagrams, Gantt charts, class diagrams, ER diagrams, and more — all inside Markdown.</p>
+      </div>
+      <div class="tip-grid">
+      <article class="tip" id="tip-35">
+        <h3>Mermaid: Flowchart</h3>
+        <p>Create flowcharts with <code>graph TD</code> (top-down) or <code>graph LR</code> (left-right). Nodes: <code>A[Text]</code>, arrows: <code>--&gt;</code></p>
+        <pre><code>```mermaid
+graph TD
+  A[Start] --&gt; B{Decision}
+  B --&gt;|Yes| C[Action 1]
+  B --&gt;|No| D[Action 2]
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-36">
+        <h3>Mermaid: Sequence diagram</h3>
+        <p>Show interactions with <code>sequenceDiagram</code>. Participants with <code>participant</code>, messages with <code>-&gt;&gt;</code> or <code>--&gt;</code>.</p>
+        <pre><code>```mermaid
+sequenceDiagram
+  participant A as Alice
+  participant B as Bob
+  A-&gt;&gt;B: Hello!
+  B--&gt;&gt;A: Hi!
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-37">
+        <h3>Mermaid: Gantt chart</h3>
+        <p>Plan projects with <code>gantt</code>. Define tasks with <code>section</code>, time spans with <code>:start date, duration</code>.</p>
+        <pre><code>```mermaid
+gantt
+  title Project plan
+  section Phase 1
+  Task 1 :a1, 2026-01-01, 30d
+  Task 2 :after a1, 20d
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-38">
+        <h3>Mermaid: Class diagram</h3>
+        <p>Model classes with <code>classDiagram</code>. Classes: <code>class Name</code>, relationships: <code>&lt;|--</code> (inheritance), <code>--&gt;</code> (association).</p>
+        <pre><code>```mermaid
+classDiagram
+  class Animal {
+    +String name
+    +makeSound()
+  }
+  class Dog {
+    +bark()
+  }
+  Animal &lt;|-- Dog
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-39">
+        <h3>Mermaid: State diagram</h3>
+        <p>Show state transitions with <code>stateDiagram-v2</code>. States: <code>state Name</code>, transitions: <code>--&gt;</code>.</p>
+        <pre><code>```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --&gt; Idle
+  Idle --&gt; Active: Start
+  Active --&gt; Idle: Stop
+  Idle --&gt; [*]
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-40">
+        <h3>Mermaid: ER diagram</h3>
+        <p>Model entities with <code>erDiagram</code>. Relationships: <code>||--o{</code> (1:n), <code>}o--o{</code> (n:m).</p>
+        <pre><code>```mermaid
+erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ ITEM : contains
+  CUSTOMER {
+    string customer_id
+    string name
+  }
+  ORDER {
+    string order_id
+    string status
+  }
+  ITEM {
+    string sku
+    int quantity
+  }
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-41">
+        <h3>Mermaid: Pie chart</h3>
+        <p>Create pie charts with <code>pie</code>. Format: <code>&quot;Label&quot; : value</code>.</p>
+        <pre><code>```mermaid
+pie title Distribution
+  &quot;Category A&quot; : 42
+  &quot;Category B&quot; : 35
+  &quot;Category C&quot; : 23
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-42">
+        <h3>Mermaid: Git graph</h3>
+        <p>Visualize Git branching with <code>gitGraph</code>. Commands: <code>commit</code>, <code>branch</code>, <code>merge</code>, <code>checkout</code>.</p>
+        <pre><code>```mermaid
+gitGraph
+  commit
+  branch develop
+  checkout develop
+  commit
+  checkout main
+  merge develop
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-43">
+        <h3>Mermaid: User journey</h3>
+        <p>Show user flows with <code>journey</code>. Steps: <code>section Name</code>, tasks with rating 1-5.</p>
+        <pre><code>```mermaid
+journey
+  title Customer buys product
+  section Search
+    Visit website: 5: Customer
+    Find product: 3: Customer
+  section Purchase
+    Add to cart: 4: Customer
+    Pay: 2: Customer
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-44">
+        <h3>Mermaid: Mindmap</h3>
+        <p>Create mindmaps with <code>mindmap</code>. Hierarchy by indentation, nodes with text.</p>
+        <pre><code>```mermaid
+mindmap
+  root((Project))
+    Planning
+      Tasks
+      Timeline
+    Development
+      Frontend
+      Backend
+```</code></pre>
+      </article>
+      </div>
+    </section>
+
+    <section class="cat-section" id="citations">
+      <div class="cat-header">
+        <h2>Citations &amp; Bibliography <span class="cat-count">4</span></h2>
+        <p class="cat-desc">Embed BibTeX, look up DOIs, import from Zotero, and export bibliography from within the document.</p>
+      </div>
+      <div class="tip-grid">
+      <article class="tip" id="tip-83">
+        <h3>Embed bibliography directly in the document</h3>
+        <p>With <code>citation-source: embedded</code> in the frontmatter, mdedit.io reads the bibliography from a <code>mdedit-bibliography</code> block inside the document. The block accepts BibTeX or CSL JSON. This keeps the bibliography part of the Markdown file — no separate .bib file needed.</p>
+        <pre><code>---
+citation-source: embedded
+---
+
+See [@doe2024].
+
+```mdedit-bibliography
+@book{doe2024,
+  author={Doe, Jane},
+  title={Example},
+  year={2024}
+}
+```</code></pre>
+      </article>
+      <article class="tip" id="tip-84">
+        <h3>DOI lookup: fetch metadata automatically</h3>
+        <p>Click 'DOI search' in the bibliography modal and enter a DOI (e.g. <code>10.1000/xyz</code>). mdedit.io fetches the metadata from Crossref and creates the entry automatically — no manual typing required.</p>
+        <pre><code>DOI: 10.1038/s41586-020-2649-2
+→ Entry imported automatically from Crossref.</code></pre>
+      </article>
+      <article class="tip" id="tip-85">
+        <h3>Zotero connector: import from your library</h3>
+        <p>Click 'Zotero' in the bibliography modal, enter your Zotero user ID and API key, and search for sources. Selected results are added directly to the embedded block. Credentials stay in the browser (sessionStorage only) and are never sent to the server.</p>
+        <pre><code>Zotero User ID: 12345678
+API Key: AbCdEfGhIjKlMnOpQrStUvWx
+→ Search and import from your Zotero library.</code></pre>
+      </article>
+      <article class="tip" id="tip-86">
+        <h3>Import and export bibliography</h3>
+        <p>In the bibliography modal you can import .bib (BibTeX) and .json (CSL JSON) files — duplicate keys are skipped. Use the 'JSON' and 'BibTeX' buttons to download the current block as a file.</p>
+        <pre><code>Import: existing.bib → entries are merged
+Export JSON: bibliography.json
+Export BibTeX: bibliography.bib</code></pre>
+      </article>
+      </div>
+    </section>
+
+    <section class="cat-section" id="shortcuts">
+      <div class="cat-header">
+        <h2>Keyboard Shortcuts <span class="cat-count">9</span></h2>
+        <p class="cat-desc">Keyboard shortcuts to move faster through the editor, AI assistant, layout editor, and folders.</p>
+      </div>
+      <div class="tip-grid">
+      <article class="tip" id="tip-2">
+        <h3>Quick copy</h3>
+        <p>Copy Markdown with the copy button in the editor or copy text from the preview.</p>
+      </article>
+      <article class="tip" id="tip-31">
+        <h3>Switch between documents</h3>
+        <p>Use Ctrl+→ and Ctrl+← to quickly navigate through your documents in the history.</p>
+      </article>
+      <article class="tip" id="tip-33">
+        <h3>Mermaid code completion</h3>
+        <p>Use Ctrl+Space in the editor for Mermaid command auto-completion.</p>
+      </article>
+      <article class="tip" id="tip-51">
+        <h3>Switch between folders</h3>
+        <p>Use Ctrl+↑ and Ctrl+↓ to quickly switch between your folders.</p>
+      </article>
+      <article class="tip" id="tip-55">
+        <h3>Quick open AI assistant</h3>
+        <p>Press Alt+Space to open or close the AI assistant. If your browser or Linux window manager opens a menu instead, use Ctrl+Space as a fallback. Inside Mermaid code blocks, Ctrl+Space stays reserved for auto-completion.</p>
+      </article>
+      <article class="tip" id="tip-60">
+        <h3>Help &amp; tips via keyboard</h3>
+        <p>Press <strong>F1</strong> to open the help page, and <strong>F2</strong> to see a new tip at any time — even if the startup tip is disabled.</p>
+      </article>
+      <article class="tip" id="tip-61">
+        <h3>Layout editor via keyboard</h3>
+        <p>Open the layout editor directly with <strong>Ctrl+Shift+L</strong> without touching the mouse.</p>
+      </article>
+      <article class="tip" id="tip-62">
+        <h3>AI assistant via keyboard</h3>
+        <p><strong>Alt+Space</strong> opens or closes the AI assistant instantly. If that opens the browser or window menu on your system, use <strong>Ctrl+Space</strong> instead. Inside Mermaid code blocks, <strong>Ctrl+Space</strong> stays reserved for auto-completion.</p>
+      </article>
+      <article class="tip" id="tip-63">
+        <h3>Folders overview via keyboard</h3>
+        <p><strong>Ctrl+0</strong> opens the folders overview where you can move documents between folders.</p>
+      </article>
+      </div>
+    </section>
+      <section class="cta-section" aria-label="Call to action">
+        <h2>Try mdedit.io — no account required</h2>
+        <p>Open the editor in your browser, start writing, and export to PDF or DOCX from the same document.</p>
+        <div class="cta-row">
+          <a class="cta" href="/" data-track-target="open-app-bottom">Open mdedit.io</a>
+          <a class="cta-secondary" href="/markdown-citations-bibtex-csl/" data-track-target="citations-page">Citations workflow</a>
+          <a class="cta-secondary" href="/self-hosted-markdown-editor/" data-track-target="self-hosting-page">Self-hosting</a>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

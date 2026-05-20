@@ -518,7 +518,8 @@ const PUBLIC_CRAWLER_SAFE_PATHS = new Set([
   "/help-en.html",
   "/thesis-writing/",
   "/self-hosted-markdown-editor/",
-  "/markdown-citations-bibtex-csl/"
+  "/markdown-citations-bibtex-csl/",
+  "/tips/"
 ]);
 
 let productionIndexHtmlCache = null;
@@ -2010,7 +2011,7 @@ const getStatsCountsForWindow = (sinceIso = null) => {
 
 const MARKETING_STATS_FILE = process.env.MARKETING_STATS_FILE
   ? path.resolve(process.env.MARKETING_STATS_FILE)
-  : path.join(process.env.DATA_DIR || __dirname, "marketing-stats.json");
+  : path.join(process.env.DATA_DIR || path.join(__dirname, "data"), "marketing-stats.json");
 
 const OWNED_DISCOVERY_SURFACES = [
   {
@@ -2032,6 +2033,11 @@ const OWNED_DISCOVERY_SURFACES = [
     label: "Markdown citations",
     pathname: "/markdown-citations-bibtex-csl/",
     filePath: path.join(__dirname, "public", "markdown-citations-bibtex-csl.html")
+  },
+  {
+    label: "Tips & Reference",
+    pathname: "/tips/",
+    filePath: path.join(__dirname, "public", "tips.html")
   }
 ];
 
@@ -2040,7 +2046,8 @@ const TRACKED_MARKETING_SURFACES = new Map([
   ["/help-en.html", { key: "help-en", label: "Scientific help" }],
   ["/thesis-writing/", { key: "thesis-writing", label: "Thesis writing" }],
   ["/self-hosted-markdown-editor/", { key: "self-hosted-markdown-editor", label: "Self-hosting" }],
-  ["/markdown-citations-bibtex-csl/", { key: "markdown-citations-bibtex-csl", label: "Citations" }]
+  ["/markdown-citations-bibtex-csl/", { key: "markdown-citations-bibtex-csl", label: "Citations" }],
+  ["/tips/", { key: "tips", label: "Tips & Reference" }]
 ]);
 
 const allowedMarketingSurfaceKeys = new Set(Array.from(TRACKED_MARKETING_SURFACES.values()).map((surface) => surface.key));
@@ -2168,10 +2175,14 @@ const getMarketingStatsForWindow = (sinceIso = null) => {
   `).get(...params);
 
   const topReferrers = db.prepare(`
-    SELECT referrer_host AS domain, COUNT(*) AS visits
+    SELECT
+      CASE WHEN referrer_host LIKE 'www.%' THEN SUBSTR(referrer_host, 5) ELSE referrer_host END AS domain,
+      COUNT(*) AS visits
     FROM marketing_events
-    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview' AND referrer_host IS NOT NULL AND referrer_host != ''
-    GROUP BY referrer_host
+    ${where ? `${where} AND` : "WHERE"} event_type = 'pageview'
+      AND referrer_host IS NOT NULL AND referrer_host != ''
+      AND CASE WHEN referrer_host LIKE 'www.%' THEN SUBSTR(referrer_host, 5) ELSE referrer_host END != 'mdedit.io'
+    GROUP BY domain
     ORDER BY visits DESC, domain ASC
     LIMIT 8
   `).all(...params);
@@ -4277,6 +4288,10 @@ app.get("/self-hosted-markdown-editor/", async (req, reply) => {
 app.get("/markdown-citations-bibtex-csl/", async (req, reply) => {
   trackMarketingSurfaceVisit(req, "markdown-citations-bibtex-csl");
   return serveStatic(req, reply, "markdown-citations-bibtex-csl.html");
+});
+app.get("/tips/", async (req, reply) => {
+  trackMarketingSurfaceVisit(req, "tips");
+  return serveStatic(req, reply, "tips.html");
 });
 
 app.post("/api/marketing/event", async (req, reply) => {

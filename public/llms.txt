@@ -51,6 +51,84 @@ The product runs entirely in the browser. No account is required. Documents are 
 - Live instance: https://mdedit.io/
 - Help and feature reference: https://mdedit.io/help-en.html
 
+## Tips and feature reference
+
+A full reference of 86 tips is available at: https://mdedit.io/tips/
+
+The tips are organised into five categories:
+
+### Markdown syntax (30 tips)
+- Tables with column alignment (`:---`, `:---:`, `---:`)
+- Footnotes: `[^1]` inline, `[^1]: text` at end; labels starting with `end-` become endnotes
+- Task lists: `- [ ]`, `- [x]`
+- Columns layout: `:::: columns` / `::: column` fenced divs
+- Admonitions: `::: note`, `::: warning`, `::: danger`, `::: success`
+- Definition lists, superscript `^x^`, subscript `~x~`, highlight `==text==`
+- Abbreviations: `*[HTML]: Hypertext Markup Language`
+- Page break: `---pb---`
+- KaTeX math: `$inline$`, `$$block$$`
+- Mermaid diagrams: fenced ` ```mermaid ` blocks
+- CSS attributes on headings and text: `{.class #id}`
+- Table of contents: `[[toc]]`
+- Typographic replacements: `...` → …, `--` → –, `(c)` → ©
+- Syntax-highlighted code blocks: ` ```javascript `
+- Links with tooltip: `[Text](url "Tooltip")`
+- Image alignment and width: `<!-- img: align=right width=40% -->`
+- Auto-numbered figure captions: `![Figure 1: Title](img.png)`
+- List of figures: `<!-- list-of-figures -->`
+- List of tables: `<!-- list-of-tables -->`
+- Auto-detected table captions: paragraph starting with `Table N:` before a table
+- Section IDs and cross-references: `{#sec:id}`, `[@sec:id]`
+- Semantic figure IDs: `<!-- img: #fig:id -->`, referenced with `[@fig:id]`
+- Semantic table IDs: `<!-- tbl: #tbl:id -->`, referenced with `[@tbl:id]`
+- Appendix mode: `<!-- appendix -->` to switch headings to appendix numbering
+- Author comments (hidden in export): `%% comment %%`
+- Automatic section numbering: `number-sections: true` in YAML frontmatter
+
+### Editor features (33 tips)
+- Four preview presets: Scientific, Compact, Literary, Document
+- Outline tree for navigating large documents
+- Page view (paged preview) with visible page breaks before export
+- Auto-save (no data loss)
+- Export to PDF (Chromium/Puppeteer) and DOCX (Pandoc)
+- Pin sidebar to keep it permanently visible
+- Drag-and-drop reordering of documents and folders
+- Visual layout editor (palette icon or Ctrl+Shift+L): page size, fonts, margins, headers/footers
+- Real-time collaboration with shared links and presence indicators
+- Scientific containers: `:::theorem`, `:::definition`, `:::proof`, `:::remark`, `:::example`
+- Bibliography panel via book icon in editor header
+- Collapse bibliography block in settings (Editor tab)
+- Custom CSS preview styles in settings
+
+### Mermaid diagrams (10 tips)
+- Flowchart: `graph TD` / `graph LR`
+- Sequence diagram: `sequenceDiagram`
+- Gantt chart: `gantt`
+- Class diagram: `classDiagram`
+- State diagram: `stateDiagram-v2`
+- ER diagram: `erDiagram`
+- Pie chart: `pie`
+- Git graph: `gitGraph`
+- User journey: `journey`
+- Mindmap: `mindmap`
+- Mermaid diagrams can have auto-numbered captions: `Figure N: Title {#fig:id}` before the block
+
+### Citations and bibliography (4 tips)
+- Embedded bibliography: `citation-source: embedded` in YAML frontmatter + ` ```mdedit-bibliography ` block with BibTeX or CSL-JSON
+- DOI lookup: click 'DOI search' in the bibliography modal, enter DOI, metadata fetched from Crossref automatically
+- Zotero connector: enter Zotero user ID and API key, search and import from library; credentials stay in browser sessionStorage only
+- Import/export: `.bib` (BibTeX) and `.json` (CSL-JSON) import and export in the bibliography modal
+
+### Keyboard shortcuts (9 tips)
+- `Ctrl+→` / `Ctrl+←`: navigate between documents in history
+- `Ctrl+↑` / `Ctrl+↓`: switch between folders
+- `Ctrl+Space`: Mermaid code completion
+- `Ctrl+Shift+L`: open layout editor
+- `Ctrl+0`: open folders overview
+- `Alt+Space`: open/close AI assistant
+- `F1`: open help page
+- `F2`: show next tip
+
 ## Licensing
 
 Source code: Apache License 2.0

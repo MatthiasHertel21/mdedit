@@ -9,6 +9,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versions fo
 ## [Unreleased]
 
 ### Added
+- `/tips/` landing page: all 86 editor tips as indexed HTML (Markdown syntax, features, Mermaid, citations, shortcuts)
+- `llms.txt` extended with full tips reference for LLM-search crawlers
+- Sitemap updated with `/tips/` URL
 - `/demo` vanity routes for academic paper showcase
 - Direct download URLs for shared pastes (`/:id/raw`, `/:id/pdf`, `/:id/docx`)
 - Link-copy buttons in share menu
