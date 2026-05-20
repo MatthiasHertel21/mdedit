@@ -2181,7 +2181,6 @@ const getMarketingStatsForWindow = (sinceIso = null) => {
     FROM marketing_events
     ${where ? `${where} AND` : "WHERE"} event_type = 'pageview'
       AND referrer_host IS NOT NULL AND referrer_host != ''
-      AND CASE WHEN referrer_host LIKE 'www.%' THEN SUBSTR(referrer_host, 5) ELSE referrer_host END != 'mdedit.io'
     GROUP BY domain
     ORDER BY visits DESC, domain ASC
     LIMIT 8
@@ -2650,8 +2649,11 @@ const renderStatsPage = async (hostname = "") => {
     const nginx7dCols = nginxStats.ok
       ? `<td>${formatNumber(nc7d.totalRequests||0)}</td><td>${formatNumber(nc7d.uniqueHumanIps||0)}</td>`
       : "";
+    const nginx30dSameAs7d = nginxStats.ok && nc30d.totalRequests === nc7d.totalRequests && nc30d.uniqueHumanIps === nc7d.uniqueHumanIps;
     const nginx30dCols = nginxStats.ok
-      ? `<td>${formatNumber(nc30d.totalRequests||0)}</td><td>${formatNumber(nc30d.uniqueHumanIps||0)}</td>`
+      ? nginx30dSameAs7d
+        ? `<td style="color:var(--muted);font-style:italic;" title="Logarchiv deckt nur ~7 Tage ab">≙ 7d</td><td style="color:var(--muted);font-style:italic;" title="Logarchiv deckt nur ~7 Tage ab">≙ 7d</td>`
+        : `<td>${formatNumber(nc30d.totalRequests||0)}</td><td>${formatNumber(nc30d.uniqueHumanIps||0)}</td>`
       : "";
     const nginxAllCols = nginxStats.ok
       ? `<td style="color:var(--muted);font-style:italic;">–</td><td style="color:var(--muted);font-style:italic;">–</td>`
