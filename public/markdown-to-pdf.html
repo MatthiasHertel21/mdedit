@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Convert Markdown to PDF in the browser — no build chain required | mdedit.io</title>
+    <meta name="description" content="Export Markdown to print-ready PDF directly in the browser. mdedit.io renders title page, table of contents, page numbers, and layout presets — no CLI, no LaTeX, no local install." />
+    <link rel="canonical" href="https://mdedit.io/markdown-to-pdf/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Convert Markdown to PDF in the browser — no build chain required | mdedit.io" />
+    <meta property="og:description" content="Export Markdown to print-ready PDF directly in the browser. Title page, TOC, page numbers, layout presets — no CLI, no LaTeX, no local install." />
+    <meta property="og:url" content="https://mdedit.io/markdown-to-pdf/" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Convert Markdown to PDF in the browser — no build chain required | mdedit.io" />
+    <meta name="twitter:description" content="Export Markdown to print-ready PDF directly in the browser. Title page, TOC, page numbers, layout presets — no CLI, no LaTeX, no local install." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I convert Markdown to PDF without a command-line tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open mdedit.io in your browser, paste or write your Markdown document, and click Export → PDF. The export uses a browser-based render pipeline — no CLI, no LaTeX, no local install required."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Markdown to PDF support a title page and table of contents?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. With the scientific layout preset, mdedit.io generates a title page from YAML frontmatter and a numbered table of contents automatically. You control the content in frontmatter, not by manually formatting it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I print Markdown with math equations and diagrams?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. KaTeX math and Mermaid diagrams are rendered before the PDF is generated, so equations and flowcharts appear correctly in the exported file."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I customise the PDF layout and page margins?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Use the layout editor to set page margins, font size, line spacing, header, footer, and custom CSS. Changes apply to both the live print preview and the final PDF output."
+          }
+        }
+      ]
+    }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6fbfe;
+        --panel: #ffffff;
+        --text: #173042;
+        --muted: #5d7383;
+        --border: #dfe9ef;
+        --primary: #0d5c84;
+        --accent: #0089cf;
+        --accent-light: #dff3fd;
+        --shadow: 0 10px 30px rgba(23, 48, 66, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(circle at top, #fafdff 0%, var(--bg) 55%, #eef6fb 100%);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef8fd;
+        color: #0e5579;
+      }
+      pre {
+        margin: 0;
+        padding: 16px;
+        overflow: auto;
+        border-radius: 14px;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 13px;
+      }
+      .shell { max-width: 1160px; margin: 0 auto; padding: 24px; }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text);
+        font-weight: 700;
+      }
+      .brand img { width: 38px; height: 38px; }
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .nav a, .cta, .cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-weight: 600;
+      }
+      .nav a, .cta-secondary {
+        background: rgba(255,255,255,0.75);
+        border-color: var(--border);
+        color: var(--text);
+      }
+      .cta {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(0, 137, 207, 0.22);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 22px;
+        align-items: stretch;
+        margin-bottom: 24px;
+      }
+      .hero-copy, .hero-proof, .section, .faq, .related {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+      }
+      .hero-copy { padding: 28px; }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-light);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      h1 { margin: 0 0 12px; font-size: 44px; line-height: 1.05; color: #12364c; }
+      .lead { margin: 0; font-size: 18px; color: var(--muted); }
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+      .hero-proof { padding: 24px; }
+      .hero-proof h2, .section h2, .faq h2, .related h2 { margin-top: 0; color: var(--primary); }
+      .mini-list { margin: 0; padding-left: 18px; }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .section, .faq, .related { padding: 24px; margin-bottom: 18px; }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .card-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .card {
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: #fbfdff;
+      }
+      .card h3 { margin-top: 0; color: var(--primary); }
+      .card h3 a { color: var(--primary); }
+      .card h3 a:hover { text-decoration: underline; }
+      .proof-links {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .proof-links a {
+        display: block;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #f8fcff;
+      }
+      .faq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      @media (max-width: 980px) {
+        .hero, .grid-2, .card-grid, .card-grid-3, .faq-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+      @media (max-width: 640px) {
+        .shell { padding: 16px; }
+        .topbar { align-items: flex-start; flex-direction: column; }
+        .hero-copy, .hero-proof, .section, .faq, .related { padding: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <img src="/static/brand/mdedit-icon.png" alt="" aria-hidden="true" />
+          <span>mdedit.io</span>
+        </a>
+        <div class="nav">
+          <a href="/">Open app</a>
+          <a href="/help-en.html#pdf-export">PDF export guide</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Markdown → PDF</span>
+          <h1>Convert Markdown to PDF in the browser — no build chain required</h1>
+          <p class="lead">mdedit.io exports print-ready PDF directly from your Markdown document. Get a title page, table of contents, page numbers, headers, and layout presets — without a CLI, a LaTeX installation, or a build pipeline.</p>
+          <div class="cta-row">
+            <a class="cta" href="/" data-track-target="open-app">Export your first PDF</a>
+            <a class="cta-secondary" href="/sample-output.pdf" data-track-target="sample-pdf">View sample PDF output</a>
+            <a class="cta-secondary" href="/help-en.html#pdf-export" data-track-target="pdf-help">PDF export guide</a>
+          </div>
+        </div>
+        <aside class="hero-proof">
+          <h2>What you get in the PDF</h2>
+          <p>mdedit.io uses a browser-based page layout engine to produce structured output from plain Markdown and YAML frontmatter — the same rendering path used for academic submission PDFs.</p>
+          <ul class="mini-list">
+            <li>Title page with author, date, and subtitle from frontmatter</li>
+            <li>Numbered table of contents generated automatically</li>
+            <li>Page numbers, running headers and footers</li>
+            <li>Proper page breaks at section boundaries</li>
+            <li>KaTeX math equations and Mermaid diagrams inline</li>
+            <li>Citations and reference list for academic documents</li>
+          </ul>
+          <div class="proof-links">
+            <a href="/sample-output.pdf" data-track-target="proof-sample-pdf">Download sample thesis PDF</a>
+            <a href="https://github.com/MatthiasHertel21/mdedit/blob/main/docs/examples/masterthesis-reference-en.md" target="_blank" rel="noopener" data-track-target="reference-document">Reference Markdown source</a>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section">
+        <h2>How Markdown to PDF works in mdedit.io</h2>
+        <div class="grid-2">
+          <div>
+            <p>Most Markdown-to-PDF tools require a command-line step: install Pandoc, configure wkhtmltopdf, run a build script, check output. That pipeline is fragile and not portable across machines.</p>
+            <p>mdedit.io handles the render pipeline in the browser. You write Markdown with a YAML frontmatter block, enable a layout preset, and use the print preview to check the output before exporting. The PDF comes back from the same session without a local install.</p>
+          </div>
+          <div>
+            <pre><code>---
+title: "Project Report"
+author: "Jane Doe"
+date: "2026-05-20"
+layout: scientific
+toc: true
+number-sections: true
+fontsize: 11pt
+geometry: "margin=2.5cm"
+---
+
+# Introduction
+
+This report covers...
+
+## Background
+
+$$E = mc^2$$</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Layout presets for different print needs</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Scientific</h3>
+            <p>Title page, numbered sections, TOC, running headers, and citation-aware output. Designed for thesis, paper, and technical report submission.</p>
+          </article>
+          <article class="card">
+            <h3>Literature</h3>
+            <p>Clean book-style layout with chapter breaks, drop caps optional, and minimal academic infrastructure. For manuscripts, essays, and long-form writing.</p>
+          </article>
+          <article class="card">
+            <h3>Compact</h3>
+            <p>Dense single-column output for handouts, documentation, or reference sheets where vertical space matters more than visual structure.</p>
+          </article>
+          <article class="card">
+            <h3>Custom CSS</h3>
+            <p>Override margins, fonts, spacing, header, and footer text with your own CSS rules applied directly in the layout editor — no separate stylesheet required.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What you control in frontmatter</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Document metadata</h3>
+            <p>Set <code>title</code>, <code>author</code>, <code>date</code>, <code>subtitle</code>, and <code>abstract</code> in YAML frontmatter — they appear on the title page and in the PDF metadata.</p>
+          </article>
+          <article class="card">
+            <h3>Page layout</h3>
+            <p>Control <code>geometry</code> (margins), <code>fontsize</code>, <code>linestretch</code>, and <code>papersize</code>. Changes take effect in both the live print preview and the exported PDF.</p>
+          </article>
+          <article class="card">
+            <h3>Section numbering and TOC</h3>
+            <p>Enable <code>number-sections: true</code> and <code>toc: true</code> to get a numbered table of contents and section numbers generated automatically from your headings.</p>
+          </article>
+          <article class="card">
+            <h3>Print preview before export</h3>
+            <p>Use the live print preview to check pagination, heading breaks, and layout before committing to a PDF export — the preview uses the same rendering engine.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="faq">
+        <h2>FAQ — Markdown to PDF</h2>
+        <div class="faq-grid">
+          <article class="card">
+            <h3>Do I need to install anything?</h3>
+            <p>No. The PDF export pipeline runs entirely in the browser and on the server side. You do not need Pandoc, wkhtmltopdf, LaTeX, or Node.js installed locally.</p>
+          </article>
+          <article class="card">
+            <h3>Does it support math equations?</h3>
+            <p>Yes. KaTeX math renders correctly in the exported PDF. Use <code>$...$</code> for inline math and <code>$$...$$</code> for display equations.</p>
+          </article>
+          <article class="card">
+            <h3>Does it support Mermaid diagrams?</h3>
+            <p>Yes. Mermaid flowcharts, sequence diagrams, class diagrams, and other supported diagram types are rendered as vector output in the PDF.</p>
+          </article>
+          <article class="card">
+            <h3>Can I print long documents?</h3>
+            <p>Yes. The print engine handles section breaks, page widows and orphans, footnotes, figure captions, and lists across pages — the same rendering used for academic documents.</p>
+          </article>
+          <article class="card">
+            <h3>Can I use citations in the PDF?</h3>
+            <p>Yes. Use embedded bibliography data with Pandoc-style citation keys and the scientific layout — the reference list and in-text citations appear correctly in the PDF output.</p>
+          </article>
+          <article class="card">
+            <h3>Can I self-host the export pipeline?</h3>
+            <p>Yes. mdedit.io is open source and self-hostable with Docker. The export dependencies (Chromium, Pandoc) are included in the Docker image.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="related">
+        <h2>Also in mdedit.io</h2>
+        <div class="card-grid-3">
+          <article class="card">
+            <h3><a href="/thesis-writing/">Thesis writing workflow</a></h3>
+            <p>Structured Markdown as the source of truth — review in Word, submit as PDF. Designed for academic long-document writing.</p>
+          </article>
+          <article class="card">
+            <h3><a href="/markdown-citations-bibtex-csl/">Citations and bibliography</a></h3>
+            <p>BibTeX and CSL references embedded in the document — appear correctly in DOCX review handoff and PDF submission output.</p>
+          </article>
+          <article class="card">
+            <h3><a href="/tips/">Editor tips and shortcuts</a></h3>
+            <p>86 tips covering Markdown syntax, keyboard shortcuts, Mermaid diagrams, citations, and editor features.</p>
+          </article>
+        </div>
+      </section>
+    </div>
+    <script>
+      (() => {
+        const surface = "markdown-to-pdf";
+        const params = new URLSearchParams(window.location.search);
+        const send = (target) => {
+          if (!target) return;
+          const payload = JSON.stringify({
+            surface,
+            target,
+            path: window.location.pathname,
+            utmSource: params.get("utm_source"),
+            utmMedium: params.get("utm_medium"),
+            utmCampaign: params.get("utm_campaign")
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon("/api/marketing/event", new Blob([payload], { type: "application/json" }));
+            return;
+          }
+          fetch("/api/marketing/event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        };
+        document.querySelectorAll("[data-track-target]").forEach((link) => {
+          link.addEventListener("click", () => send(link.getAttribute("data-track-target")));
+        });
+      })();
+    </script>
+  </body>
+</html>

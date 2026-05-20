@@ -9,6 +9,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versions fo
 ## [Unreleased]
 
 ### Added
+- `/markdown-to-pdf/` landing page: browser-based Markdown to PDF workflow, layout presets, FAQ with schema.org FAQPage markup
+- Internal cross-links between all landing pages (`/thesis-writing/`, `/markdown-to-pdf/`, `/markdown-citations-bibtex-csl/`, `/tips/`, `/self-hosted-markdown-editor/`)
 - `/tips/` landing page: all 86 editor tips as indexed HTML (Markdown syntax, features, Mermaid, citations, shortcuts)
 - `llms.txt` extended with full tips reference for LLM-search crawlers
 - Sitemap updated with `/tips/` URL

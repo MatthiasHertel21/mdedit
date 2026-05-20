@@ -519,7 +519,8 @@ const PUBLIC_CRAWLER_SAFE_PATHS = new Set([
   "/thesis-writing/",
   "/self-hosted-markdown-editor/",
   "/markdown-citations-bibtex-csl/",
-  "/tips/"
+  "/tips/",
+  "/markdown-to-pdf/"
 ]);
 
 let productionIndexHtmlCache = null;
@@ -2038,6 +2039,11 @@ const OWNED_DISCOVERY_SURFACES = [
     label: "Tips & Reference",
     pathname: "/tips/",
     filePath: path.join(__dirname, "public", "tips.html")
+  },
+  {
+    label: "Markdown to PDF",
+    pathname: "/markdown-to-pdf/",
+    filePath: path.join(__dirname, "public", "markdown-to-pdf.html")
   }
 ];
 
@@ -2047,7 +2053,8 @@ const TRACKED_MARKETING_SURFACES = new Map([
   ["/thesis-writing/", { key: "thesis-writing", label: "Thesis writing" }],
   ["/self-hosted-markdown-editor/", { key: "self-hosted-markdown-editor", label: "Self-hosting" }],
   ["/markdown-citations-bibtex-csl/", { key: "markdown-citations-bibtex-csl", label: "Citations" }],
-  ["/tips/", { key: "tips", label: "Tips & Reference" }]
+  ["/tips/", { key: "tips", label: "Tips & Reference" }],
+  ["/markdown-to-pdf/", { key: "markdown-to-pdf", label: "Markdown to PDF" }]
 ]);
 
 const allowedMarketingSurfaceKeys = new Set(Array.from(TRACKED_MARKETING_SURFACES.values()).map((surface) => surface.key));
@@ -4294,6 +4301,10 @@ app.get("/markdown-citations-bibtex-csl/", async (req, reply) => {
 app.get("/tips/", async (req, reply) => {
   trackMarketingSurfaceVisit(req, "tips");
   return serveStatic(req, reply, "tips.html");
+});
+app.get("/markdown-to-pdf/", async (req, reply) => {
+  trackMarketingSurfaceVisit(req, "markdown-to-pdf");
+  return serveStatic(req, reply, "markdown-to-pdf.html");
 });
 
 app.post("/api/marketing/event", async (req, reply) => {
