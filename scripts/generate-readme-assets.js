@@ -22,10 +22,12 @@ const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:3210';
 const ROOT = path.resolve(__dirname, '..');
 const SCREENSHOT_OUT = path.join(ROOT, 'docs', 'assets', 'readme-pdf-output.png');
 const PDF_OUT = path.join(ROOT, 'docs', 'examples', 'example-output.pdf');
-// Use masterthesis-reference.md for both the screenshot and the sample PDF.
-// It produces a realistic-looking academic document and avoids a mid-session
-// document switch that can cause re-render race conditions.
-const DEMO_SOURCE = path.join(ROOT, 'docs', 'examples', 'masterthesis-reference.md');
+// Use masterthesis-reference-en.md for both the screenshot and the sample PDF.
+// The English version matches the thesis-writing.html landing page language,
+// produces a realistic-looking academic document with citations, TOC, and
+// all scientific layout features, and avoids a mid-session document switch
+// that can cause re-render race conditions.
+const DEMO_SOURCE = path.join(ROOT, 'docs', 'examples', 'masterthesis-reference-en.md');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
