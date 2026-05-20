@@ -26,11 +26,24 @@ const EXTRA_OUT_FILES = [
   "/home/ga/mdedit/data/nginx-stats.json",
 ];
 
+const LOG_DIR = "/var/log/nginx";
+
+// Build log file list dynamically: uncompressed + all .gz rotations up to 31
+const buildLogList = (base, domain) => {
+  const list = [
+    { file: path.join(LOG_DIR, base), domain },
+    { file: path.join(LOG_DIR, `${base}.1`), domain },
+  ];
+  for (let i = 2; i <= 31; i++) {
+    const f = path.join(LOG_DIR, `${base}.${i}.gz`);
+    if (fs.existsSync(f)) list.push({ file: f, domain, gz: true });
+  }
+  return list;
+};
+
 const LOGS = [
-  { file: "/var/log/nginx/access.log", domain: "mdedit.io" },
-  { file: "/var/log/nginx/access.log.1", domain: "mdedit.io" },
-  { file: "/var/log/nginx/2b6_access.log", domain: "md.2b6.de" },
-  { file: "/var/log/nginx/2b6_access.log.1", domain: "md.2b6.de" },
+  ...buildLogList("access.log", "mdedit.io"),
+  ...buildLogList("2b6_access.log", "md.2b6.de"),
 ];
 
 const BOT_RE = /bot|crawler|spider|GPTBot|ClaudeBot|PerplexityBot|OAI-SearchBot|SemrushBot|AhrefsBot|Bingbot|DotBot|MJ12bot|PetalBot|DataForSeoBot|Censys|libredtail/i;
@@ -41,9 +54,11 @@ const API_URL_RE = /^\/api\//;
 const MONTH = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
 const LINE_RE = /^(\S+) \S+ \S+ \[([^\]]+)\] "(\S+) ([^"]*?) \S+" (\d+) \S+ "([^"]*)" "([^"]*)"/;
 
-const readLines = (file) => {
+const readLines = (file, gz = false) => {
   try {
-    return fs.readFileSync(file, "utf8").split("\n");
+    const buf = fs.readFileSync(file);
+    const text = gz ? zlib.gunzipSync(buf).toString("utf8") : buf.toString("utf8");
+    return text.split("\n");
   } catch {
     return [];
   }
@@ -114,8 +129,8 @@ const since30d = now - 30 * 24 * 3600 * 1000;
 
 const result = {};
 
-for (const { file, domain } of LOGS) {
-  const lines = readLines(file);
+for (const { file, domain, gz = false } of LOGS) {
+  const lines = readLines(file, gz);
   if (!result[domain]) result[domain] = { lines24h: [], lines7d: [], lines30d: [] };
   for (const line of lines) {
     const r = parseLine(line);
