@@ -247,6 +247,7 @@
   "settingLineNumbers": "Afficher les numéros de ligne",
   "settingLineWrapping": "Retour à la ligne dans l'éditeur",
   "settingSyntaxHighlight": "Coloration syntaxique",
+  "settingSyntaxHighlightingPreview": "",
   "editorColumnDocumentLayouts": "Mises en page du document",
   "settingSyncScroll": "Défilement synchronisé",
   "settingSyncSelection": "Sélection synchronisée",

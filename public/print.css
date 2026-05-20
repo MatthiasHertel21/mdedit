@@ -367,6 +367,17 @@
   overflow-wrap: anywhere;
 }
 
+/* Listing-Caption: Paragraph direkt vor einem Codeblock */
+.print-content p:has(+ div.sourceCode),
+.print-content p:has(+ pre) {
+  font-style: italic;
+  font-size: 9pt;
+  color: #444;
+  margin-bottom: 2pt;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
 /* ===== TABLES ===== */
 
 .print-content table {

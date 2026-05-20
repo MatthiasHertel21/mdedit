@@ -247,6 +247,7 @@
   "settingLineNumbers": "Mostra numeri di riga",
   "settingLineWrapping": "A capo automatico nell'editor",
   "settingSyntaxHighlight": "Evidenziazione sintassi",
+  "settingSyntaxHighlightingPreview": "",
   "editorColumnDocumentLayouts": "Layout del documento",
   "settingSyncScroll": "Scorrimento sincronizzato",
   "settingSyncSelection": "Selezione sincronizzata",

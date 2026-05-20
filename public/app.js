@@ -48,6 +48,7 @@ const defaultSettings = {
   lineNumbers: true,
   lineWrapping: true,
   syntaxHighlight: true,
+  syntaxHighlightingPreview: true,
   hideMermaidBlocks: false,
   showStartupTips: true,
   showToasts: true,
@@ -773,7 +774,20 @@ const buildMarkdownIt = (settings) => {
     linkify: settings.gfm,
     breaks: false,
     typographer: settings.typographer,
-    sourcepos: true
+    sourcepos: true,
+    highlight: settings.syntaxHighlightingPreview
+      ? function(str, lang) {
+          if (typeof hljs === 'undefined') return '';
+          if (lang && hljs.getLanguage(lang)) {
+            try {
+              return '<pre class="sourceCode"><code class="hljs language-' + lang + '">' +
+                hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+                '</code></pre>';
+            } catch (_) {}
+          }
+          return '';
+        }
+      : undefined
   });
 
   // Add data-sourcepos to all tokens

@@ -247,6 +247,7 @@
   "settingLineNumbers": "Zeilennummern anzeigen",
   "settingLineWrapping": "Zeilenumbruch im Editor",
   "settingSyntaxHighlight": "Syntax-Highlighting",
+  "settingSyntaxHighlightingPreview": "Syntax-Highlighting in der Vorschau",
   "editorColumnDocumentLayouts": "Dokument-Layouts",
   "settingSyncScroll": "Synchrones Scrollen",
   "settingSyncSelection": "Synchronisierte Auswahl",

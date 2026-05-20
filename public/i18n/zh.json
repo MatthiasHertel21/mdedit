@@ -247,6 +247,7 @@
   "settingLineNumbers": "显示行号",
   "settingLineWrapping": "编辑器中自动换行",
   "settingSyntaxHighlight": "语法高亮",
+  "settingSyntaxHighlightingPreview": "",
   "editorColumnDocumentLayouts": "文档布局",
   "settingSyncScroll": "同步滚动",
   "settingSyncSelection": "同步选择",

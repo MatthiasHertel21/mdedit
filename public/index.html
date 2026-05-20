@@ -72,7 +72,9 @@
     <link rel="stylesheet" href="/static/vendor/codemirror/addon/hint/show-hint.min.css" />
     <link rel="stylesheet" href="/static/vendor/codemirror/addon/fold/foldgutter.min.css" />
     <link rel="stylesheet" href="/static/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/static/vendor/highlight.js/github.min.css" />
     <script src="/static/vendor/katex/katex.min.js"></script>
+    <script src="/static/vendor/highlight.js/highlight.min.js"></script>
     <script src="/static/vendor/jszip/jszip.min.js"></script>
     <!-- YAML parser for document layout configuration -->
     <script src="/static/vendor/js-yaml/js-yaml.min.js"></script>
@@ -772,6 +774,15 @@
                 </label>
                 <div class="setting-text">
                   <div class="setting-title" data-i18n="settingSyntaxHighlight">Syntax-Highlighting</div>
+                </div>
+              </div>
+              <div class="setting">
+                <label class="switch">
+                  <input type="checkbox" data-setting="syntaxHighlightingPreview" />
+                  <span class="slider"></span>
+                </label>
+                <div class="setting-text">
+                  <div class="setting-title" data-i18n="settingSyntaxHighlightingPreview">Syntax-Highlighting in der Vorschau</div>
                 </div>
               </div>
             </div>

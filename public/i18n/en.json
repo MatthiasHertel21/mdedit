@@ -247,6 +247,7 @@
   "settingLineNumbers": "Show line numbers",
   "settingLineWrapping": "Line wrapping in editor",
   "settingSyntaxHighlight": "Syntax highlighting",
+  "settingSyntaxHighlightingPreview": "Syntax highlighting in preview",
   "editorColumnDocumentLayouts": "Document Layouts",
   "settingSyncScroll": "Synchronized scrolling",
   "settingSyncSelection": "Synchronized selection",

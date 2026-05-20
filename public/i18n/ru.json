@@ -247,6 +247,7 @@
   "settingLineNumbers": "Показать номера строк",
   "settingLineWrapping": "Перенос строк в редакторе",
   "settingSyntaxHighlight": "Подсветка синтаксиса",
+  "settingSyntaxHighlightingPreview": "",
   "editorColumnDocumentLayouts": "Макеты документа",
   "settingSyncScroll": "Синхронная прокрутка",
   "settingSyncSelection": "Синхронный выбор",

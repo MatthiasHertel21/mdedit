@@ -49,6 +49,7 @@ The browser runtime now loads its explicit third-party dependencies from self-ho
 | `markdown-it-container` | `3.0.0` | `MIT` | `https://github.com/markdown-it/markdown-it-container#readme` | Custom container blocks for layout and structure | client runtime |
 | `markdown-it-katex` | `2.0.3` | `MIT` | `https://github.com/waylonflinn/markdown-it-katex#readme` | KaTeX-backed math rendering integration | client runtime |
 | `KaTeX` | `0.16.9` | `MIT` | `https://katex.org` | Math CSS, fonts and formula presentation via self-hosted vendor files | client runtime |
+| `highlight.js` | `11.11.1` | `BSD-3-Clause` | `https://github.com/highlightjs/highlight.js` | Syntax highlighting in the Markdown preview via self-hosted vendor files | client runtime |
 | `mermaid` | `11.4.0` | `MIT` | `https://github.com/mermaid-js/mermaid#readme` | Diagram rendering in the main app | client runtime |
 | `markmap-view` | `0.18.9` | `MIT` | `https://github.com/markmap/markmap/packages/markmap-view#readme` | Outline tree visualization | client runtime |
 | `markdown-it-emoji` | `3.0.0` | `MIT` | `https://github.com/markdown-it/markdown-it-emoji#readme` | Emoji shortcode support | client runtime |
