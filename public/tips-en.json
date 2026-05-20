@@ -600,5 +600,12 @@
     "title": "Page footnote or endnote",
     "text": "Normal footnote labels such as `[^1]` or `[^note]` become page footnotes in PDF. Labels starting with `end-` or `endnote-` stay as endnotes at the end of the document.",
     "example": "Text with a page footnote[^1] and an endnote[^end-source].\n\n[^1]: This note lands at the bottom of the page.\n[^end-source]: This note stays in the document-end endnotes block."
+  },
+  {
+    "id": 88,
+    "category": "editor",
+    "title": "Syntax highlighting in preview",
+    "text": "Code blocks in the preview are highlighted by default (highlight.js, GitHub theme). The option \u201cSyntax highlighting in preview\u201d in Settings turns off coloring if it is distracting or affects performance. In the print path (PDF/DOCX), highlighting is independently handled by Pandoc.",
+    "example": "```javascript\nconst x = 42;\n```\n\u2192 Colored in preview (default); also colored in PDF (Pandoc)."
   }
 ]

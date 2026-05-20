@@ -456,7 +456,11 @@ $$
 \int_0^\infty e^{-x^2} \, dx = \frac{\sqrt{\pi}}{2}
 $$
 
-**Anmerkung:** Diese Anmerkung ersetzt echte Fußnoten und Endnoten, solange der PDF-Pfad diese nicht zuverlässig seiten- und dokumentgerecht setzt.
+Diese Seite prüft Seitenfußnoten und Endnoten im Drucklayout.[^page-thesis-note] Ein zweiter Verweis führt zur Endnotenliste am Dokumentende.[^end-thesis-note]
+
+[^page-thesis-note]: Diese Seitenfußnote soll am unteren Rand der aktuellen Seite erscheinen. Sie prüft, ob `applyPagedFootnotes` den Ref-Anker korrekt durch einen `span.footnote`-Float ersetzt und Paged.js die Note am Seitenende platziert.
+
+[^end-thesis-note]: end-thesis-note: Diese Endnote soll im Endnotenabschnitt am Dokumentende erscheinen, nicht als Seitenfußnote. Sie prüft, ob Refs mit dem Präfix `end-` von `applyPagedFootnotes` übersprungen und im `.endnotes`-Abschnitt belassen werden.
 
 ### A.5 Mehrspaltenprobe
 

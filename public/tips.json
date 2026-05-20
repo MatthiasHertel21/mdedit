@@ -600,5 +600,12 @@
     "title": "Seitenfußnote oder Endnote",
     "text": "Normale Fußnotenlabels wie `[^1]` oder `[^note]` werden im PDF zu Seitenfußnoten. Labels mit `end-` oder `endnote-` bleiben als Endnoten am Dokumentende stehen.",
     "example": "Text mit Seitenfußnote[^1] und Endnote[^end-quelle].\n\n[^1]: Diese Notiz landet am Seitenende.\n[^end-quelle]: Diese Notiz bleibt als Endnote am Dokumentende."
+  },
+  {
+    "id": 88,
+    "category": "editor",
+    "title": "Syntax-Highlighting in der Vorschau",
+    "text": "Codebloecke in der Vorschau werden standardmäßig mit Syntax-Highlighting dargestellt (highlight.js, GitHub-Theme). Die Option \u201eSyntax-Highlighting in der Vorschau\u201c in den Einstellungen schaltet die Einfaerbung ab, falls sie stört oder die Performance beeinträchtigt. Im Druckpfad (PDF/DOCX) ist Highlighting unabhängig davon durch Pandoc aktiv.",
+    "example": "```javascript\nconst x = 42;\n```\n\u2192 In der Vorschau farbig (Standard); im PDF ebenfalls farbig (Pandoc)."
   }
 ]

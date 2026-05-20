@@ -507,6 +507,106 @@ const SUITES = [
 
   ]),
 
+  suite('footnotes', [
+    // Tests for applyPagedFootnotes() — validates the Paged.js float:footnote pipeline.
+    // Input HTML is pre-annotated with data-footnote-kind (as produced by
+    // annotateFootnoteKindsFromMarkdown in the Pandoc/citation path).
+
+    check('FN-01', 'page-footnote ref is converted to span.footnote float', async (page) => {
+      const count = await page.evaluate(() => {
+        const html = `<div class="print-content">
+          <p>Text<a href="#fn1" class="footnote-ref" id="fnref1" data-footnote-kind="page-footnote"><sup>1</sup></a>.</p>
+          <section class="footnotes"><ol>
+            <li id="fn1" data-footnote-kind="page-footnote"><p>Page footnote content.</p></li>
+          </ol></section>
+        </div>`;
+        const out = window.layoutPreprocessor.postProcessHTML(html);
+        const doc = new DOMParser().parseFromString(out, 'text/html');
+        return doc.querySelectorAll('span.footnote').length;
+      });
+      assert(count === 1, `Expected 1 span.footnote, got ${count}`);
+    }),
+
+    check('FN-02', 'endnote ref is NOT converted to span.footnote', async (page) => {
+      const count = await page.evaluate(() => {
+        const html = `<div class="print-content">
+          <p>Text<a href="#fn1" class="footnote-ref" id="fnref1" data-footnote-kind="endnote"><sup>1</sup></a>.</p>
+          <section class="footnotes"><ol>
+            <li id="fn1" data-footnote-kind="endnote"><p>Endnote content.</p></li>
+          </ol></section>
+        </div>`;
+        const out = window.layoutPreprocessor.postProcessHTML(html);
+        const doc = new DOMParser().parseFromString(out, 'text/html');
+        return doc.querySelectorAll('span.footnote').length;
+      });
+      assert(count === 0, `Expected 0 span.footnote for endnote ref, got ${count}`);
+    }),
+
+    check('FN-03', 'endnote items preserved in .endnotes section after processing', async (page) => {
+      const result = await page.evaluate(() => {
+        const html = `<div class="print-content">
+          <p>Text<a href="#fn1" class="footnote-ref" id="fnref1" data-footnote-kind="endnote"><sup>1</sup></a>.</p>
+          <section class="footnotes"><ol>
+            <li id="fn1" data-footnote-kind="endnote"><p>Endnote content.</p></li>
+          </ol></section>
+        </div>`;
+        const out = window.layoutPreprocessor.postProcessHTML(html);
+        const doc = new DOMParser().parseFromString(out, 'text/html');
+        return {
+          endnoteSection: Boolean(doc.querySelector('.endnotes')),
+          endnoteItems: doc.querySelectorAll('.endnote-item').length,
+        };
+      });
+      assert(result.endnoteSection, 'Expected .endnotes section to be present');
+      assert(result.endnoteItems === 1, `Expected 1 .endnote-item, got ${result.endnoteItems}`);
+    }),
+
+    check('FN-04', 'mixed: page-footnote becomes float, endnote stays in .endnotes section', async (page) => {
+      const result = await page.evaluate(() => {
+        const html = `<div class="print-content">
+          <p>Text<a href="#fn1" class="footnote-ref" id="fnref1" data-footnote-kind="page-footnote"><sup>1</sup></a>
+          and endnote<a href="#fn2" class="footnote-ref" id="fnref2" data-footnote-kind="endnote"><sup>2</sup></a>.</p>
+          <section class="footnotes"><ol>
+            <li id="fn1" data-footnote-kind="page-footnote"><p>Page footnote content.</p></li>
+            <li id="fn2" data-footnote-kind="endnote"><p>Endnote content.</p></li>
+          </ol></section>
+        </div>`;
+        const out = window.layoutPreprocessor.postProcessHTML(html);
+        const doc = new DOMParser().parseFromString(out, 'text/html');
+        return {
+          floats: doc.querySelectorAll('span.footnote').length,
+          endnoteSection: Boolean(doc.querySelector('.endnotes')),
+          endnoteItems: doc.querySelectorAll('.endnote-item').length,
+          endnoteRefs: doc.querySelectorAll('a.footnote-ref[data-footnote-kind="endnote"]').length,
+        };
+      });
+      assert(result.floats === 1, `Expected 1 span.footnote float, got ${result.floats}`);
+      assert(result.endnoteSection, 'Expected .endnotes section to be preserved');
+      assert(result.endnoteItems === 1, `Expected 1 .endnote-item, got ${result.endnoteItems}`);
+      assert(result.endnoteRefs === 1, `Expected 1 inline endnote ref, got ${result.endnoteRefs}`);
+    }),
+
+    check('FN-05', 'footnotes section removed when all footnotes are page-footnotes', async (page) => {
+      const result = await page.evaluate(() => {
+        const html = `<div class="print-content">
+          <p>Text<a href="#fn1" class="footnote-ref" id="fnref1" data-footnote-kind="page-footnote"><sup>1</sup></a>.</p>
+          <section class="footnotes"><ol>
+            <li id="fn1" data-footnote-kind="page-footnote"><p>Page footnote content.</p></li>
+          </ol></section>
+        </div>`;
+        const out = window.layoutPreprocessor.postProcessHTML(html);
+        const doc = new DOMParser().parseFromString(out, 'text/html');
+        return {
+          footnotesSection: Boolean(doc.querySelector('section.footnotes, .footnotes:not(.endnotes)')),
+          endnotesSection: Boolean(doc.querySelector('.endnotes')),
+        };
+      });
+      assert(!result.footnotesSection, 'Expected .footnotes section to be removed when all are page-footnotes');
+      assert(!result.endnotesSection, 'Expected no .endnotes section when no endnotes');
+    }),
+
+  ]),
+
   buildReferenceDocsSuite(loadTestConfig()),
 
   suite('layout-css', [
