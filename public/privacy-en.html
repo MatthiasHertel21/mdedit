@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Privacy Notice - mdedit.io</title>
+    <meta name="description" content="Privacy notice for mdedit.io covering server-side storage, AI provider transfers, browser storage, and external bibliography services." />
+    <link rel="canonical" href="https://mdedit.io/privacy-en.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Privacy Notice - mdedit.io" />
+    <meta property="og:description" content="Current privacy notice for mdedit.io, including server-side document storage, AI provider transfers, browser storage, and external bibliography services." />
+    <meta property="og:url" content="https://mdedit.io/privacy-en.html" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Privacy Notice - mdedit.io" />
+    <meta name="twitter:description" content="Current privacy notice for mdedit.io, including server-side document storage, AI provider transfers, browser storage, and external bibliography services." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --panel: #ffffff;
+        --text: #1f2933;
+        --muted: #637381;
+        --border: #dde6ec;
+        --primary: #204d64;
+        --accent: #0089cf;
+        --accent-soft: #e5f4fc;
+        --warning: #fff5db;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #f7fbfd 0%, #f0f6fa 100%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.65;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(221, 230, 236, 0.95);
+      }
+      .header-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand img {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 24px;
+        color: var(--primary);
+        line-height: 1.15;
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .top-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 14px;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px 24px 56px;
+      }
+      .hero,
+      section,
+      footer {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.06);
+      }
+      .hero {
+        padding: 26px;
+        margin-bottom: 18px;
+      }
+      .warning {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: var(--warning);
+        border: 1px solid #f0d994;
+      }
+      .section-stack {
+        display: grid;
+        gap: 16px;
+      }
+      section {
+        padding: 22px 24px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        color: var(--primary);
+      }
+      h3 {
+        margin: 18px 0 8px;
+        font-size: 17px;
+      }
+      p,
+      li {
+        font-size: 15px;
+      }
+      ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+      .meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #0d5d86;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      footer {
+        margin-top: 18px;
+        padding: 18px 24px;
+      }
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 10px;
+      }
+      @media (max-width: 760px) {
+        .header-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="brand">
+          <img src="/static/brand/mdedit-icon.png" alt="mdedit.io" />
+          <div class="brand-copy">
+            <h1>Privacy Notice</h1>
+            <p>Current operational privacy information for mdedit.io.</p>
+          </div>
+        </div>
+        <nav class="top-links" aria-label="Further links">
+          <a href="/">App</a>
+          <a href="/help-en.html">Help</a>
+          <a href="/help.html">Hilfe</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <span class="meta">Updated: 2026-05-24</span>
+        <p>This page describes the current processing of personal data when operating mdedit.io. It focuses especially on the two product-critical flows that matter most in day-to-day use: server-side document storage and third-party transfers when the AI assistant is used.</p>
+        <div class="warning">
+          <strong>Important:</strong> When you use the AI assistant, your prompt, document context, chat history, and optionally your own API key are sent to the selected external AI provider. Do not enter confidential or especially sensitive information into the AI assistant.
+        </div>
+      </div>
+
+      <div class="section-stack">
+        <section>
+          <h2>1. Controller</h2>
+          <p>The controller for data processing on mdedit.io is:</p>
+          <p><strong>Matthias Hertel</strong><br />
+          Operator of mdedit.io<br />
+          Dresden, Germany<br />
+          Email: <a href="mailto:matthias.hertel@gmail.com">matthias.hertel@gmail.com</a></p>
+        </section>
+
+        <section>
+          <h2>2. Browser storage and technically required cookies</h2>
+          <p>mdedit.io uses technically required browser storage so the editor can function and keep your work state available. This includes a session cookie for session assignment, localStorage for settings, local workspace mappings, and AI chat sessions, plus sessionStorage for certain integrations.</p>
+          <p>These operations are carried out to provide the functionality you request and to keep the application stable and usable. The legal basis is Art. 6(1)(b) GDPR for requested functionality and Art. 6(1)(f) GDPR for technically necessary operating and security purposes.</p>
+        </section>
+
+        <section>
+          <h2>3. Server-side document storage</h2>
+          <p>When you use mdedit.io, information is processed and stored on our server. This includes session-related identifiers, document titles, Markdown content, uploads such as images, timestamps, and sharing or collaboration information when you use those features.</p>
+          <h3>Purpose</h3>
+          <p>This storage is required to create, reopen, keep stable across tabs or devices, share, collaboratively edit, preview, and export documents.</p>
+          <h3>Sharing</h3>
+          <p>Documents are session-bound by default. If you explicitly enable sharing, the document can be accessed by other people through its link. Do not share confidential content through public or semi-public share links.</p>
+          <h3>Retention</h3>
+          <p>Inactive sessions and linked content are regularly removed by technical cleanup processes. You can also delete documents yourself and clear local browser data from the settings area.</p>
+          <p>The legal basis is Art. 6(1)(b) GDPR for the editor, sharing, collaboration, preview, and export functions you actively request, plus Art. 6(1)(f) GDPR for secure and resource-conscious operation of the service.</p>
+        </section>
+
+        <section>
+          <h2>4. AI assistant and external AI providers</h2>
+          <p>If you actively use the AI assistant, the data required to handle your request is sent to our server and then forwarded to the AI provider you selected.</p>
+          <h3>This can include</h3>
+          <ul>
+            <li>your prompt or instruction</li>
+            <li>the current document content</li>
+            <li>the chat history in the AI panel</li>
+            <li>the selected provider and model</li>
+            <li>your own API key if you choose not to use a server default</li>
+          </ul>
+          <h3>Possible recipients</h3>
+          <p>Depending on your settings and the currently active configuration, recipients may include Groq, Google Gemini, OpenAI, and Anthropic.</p>
+          <h3>Legal basis</h3>
+          <p>This processing happens because you explicitly request the AI assistant feature. The legal basis is Art. 6(1)(b) GDPR. Additional processing by the selected AI provider is governed by that provider's own privacy and service terms.</p>
+          <h3>International transfers</h3>
+          <p>Depending on the provider, processing may take place outside the EU or EEA. When you use the AI assistant, the transfer takes place because you intentionally trigger that exact feature.</p>
+        </section>
+
+        <section>
+          <h2>5. External bibliography and reference services</h2>
+          <p>If you use DOI lookup, OpenAlex, or Zotero features, search terms or credentials required for the request are forwarded through our server to the selected external service. This happens only when you actively trigger the relevant lookup function.</p>
+          <p>The legal basis is Art. 6(1)(b) GDPR.</p>
+        </section>
+
+        <section>
+          <h2>6. Internal product and traffic signals</h2>
+          <p>We may process session-related events such as page visits, CTA clicks, referrer information, and UTM parameters for our own product analysis, reach evaluation, and service improvement where this is necessary for operating and developing mdedit.io.</p>
+          <p>The legal basis is Art. 6(1)(f) GDPR.</p>
+        </section>
+
+        <section>
+          <h2>7. Your rights</h2>
+          <p>Subject to the legal requirements, you have the right of access, rectification, erasure, restriction of processing, data portability, and objection to processing based on Art. 6(1)(f) GDPR. You also have the right to lodge a complaint with a data protection supervisory authority.</p>
+          <p>For privacy-related requests, contact <a href="mailto:matthias.hertel@gmail.com">matthias.hertel@gmail.com</a>.</p>
+        </section>
+      </div>
+
+      <footer>
+        <strong>Short version</strong>
+        <p>mdedit.io stores documents and session-related data on the server in order to provide the editor, sharing, collaboration, preview, and export features. When you use the AI assistant, content is forwarded to the external AI provider you selected.</p>
+        <div class="footer-links">
+          <a href="/">Back to app</a>
+          <a href="/help-en.html">Open help</a>
+          <a href="/privacy.html">Deutsche Datenschutzerklaerung</a>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

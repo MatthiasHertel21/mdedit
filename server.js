@@ -524,17 +524,21 @@ const PUBLIC_CRAWLER_SAFE_PATHS = new Set([
 ]);
 
 let productionIndexHtmlCache = null;
+let productionIndexHtmlCacheMtimeMs = 0;
 
 const readIndexHtml = async () => {
   if (process.env.NODE_ENV !== "production") {
     return fs.promises.readFile(INDEX_HTML_PATH, "utf8");
   }
 
-  if (productionIndexHtmlCache !== null) {
+  const stats = await fs.promises.stat(INDEX_HTML_PATH);
+
+  if (productionIndexHtmlCache !== null && productionIndexHtmlCacheMtimeMs === stats.mtimeMs) {
     return productionIndexHtmlCache;
   }
 
   productionIndexHtmlCache = await fs.promises.readFile(INDEX_HTML_PATH, "utf8");
+  productionIndexHtmlCacheMtimeMs = stats.mtimeMs;
   return productionIndexHtmlCache;
 };
 
@@ -556,6 +560,8 @@ const shouldAttachSessionToRequest = (req) => {
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname === "/llms.txt" ||
+    pathname === "/privacy.html" ||
+    pathname === "/privacy-en.html" ||
     pathname === "/security.txt" ||
     pathname === "/.well-known/security.txt" ||
     pathname === "/favicon.ico"
@@ -2667,17 +2673,9 @@ const renderStatsPage = async (hostname = "") => {
       : "";
     const topUrlsFiltered = (nc24h.topUrls||[]).filter(([url]) => !url.startsWith("/static/") && !url.startsWith("/vendor/"));
 
-    // 6 KPI boxes — displayed ABOVE the table card as a separate section
+    // 4 KPI boxes — displayed ABOVE the table card as a separate section (Anfragen+Human-IPs already in table)
     const nginx6KpiSectionHtml = nginxStats.ok ? `
       <section class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
-        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
-          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Anfragen 24h</p>
-          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.totalRequests||0)}</div>
-        </article>
-        <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
-          <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Human-IPs 24h</p>
-          <div class="metric" style="font-size:22px;">${formatNumber(nc24h.uniqueHumanIps||0)}</div>
-        </article>
         <article style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--panel);">
           <p style="font-size:12px;color:var(--muted);margin-bottom:4px;">Bots 24h</p>
           <div class="metric" style="font-size:22px;">${formatNumber(nc24h.botRequests||0)}</div>
@@ -2952,7 +2950,7 @@ const renderStatsPage = async (hostname = "") => {
       <!-- 2. TOP REFERRER / SURFACES / CTAs 30d — Akquise-Kanäle -->
       <section class="grid">
         <article class="card">
-          <h2>Top Referrer 30d</h2>
+          <h2>Top Referrer 30d (Event-Log)</h2>
           ${acquisitionReferrersHtml}
         </article>
         <article class="card">
@@ -2985,7 +2983,7 @@ const renderStatsPage = async (hostname = "") => {
               <p>Snapshot aus <strong>${escapeHtmlText(marketingSnapshot.source)}</strong></p>
               <div class="metric">${marketingSnapshot.avgPosition == null ? "-" : escapeHtmlText(String(marketingSnapshot.avgPosition))}</div>
               <p class="metric-sub">durchschnittliche Google-Position</p>
-              <p style="margin-top:10px;">Backlinks: <strong>${marketingSnapshot.backlinks == null ? "-" : formatNumber(marketingSnapshot.backlinks)}</strong><br>Referring Domains: <strong>${marketingSnapshot.referringDomains == null ? "-" : formatNumber(marketingSnapshot.referringDomains)}</strong><br>Organic Clicks 30d: <strong>${marketingSnapshot.organicClicks30d == null ? "-" : formatNumber(marketingSnapshot.organicClicks30d)}</strong></p>
+              <p style="margin-top:10px;">Backlinks: <strong>${marketingSnapshot.backlinks == null ? "-" : formatNumber(marketingSnapshot.backlinks)}</strong><br>Referring Domains: <strong>${marketingSnapshot.referringDomains == null ? "-" : formatNumber(marketingSnapshot.referringDomains)}</strong></p>
           ` : `
               <p>Kein externer SEO-Snapshot. Optional als JSON importierbar.</p>
               <div class="metric">-</div>
@@ -3036,7 +3034,7 @@ const renderStatsPage = async (hostname = "") => {
             ${topQueriesHtml || `<p>Keine Query-Daten im Snapshot enthalten.</p>`}
           </article>
           <article class="card">
-            <h2>Top Referrers</h2>
+            <h2>Top Referrers (GSC)</h2>
             ${topReferrersHtml || `<p>Keine Referrer-Daten im Snapshot enthalten.</p>`}
           </article>
         </section>
@@ -3053,13 +3051,13 @@ const renderStatsPage = async (hostname = "") => {
             <p>Keine Query-Daten verfuegbar. Importiere Search-Console-Daten oder einen normalisierten Snapshot.</p>
           </article>
           <article class="card">
-            <h2>Top Referrers</h2>
+            <h2>Top Referrers (GSC)</h2>
             <p>Keine externen Snapshot-Referrer verfuegbar. Interne Referrer bleiben oben in der 30d-Akquise sichtbar.</p>
           </article>
         </section>
       `}
 
-      <!-- 5. STORAGE — ändert sich kaum -->
+      <!-- 6. STORAGE — ändert sich kaum -->
       <section class="grid">
         <article class="card">
           <h2>Dokumentinhalt</h2>
@@ -4286,6 +4284,8 @@ app.get("/help-en.html", async (req, reply) => {
   trackMarketingSurfaceVisit(req, "help-en");
   return serveStatic(req, reply, "help-en.html");
 });
+app.get("/privacy.html", async (req, reply) => serveStatic(req, reply, "privacy.html"));
+app.get("/privacy-en.html", async (req, reply) => serveStatic(req, reply, "privacy-en.html"));
 app.get("/thesis-writing/", async (req, reply) => {
   trackMarketingSurfaceVisit(req, "thesis-writing");
   return serveStatic(req, reply, "thesis-writing.html");

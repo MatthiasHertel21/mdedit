@@ -467,7 +467,10 @@
             </label>
             <div class="tips-footer-meta">
               <a id="tipsHelpLink" class="tips-inline-link" href="/help-en.html" target="_blank" rel="noopener" data-i18n="helpLink">Hilfe &amp; Syntax‑Referenz</a>
-              <button id="tipsImprintBtn" class="tips-inline-link tips-imprint-link" type="button" data-i18n="aboutImprint">Imprint</button>
+                <div class="tips-legal-links">
+                  <a id="tipsPrivacyLink" class="tips-inline-link" href="/privacy-en.html" target="_blank" rel="noopener" data-i18n="aboutPrivacy">Datenschutz</a>
+                  <button id="tipsImprintBtn" class="tips-inline-link tips-imprint-link" type="button" data-i18n="aboutImprint">Imprint</button>
+                </div>
             </div>
             <div class="tips-footer-buttons">
               <button id="nextTipBtn" class="btn-primary tips-next-btn">
@@ -1016,7 +1019,8 @@
         <div class="tab-panel" data-tab-panel="ai">
           <div class="ai-providers">
             <div class="setting-description" data-i18n="aiProviderPriorityHint">Der erste aktive Anbieter in dieser Liste wird verwendet.</div>
-            <div class="setting-description" data-i18n="aiApiKeyDesc">Eigenen API-Key eingeben oder Server-Standard nutzen. Fuer staerkere Modelle ist oft ein eigener Key noetig.</div>
+            <div class="setting-description" data-i18n="aiApiKeyDesc">Sie koennen einen eigenen API-Key oder den Server-Standard nutzen. Bei Nutzung des KI-Assistenten werden Prompt, Dokumentkontext, Chatverlauf und gegebenenfalls Ihr eigener API-Key an unseren Server und den ausgewaehlten KI-Anbieter uebermittelt.</div>
+            <div class="setting-description"><a id="aiPrivacyLink" href="/privacy-en.html" target="_blank" rel="noopener" data-i18n="aboutPrivacy">Datenschutz</a></div>
 
             <!-- Groq -->
             <div class="ai-provider-row">
@@ -1127,7 +1131,10 @@
               </p>
 
               <h4 class="about-subtitle" data-i18n="aboutPrivacy">Datenschutz</h4>
-              <p class="about-text" data-i18n="aboutPrivacyText">Ihre Daten werden lokal im Browser gespeichert. Es findet keine Übertragung an Dritte statt. Die Anwendung nutzt localStorage zur Speicherung Ihrer Einstellungen und Dokumente. Sie können alle Daten jederzeit über die Browser-Einstellungen löschen.</p>
+              <p class="about-text" data-i18n="aboutPrivacyText">Dokumente und Einstellungen koennen im Browser und auf dem Server gespeichert werden. Die Anwendung nutzt technisch erforderliche Cookies fuer das Session-Management. Wenn Sie den KI-Assistenten nutzen, werden Prompt, Dokumentkontext, Chatverlauf und gegebenenfalls Ihr eigener API-Key an den ausgewaehlten KI-Anbieter uebermittelt. Details stehen in der Datenschutzerklaerung.</p>
+              <p class="about-text about-feedback-link-row">
+                <a id="aboutPrivacyLink" href="/privacy-en.html" target="_blank" rel="noopener" data-i18n="aboutPrivacy">Datenschutz</a>
+              </p>
 
               <h4 class="about-subtitle" data-i18n="aboutLicense">Lizenz</h4>
               <p class="about-text" data-i18n="aboutLicenseText">Der Quellcode dieser Anwendung steht unter der Apache License 2.0. Dokumentation und Website-Inhalte stehen, sofern nicht anders angegeben, unter CC BY 4.0. Name, Domain, Logos, Icons und sonstige Brand-Assets sind nicht automatisch mitlizenziert.</p>
@@ -2916,6 +2923,7 @@
       <a href="/self-hosted-markdown-editor/">Self-hosted Markdown Editor</a>
       <a href="/markdown-citations-bibtex-csl/">Markdown Citations with BibTeX and CSL</a>
       <a href="/help-en.html">Help</a>
+      <a href="/privacy-en.html">Privacy</a>
     </nav>
   </body>
 </html>

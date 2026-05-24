@@ -4817,15 +4817,23 @@ a.table-ref {
 .tips-footer-meta {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
   color: var(--muted);
   flex: 1 1 auto;
 }
 
-.tips-imprint-link {
+.tips-legal-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   margin-left: auto;
+}
+
+.tips-imprint-link {
+  margin-left: 0;
 }
 
 .tips-footer-buttons {
@@ -4864,7 +4872,11 @@ a.table-ref {
   }
 
   .tips-footer-meta {
-    justify-content: flex-start;
+    justify-content: space-between;
+  }
+
+  .tips-legal-links {
+    margin-left: 0;
   }
 
   .tips-footer-buttons {

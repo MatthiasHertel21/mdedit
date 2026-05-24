@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Datenschutzerklaerung - mdedit.io</title>
+    <meta name="description" content="Datenschutzerklaerung fuer mdedit.io mit den aktuellen Datenfluessen fuer serverseitige Speicherung, KI-Anbieter, Browser-Speicher und externe Bibliografie-Dienste." />
+    <link rel="canonical" href="https://mdedit.io/privacy.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mdedit.io" />
+    <meta property="og:title" content="Datenschutzerklaerung - mdedit.io" />
+    <meta property="og:description" content="Aktuelle Datenschutzhinweise fuer mdedit.io: serverseitige Speicherung, KI-Anbieter, Browser-Speicher und externe Bibliografie-Dienste." />
+    <meta property="og:url" content="https://mdedit.io/privacy.html" />
+    <meta property="og:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Datenschutzerklaerung - mdedit.io" />
+    <meta name="twitter:description" content="Aktuelle Datenschutzhinweise fuer mdedit.io: serverseitige Speicherung, KI-Anbieter, Browser-Speicher und externe Bibliografie-Dienste." />
+    <meta name="twitter:image" content="https://mdedit.io/static/brand/social-card.png" />
+    <link rel="icon" href="/static/brand/mdedit-icon.png" type="image/png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --panel: #ffffff;
+        --text: #1f2933;
+        --muted: #637381;
+        --border: #dde6ec;
+        --primary: #204d64;
+        --accent: #0089cf;
+        --accent-soft: #e5f4fc;
+        --warning: #fff5db;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #f7fbfd 0%, #f0f6fa 100%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.65;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(221, 230, 236, 0.95);
+      }
+      .header-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand img {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 24px;
+        color: var(--primary);
+        line-height: 1.15;
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .top-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 14px;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px 24px 56px;
+      }
+      .hero,
+      section,
+      footer {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.06);
+      }
+      .hero {
+        padding: 26px;
+        margin-bottom: 18px;
+      }
+      .warning {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: var(--warning);
+        border: 1px solid #f0d994;
+      }
+      .section-stack {
+        display: grid;
+        gap: 16px;
+      }
+      section {
+        padding: 22px 24px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        color: var(--primary);
+      }
+      h3 {
+        margin: 18px 0 8px;
+        font-size: 17px;
+      }
+      p,
+      li {
+        font-size: 15px;
+      }
+      ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+      .meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #0d5d86;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      footer {
+        margin-top: 18px;
+        padding: 18px 24px;
+      }
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 10px;
+      }
+      @media (max-width: 760px) {
+        .header-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="brand">
+          <img src="/static/brand/mdedit-icon.png" alt="mdedit.io" />
+          <div class="brand-copy">
+            <h1>Datenschutzerklaerung</h1>
+            <p>Aktueller Stand der Datenverarbeitung fuer mdedit.io.</p>
+          </div>
+        </div>
+        <nav class="top-links" aria-label="Weiterfuehrende Links">
+          <a href="/">App</a>
+          <a href="/help.html">Hilfe</a>
+          <a href="/help-en.html">Help</a>
+          <a href="https://github.com/MatthiasHertel21/mdedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <span class="meta">Stand: 24. Mai 2026</span>
+        <p>Diese Seite beschreibt die aktuelle Verarbeitung personenbezogener Daten beim Betrieb von mdedit.io. Sie fokussiert besonders die zwei produktkritischen Pfade, die fuer die Nutzung sofort relevant sind: serverseitige Speicherung von Dokumenten und Weitergabe von Inhalten bei Nutzung des KI-Assistenten.</p>
+        <div class="warning">
+          <strong>Wichtiger Hinweis:</strong> Wenn Sie den KI-Assistenten verwenden, werden Prompt, Dokumentkontext, Chatverlauf und gegebenenfalls ein eigener API-Key an den ausgewaehlten externen KI-Anbieter uebermittelt. Bitte geben Sie keine vertraulichen oder besonders sensiblen Daten in den KI-Assistenten ein.
+        </div>
+      </div>
+
+      <div class="section-stack">
+        <section>
+          <h2>1. Verantwortlicher</h2>
+          <p>Verantwortlich fuer die Datenverarbeitung auf mdedit.io ist:</p>
+          <p><strong>Matthias Hertel</strong><br />
+          Betreiber von mdedit.io<br />
+          Dresden, Deutschland<br />
+          E-Mail: <a href="mailto:matthias.hertel@gmail.com">matthias.hertel@gmail.com</a></p>
+        </section>
+
+        <section>
+          <h2>2. Browser-Speicher und technisch notwendige Cookies</h2>
+          <p>mdedit.io verwendet technisch notwendige Speichermechanismen im Browser, damit der Editor funktioniert und Ihren Arbeitsstand halten kann. Dazu gehoeren insbesondere ein Session-Cookie fuer die Zuordnung der Sitzung, localStorage fuer Einstellungen, lokale Ordnerzuordnungen und Chat-Sitzungen sowie sessionStorage fuer einzelne Integrationen.</p>
+          <p>Diese Verarbeitungen erfolgen zur Bereitstellung der von Ihnen angeforderten Funktionen und zur stabilen Bedienung der Anwendung. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO fuer angeforderte Funktionen sowie Art. 6 Abs. 1 lit. f DSGVO fuer technisch notwendige Betriebs- und Sicherheitszwecke.</p>
+        </section>
+
+        <section>
+          <h2>3. Serverseitige Speicherung von Dokumenten</h2>
+          <p>Wenn Sie mdedit.io nutzen, werden Informationen auf unserem Server verarbeitet und gespeichert. Dazu gehoeren insbesondere sitzungsbezogene Kennungen, Dokumenttitel, Markdown-Inhalte, Uploads wie Bilder, Zeitstempel sowie Freigabe- und Kollaborationsinformationen, soweit Sie entsprechende Funktionen nutzen.</p>
+          <h3>Zweck</h3>
+          <p>Die Speicherung dient dazu, Dokumente zu erstellen, wieder zu oeffnen, zwischen Geraeten oder Tabs stabil zu halten, zu teilen, gemeinsam zu bearbeiten sowie Export- und Vorschauroutinen auszufuehren.</p>
+          <h3>Freigaben</h3>
+          <p>Dokumente sind standardmaessig sitzungsgebunden. Wenn Sie eine Freigabe aktiv einschalten, kann das Dokument ueber einen Link fuer andere Personen abrufbar werden. Bitte teilen Sie keine vertraulichen Inhalte ueber Freigabelinks.</p>
+          <h3>Speicherdauer</h3>
+          <p>Inaktive Sitzungen und zugeordnete Inhalte werden regelmaessig durch technische Bereinigungsprozesse geloescht. Daneben koennen Sie Dokumente aktiv loeschen und lokale Browser-Daten in den Einstellungen zuruecksetzen.</p>
+          <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO fuer die von Ihnen angeforderten Editor-, Sharing-, Kollaborations- und Exportfunktionen sowie Art. 6 Abs. 1 lit. f DSGVO fuer den sicheren und ressourcenschonenden Betrieb des Dienstes.</p>
+        </section>
+
+        <section>
+          <h2>4. KI-Assistent und externe KI-Anbieter</h2>
+          <p>Wenn Sie den KI-Assistenten aktiv verwenden, werden die fuer die Bearbeitung Ihrer Anfrage benoetigten Daten an unseren Server gesendet und von dort an den ausgewaehlten KI-Anbieter weitergeleitet.</p>
+          <h3>Dabei koennen insbesondere uebermittelt werden</h3>
+          <ul>
+            <li>Ihr Prompt bzw. Ihre Eingabe</li>
+            <li>der aktuelle Dokumentinhalt</li>
+            <li>der bisherige Chatverlauf im KI-Panel</li>
+            <li>der ausgewaehlte Anbieter und das Modell</li>
+            <li>ein von Ihnen eingegebener eigener API-Key, wenn Sie keinen Server-Standard nutzen</li>
+          </ul>
+          <h3>Moegliche Empfaenger</h3>
+          <p>Je nach Ihrer Auswahl und der aktiven Konfiguration kommen derzeit insbesondere Groq, Google Gemini, OpenAI und Anthropic als Empfaenger in Betracht.</p>
+          <h3>Rechtsgrundlage</h3>
+          <p>Die Verarbeitung erfolgt, weil Sie den KI-Assistenten ausdruecklich anfordern. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Fuer die weitere Verarbeitung beim jeweiligen KI-Anbieter gelten zusaetzlich deren eigene Datenschutz- und Nutzungsbedingungen.</p>
+          <h3>Drittlandbezug</h3>
+          <p>Je nach Anbieter kann eine Verarbeitung ausserhalb der EU oder des EWR stattfinden. Wenn Sie den KI-Assistenten nutzen, erfolgt die Uebermittlung bewusst auf Ihre Veranlassung fuer genau diese Funktion.</p>
+        </section>
+
+        <section>
+          <h2>5. Externe Bibliografie- und Referenzdienste</h2>
+          <p>Wenn Sie DOI-, OpenAlex- oder Zotero-Funktionen nutzen, werden Suchbegriffe oder Zugangsdaten fuer diese jeweilige Anfrage ueber unseren Server an den ausgewaehlten externen Dienst weitergeleitet. Diese Verarbeitung erfolgt nur, wenn Sie die jeweilige Funktion aktiv ausloesen.</p>
+          <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.</p>
+        </section>
+
+        <section>
+          <h2>6. Interne Reichweiten- und Produktsignale</h2>
+          <p>Zur Auswertung eigener Oberflaechen koennen wir sitzungsbezogene Ereignisse wie Seitenaufrufe, CTA-Klicks, Referrer-Informationen und UTM-Parameter verarbeiten, soweit dies fuer Produktanalyse, Reichweitenbewertung und Weiterentwicklung des Angebots erforderlich ist.</p>
+          <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.</p>
+        </section>
+
+        <section>
+          <h2>7. Ihre Rechte</h2>
+          <p>Sie haben nach Massgabe der gesetzlichen Voraussetzungen das Recht auf Auskunft, Berichtigung, Loeschung, Einschraenkung der Verarbeitung, Datenuebertragbarkeit sowie Widerspruch gegen Verarbeitungen auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO. Sie haben ausserdem das Recht, sich bei einer Datenschutzaufsichtsbehoerde zu beschweren.</p>
+          <p>Fuer datenschutzbezogene Anfragen koennen Sie uns unter <a href="mailto:matthias.hertel@gmail.com">matthias.hertel@gmail.com</a> kontaktieren.</p>
+        </section>
+      </div>
+
+      <footer>
+        <strong>Kurzfassung</strong>
+        <p>mdedit.io speichert Dokumente und Sitzungsdaten serverseitig, um den Editor, Sharing, Kollaboration und Export bereitzustellen. Wenn Sie den KI-Assistenten nutzen, werden Inhalte an den von Ihnen gewaehlten externen KI-Anbieter uebermittelt.</p>
+        <div class="footer-links">
+          <a href="/">Zur App</a>
+          <a href="/help.html">Zur Hilfe</a>
+          <a href="/privacy-en.html">English privacy notice</a>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

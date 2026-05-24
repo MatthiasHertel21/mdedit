@@ -1426,6 +1426,7 @@ const elements = {
   mobileContextActions: document.getElementById("mobileContextActions"),
   mobileOverflowToggle: document.getElementById("mobileOverflowToggle"),
   mobileOverflowPanel: document.getElementById("mobileOverflowPanel"),
+  mobileMenuHelpLink: document.getElementById("mobileMenuHelpLink"),
   mobileMenuHistoryToggle: document.getElementById("mobileMenuHistoryToggle"),
   mobileRenderViewBtn: document.getElementById("mobileRenderViewBtn"),
   mobileTreeViewBtn: document.getElementById("mobileTreeViewBtn"),
@@ -1492,6 +1493,8 @@ const elements = {
   randomTipContainer: document.getElementById("randomTipContainer"),
   tipsFooter: document.getElementById("tipsFooter"),
   tipsImprintBtn: document.getElementById("tipsImprintBtn"),
+  tipsHelpLink: document.getElementById("tipsHelpLink"),
+  tipsPrivacyLink: document.getElementById("tipsPrivacyLink"),
   dontShowTipsAgain: document.getElementById("dontShowTipsAgain"),
   tipsDocumentCount: document.getElementById("tipsDocumentCount"),
   nextTipBtn: document.getElementById("nextTipBtn"),
@@ -1554,7 +1557,9 @@ const elements = {
   mermaidDeleteSelected: document.getElementById("mermaidDeleteSelected"),
   mermaidZoomIn: document.getElementById("mermaidZoomIn"),
   mermaidZoomOut: document.getElementById("mermaidZoomOut"),
-  mermaidZoomReset: document.getElementById("mermaidZoomReset")
+  mermaidZoomReset: document.getElementById("mermaidZoomReset"),
+  aboutPrivacyLink: document.getElementById("aboutPrivacyLink"),
+  aiPrivacyLink: document.getElementById("aiPrivacyLink")
 };
 
 let currentPasteId = null;
@@ -2889,6 +2894,8 @@ const getTipsUrl = (locale = currentLocale || getLocale()) => locale === "de" ? 
 
 const getHelpUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/help.html" : "/help-en.html";
 
+const getPrivacyUrl = (locale = currentLocale || getLocale()) => locale === "de" ? "/privacy.html" : "/privacy-en.html";
+
 const sendHomepageMarketingEvent = (target) => {
   if (!target) return;
 
@@ -2917,8 +2924,22 @@ const sendHomepageMarketingEvent = (target) => {
 
 const updateHelpLinks = () => {
   const helpUrl = getHelpUrl();
+  const privacyUrl = getPrivacyUrl();
+
+  if (elements.mobileMenuHelpLink) {
+    elements.mobileMenuHelpLink.href = helpUrl;
+  }
   if (elements.tipsHelpLink) {
     elements.tipsHelpLink.href = helpUrl;
+  }
+  if (elements.tipsPrivacyLink) {
+    elements.tipsPrivacyLink.href = privacyUrl;
+  }
+  if (elements.aboutPrivacyLink) {
+    elements.aboutPrivacyLink.href = privacyUrl;
+  }
+  if (elements.aiPrivacyLink) {
+    elements.aiPrivacyLink.href = privacyUrl;
   }
 };
 
